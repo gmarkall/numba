@@ -849,6 +849,9 @@ class PythonAPI(object):
                     self.builder.store(just, ret)
             return ret
 
+        elif isinstance(typ, types.IntervalType):
+            return self.to_native_interval(obj)
+
         raise NotImplementedError(typ)
 
     def from_native_return(self, val, typ):
@@ -940,6 +943,19 @@ class PythonAPI(object):
             self.builder.unreachable()
         return self.builder.load(aryptr)
 
+    def to_native_interval(self, interval):
+        voidptr = Type.pointer(Type.int(8))
+        nativeivcls = self.context.make_interval()
+        nativeiv = nativeivcls(self.context, self.builder)
+        ivptr = nativeiv._getpointer()
+        ptr = self.builder.bitcast(ivptr, voidptr)
+        errcode = self.interval_adaptor(interval, ptr)
+        failed = cgutils.is_not_null(self.builder, errcode)
+        with cgutils.if_unlikely(self.builder, failed):
+            # TODO
+            self.builder.unreachable()
+        return self.builder.load(ivptr)
+
     def from_native_array(self, typ, ary):
         assert assume.return_argument_array_only
         nativearycls = self.context.make_array(typ)
@@ -965,6 +981,14 @@ class PythonAPI(object):
         fn.args[0].add_attribute(lc.ATTR_NO_CAPTURE)
         fn.args[1].add_attribute(lc.ATTR_NO_CAPTURE)
         return self.builder.call(fn, (ary, ptr))
+
+    def interval_adaptor(self, interval, ptr):
+        voidptr = Type.pointer(Type.int(8))
+        fnty = Type.function(Type.int(), [self.pyobj, voidptr])
+        fn = self._get_function(fnty, name="numba_adapt_interval")
+        fn.args[0].add_attribute(lc.ATTR_NO_CAPTURE)
+        fn.args[1].add_attribute(lc.ATTR_NO_CAPTURE)
+        return self.builder.call(fn, (interval, ptr))
 
     def complex_adaptor(self, cobj, cmplx):
         fnty = Type.function(Type.int(), [self.pyobj, cmplx.type])

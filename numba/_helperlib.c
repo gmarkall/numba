@@ -332,6 +332,21 @@ void Numba_gil_release(PyGILState_STATE *state) {
     PyGILState_Release(*state);
 }
 
+typedef struct {
+    double lo;
+    double hi;
+} intervalstruct_t;
+
+static
+int Numba_adapt_interval(PyObject *obj, intervalstruct_t* ivstruct) {
+    PyObject* lodata = PyObject_GetAttrString(obj, "lo");
+    ivstruct->lo = PyFloat_AsDouble(lodata);
+    PyObject* hidata = PyObject_GetAttrString(obj, "hi");
+    ivstruct->hi = PyFloat_AsDouble(hidata);
+
+    return 0;
+}
+
 /*
 Define bridge for all math functions
 */
@@ -384,6 +399,7 @@ build_c_helpers_dict(void)
     declmethod(fptouif);
     declmethod(gil_ensure);
     declmethod(gil_release);
+    declmethod(adapt_interval);
 #define MATH_UNARY(F, R, A) declmethod(F);
 #define MATH_BINARY(F, R, A, B) declmethod(F);
     #include "mathnames.inc"

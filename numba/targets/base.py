@@ -15,7 +15,7 @@ from numba.pythonapi import PythonAPI
 from numba.targets.imputils import (user_function, python_attr_impl,
                                     builtin_registry, impl_attribute,
                                     struct_registry, type_registry)
-from . import arrayobj, builtins, iterators, rangeobj, optional
+from . import arrayobj, builtins, intervalobj, iterators, rangeobj, optional
 try:
     from . import npdatetime
 except NotImplementedError:
@@ -304,6 +304,9 @@ class BaseContext(object):
 
         elif isinstance(ty, types.Array):
             return self.get_struct_type(self.make_array(ty))
+
+        elif isinstance(ty, types.IntervalType):
+            return self.get_struct_type(self.make_interval())
 
         elif isinstance(ty, types.UniTuple):
             dty = self.get_value_type(ty.dtype)
@@ -995,6 +998,9 @@ class BaseContext(object):
 
     def make_array(self, typ):
         return arrayobj.make_array(typ)
+
+    def make_interval(self):
+        return intervalobj.make_interval()
 
     def make_complex(self, typ):
         cls, _ = builtins.get_complex_info(typ)
