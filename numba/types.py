@@ -769,6 +769,11 @@ class Optional(Type):
         return self.type
 
 
+class IntervalType(Type):
+    def __init__(self):
+        super(IntervalType, self).__init__(name='Interval')
+
+
 # Utils
 
 def is_int_tuple(x):
@@ -838,6 +843,8 @@ integer_domain = signed_domain | unsigned_domain
 real_domain = frozenset([float32, float64])
 complex_domain = frozenset([complex64, complex128])
 number_domain = real_domain | integer_domain | complex_domain
+
+interval_type = IntervalType()
 
 # Aliases to Numpy type names
 

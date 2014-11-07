@@ -11,8 +11,9 @@ from numba import types
 from numba.typeconv import rules
 from . import templates
 # Initialize declarations
-from . import builtins, cmathdecl, mathdecl, npdatetime, npydecl, operatordecl
-from numba import numpy_support, utils
+from . import (builtins, cmathdecl, intervaldecl, mathdecl, npdatetime, npydecl,
+               operatordecl)
+from numba import interval_support, numpy_support, utils
 from . import ctypes_utils, cffi_utils
 
 
@@ -182,6 +183,9 @@ class BaseContext(object):
             else:
                 layout = 'A'
             return types.Array(dtype, ary.ndim, layout)
+
+        if interval_support.is_interval(val):
+            return types.interval_type
 
         return
 
@@ -407,6 +411,7 @@ class BaseContext(object):
 class Context(BaseContext):
     def init(self):
         self.install(cmathdecl.registry)
+        self.install(intervaldecl.registry)
         self.install(mathdecl.registry)
         self.install(npydecl.registry)
         self.install(operatordecl.registry)
