@@ -1,0 +1,29 @@
+package:
+   name: numba
+   version: 0.16a1
+
+source:
+  git_url: ../../
+
+build:
+  number: {{ environ.get('GIT_DESCRIBE_NUMBER', 0) }}
+  string: {{ environ.get('GIT_BUILD_STR', 'GIT_STUB') }}
+  entry_points:
+    - pycc = numba.pycc:main
+
+requirements:
+  build:
+    - numpy
+    - python
+  run:
+    - python
+    - argparse        [py26]
+    - numpy
+    - llvmpy
+    - cudatoolkit
+
+test:
+  requires:
+    - unittest2      [py26]
+  commands:
+    - pycc -h
