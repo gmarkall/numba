@@ -86,9 +86,11 @@ dispatcher_count(dispatcher_t *obj) {
     return disp->count();
 }
 
-// NDArray type cache
+// Array type caches
 
 #include <map>
+
+// NDArray type cache
 
 struct ndarray_type {
     int ndim;
@@ -115,14 +117,14 @@ struct ndarray_type {
     }
 };
 
-typedef std::map<ndarray_type, int> TypeMap;
-static TypeMap typemap;
+typedef std::map<ndarray_type, int> NDArrayTypeMap;
+static NDArrayTypeMap ndarray_typemap;
 
 int
 dispatcher_get_ndarray_typecode(int ndim, int layout, int type_num) {
     ndarray_type k(ndim, layout, type_num);
-    TypeMap::iterator i = typemap.find(k);
-    if (i == typemap.end()) {
+    NDArrayTypeMap::iterator i = ndarray_typemap.find(k);
+    if (i == ndarray_typemap.end()) {
         return -1;
     }
 
@@ -133,5 +135,23 @@ void
 dispatcher_insert_ndarray_typecode(int ndim, int layout, int type_num,
                                    int typecode) {
     ndarray_type k(ndim, layout, type_num);
-    typemap[k] = typecode;
+    ndarray_typemap[k] = typecode;
+}
+
+// ArrayScalar type cache
+
+typedef std::map<int, int> ArrayScalarTypeMap;
+static ArrayScalarTypeMap arrayscalar_typemap;
+
+int dispatcher_get_arrayscalar_typecode(int type_num) {
+    ArrayScalarTypeMap::iterator i = arrayscalar_typemap.find(type_num);
+    if (i == arrayscalar_typemap.end()) {
+        return -1;
+    }
+
+    return i->second;
+}
+
+void dispatcher_insert_arrayscalar_typecode(int type_num, int typecode) {
+    arrayscalar_typemap[type_num] = typecode;
 }

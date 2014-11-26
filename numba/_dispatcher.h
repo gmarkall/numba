@@ -28,6 +28,10 @@ int dispatcher_get_ndarray_typecode(int ndim, int layout, int type_num);
 void dispatcher_insert_ndarray_typecode(int ndim, int layout, int type_num,
                                         int typecode);
 
+int dispatcher_get_arrayscalar_typecode(int type_num);
+
+void dispatcher_insert_arrayscalar_typecode(int type_num, int typecode);
+
 #ifdef __cplusplus
     }
 #endif

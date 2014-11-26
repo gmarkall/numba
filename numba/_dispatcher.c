@@ -313,8 +313,16 @@ int typecode_arrayscalar(DispatcherObject *dispatcher, PyObject* aryscalar) {
         return typecode_fallback(dispatcher, aryscalar);
     typecode = dtype_num_to_typecode(descr->type_num);
     Py_DECREF(descr);
-    if (typecode == -1)
-        return typecode_fallback(dispatcher, aryscalar);
+    if (typecode == -1) {
+        int type_num = descr->type_num;
+        typecode = dispatcher_get_arrayscalar_typecode(type_num);
+        if (typecode == -1) {
+            /* First use of this type_num, so the cache needs populating */
+            typecode = typecode_fallback(dispatcher, aryscalar);
+            dispatcher_insert_arrayscalar_typecode(type_num, typecode);
+        }
+        return typecode;
+    }
     return BASIC_TYPECODES[typecode];
 }
 
