@@ -3,8 +3,6 @@
 #include <string.h>
 #include <time.h>
 #include <assert.h>
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include <numpy/ndarrayobject.h>
 #include "_dispatcher.h"
 
 
@@ -295,12 +293,14 @@ int typecode_ndarray(DispatcherObject *dispatcher, PyArrayObject *ary) {
 FALLBACK:
     /* "Slow" path, caching types in a map */
     typecode = dispatcher_get_ndarray_typecode(ndim, layout,
-                                               PyArray_TYPE(ary));
+                                               PyArray_DESCR(ary));
     if (typecode == -1) {
         typecode = typecode_fallback(dispatcher, (PyObject*)ary);
-        dispatcher_insert_ndarray_typecode(ndim, layout, PyArray_TYPE(ary),
+        dispatcher_insert_ndarray_typecode(ndim, layout, PyArray_DESCR(ary),
                                            typecode);
     }
+    printf("NDArray dim %d, layout %d, type_num %d, descr %llx\n",
+           ndim, layout, PyArray_TYPE(ary), (long long unsigned)PyArray_DESCR(ary));
     return typecode;
 }
 
@@ -315,12 +315,13 @@ int typecode_arrayscalar(DispatcherObject *dispatcher, PyObject* aryscalar) {
     Py_DECREF(descr);
     if (typecode == -1) {
         int type_num = descr->type_num;
-        typecode = dispatcher_get_arrayscalar_typecode(type_num);
+        //typecode = dispatcher_get_arrayscalar_typecode(descr);
         if (typecode == -1) {
             /* First use of this type_num, so the cache needs populating */
             typecode = typecode_fallback(dispatcher, aryscalar);
-            dispatcher_insert_arrayscalar_typecode(type_num, typecode);
+            //dispatcher_insert_arrayscalar_typecode(descr, typecode);
         }
+        printf("Arrayscalar type_num %d, typecode %d, descr %llx\n", type_num, typecode, (long long unsigned)descr);
         return typecode;
     }
     return BASIC_TYPECODES[typecode];

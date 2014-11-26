@@ -95,9 +95,9 @@ dispatcher_count(dispatcher_t *obj) {
 struct ndarray_type {
     int ndim;
     int layout;
-    int type_num;
-    ndarray_type(int ndim, int layout, int type_num): ndim(ndim), layout(layout),
-                                                      type_num(type_num) { }
+    PyArray_Descr* descr;
+    ndarray_type(int ndim, int layout, PyArray_Descr* descr)
+        : ndim(ndim), layout(layout), descr(descr) { }
 
     bool operator<(const ndarray_type &other) const {
         if (ndim < other.ndim)
@@ -110,7 +110,7 @@ struct ndarray_type {
         else if (layout > other.layout)
             return false;
 
-        if (type_num < other.type_num)
+        if (descr < other.descr)
             return true;
         else
             return false;
@@ -121,8 +121,8 @@ typedef std::map<ndarray_type, int> NDArrayTypeMap;
 static NDArrayTypeMap ndarray_typemap;
 
 int
-dispatcher_get_ndarray_typecode(int ndim, int layout, int type_num) {
-    ndarray_type k(ndim, layout, type_num);
+dispatcher_get_ndarray_typecode(int ndim, int layout, PyArray_Descr* descr) {
+    ndarray_type k(ndim, layout, descr);
     NDArrayTypeMap::iterator i = ndarray_typemap.find(k);
     if (i == ndarray_typemap.end()) {
         return -1;
@@ -132,19 +132,19 @@ dispatcher_get_ndarray_typecode(int ndim, int layout, int type_num) {
 }
 
 void
-dispatcher_insert_ndarray_typecode(int ndim, int layout, int type_num,
+dispatcher_insert_ndarray_typecode(int ndim, int layout, PyArray_Descr* descr,
                                    int typecode) {
-    ndarray_type k(ndim, layout, type_num);
+    ndarray_type k(ndim, layout, descr);
     ndarray_typemap[k] = typecode;
 }
 
 // ArrayScalar type cache
 
-typedef std::map<int, int> ArrayScalarTypeMap;
+typedef std::map<PyArray_Descr*, int> ArrayScalarTypeMap;
 static ArrayScalarTypeMap arrayscalar_typemap;
 
-int dispatcher_get_arrayscalar_typecode(int type_num) {
-    ArrayScalarTypeMap::iterator i = arrayscalar_typemap.find(type_num);
+int dispatcher_get_arrayscalar_typecode(PyArray_Descr* descr) {
+    ArrayScalarTypeMap::iterator i = arrayscalar_typemap.find(descr);
     if (i == arrayscalar_typemap.end()) {
         return -1;
     }
@@ -152,6 +152,6 @@ int dispatcher_get_arrayscalar_typecode(int type_num) {
     return i->second;
 }
 
-void dispatcher_insert_arrayscalar_typecode(int type_num, int typecode) {
-    arrayscalar_typemap[type_num] = typecode;
+void dispatcher_insert_arrayscalar_typecode(PyArray_Descr *descr, int typecode) {
+    arrayscalar_typemap[descr] = typecode;
 }
