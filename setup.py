@@ -24,7 +24,7 @@ setup_args = {
     'long_description': open('README.md').read(),
 }
 
-GCCFLAGS = ["-std=c89", "-Wdeclaration-after-statement", "-Werror"]
+GCCFLAGS = ["-Wdeclaration-after-statement", "-Werror", '-O0', '-g']
 
 if os.environ.get("NUMBA_GCC_FLAGS"):
     CFLAGS = GCCFLAGS
@@ -58,6 +58,7 @@ ext_dispatcher = Extension(name="numba._dispatcher",
                                     'numba/typeconv/typeconv.cpp'],
                            depends=["numba/_pymodule.h",
                                     "numba/_dispatcher.h"],
+                           extra_compile_args=CFLAGS,
                            extra_link_args=cpp_link_args)
 
 ext_helperlib = Extension(name="numba._helperlib",

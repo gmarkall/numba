@@ -308,6 +308,8 @@ static
 int typecode_arrayscalar(DispatcherObject *dispatcher, PyObject* aryscalar) {
     int typecode;
     PyArray_Descr* descr;
+    PyObject* keys;
+    Py_ssize_t i;
     descr = PyArray_DescrFromScalar(aryscalar);
     if (!descr)
         return typecode_fallback(dispatcher, aryscalar);
@@ -322,6 +324,16 @@ int typecode_arrayscalar(DispatcherObject *dispatcher, PyObject* aryscalar) {
             //dispatcher_insert_arrayscalar_typecode(descr, typecode);
         }
         printf("Arrayscalar type_num %d, typecode %d, descr %llx\n", type_num, typecode, (long long unsigned)descr);
+        keys = PyDict_Keys(descr->fields);
+        for (i = 0; i < PyList_Size(keys); ++i) {
+            PyObject* item;
+            PyObject* value;
+            item = PyList_GetItem(keys, i);
+            value = PyDict_GetItem(descr->fields, item);
+            printf("Key: %s\n", PyString_AsString(item));
+            printf("Type_num: %d\n", ((PyArray_Descr*)PyTuple_GetItem(value, 0))->type_num);
+            printf("offset: %ld\n", PyLong_AsLong(PyTuple_GetItem(value, 1)));
+        }
         return typecode;
     }
     return BASIC_TYPECODES[typecode];
