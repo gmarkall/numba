@@ -159,7 +159,7 @@ struct record_field {
         : name(name), kind(kind), length(length), type_num(type_num),
           offset(offset) { }
 
-    bool operator<(const record_field& other) {
+    bool operator<(const record_field& other) const {
         if (offset < other.offset)
             return true;
         else if (offset > other.offset)
@@ -180,36 +180,42 @@ struct record_field {
         else if (kind > other.kind)
             return false;
 
-        return (memcmp(name, other.name, length) < 0)
+        return (memcmp(name, other.name, length) < 0);
     }
 };
 
 typedef std::set<record_field> Record;
 
+// Convert a PyArray_Descr to a Record. Return of an empty record indicates
+// a failure in creating the record.
 Record descr_to_record(PyArray_Descr* descr) {
     PyObject* fields = descr->fields;
     PyObject* keys = PyDict_Keys(fields);
 
     Record record;
 
+    // Ensure all keys are in the canonical state
+    for (int i = 0; i < PyList_Size(keys); ++i) {
+        PyObject* key = PyList_GetItem(keys, i);
+        if (PyUnicode_READY(key) == -1) {
+          return record;
+        }
+    }
+
     for (int i = 0; i < PyList_Size(keys); ++i) {
         PyObject* key = PyList_GetItem(keys, i);
         PyObject* value = PyDict_GetItem(fields, key);
 
-        if (PyUnicode_READY(key) == -1) {
-          return NULL;
-        }
-
         void* data = PyUnicode_DATA(key);
         Py_ssize_t length = PyUnicode_GET_LENGTH(key);
-        int cpsize = PyUnicode_KIND(key);
-        Py_ssize_t datalen = length * cpsize;
+        int kind = PyUnicode_KIND(key);
+        Py_ssize_t datalen = length * kind;
         void* name = malloc(datalen);
-        strncpy(name, data, datalen);
+        memcpy(name, data, datalen);
         int type_num = ((PyArray_Descr*)PyTuple_GetItem(value, 0))->type_num;
         int offset = PyLong_AsLong(PyTuple_GetItem(value, 1));
         record_field rf(name, kind, datalen, type_num, offset);
-        record.insert(rf)
+        record.insert(rf);
     }
     return record;
 }
@@ -230,6 +236,9 @@ static ArrayScalarTypeMap arrayscalar_typemap;
 
 int dispatcher_get_arrayscalar_typecode(PyArray_Descr* descr) {
     Record r = descr_to_record(descr);
+    if (r.empty())
+        return -1;
+
     ArrayScalarTypeMap::iterator i = arrayscalar_typemap.find(r);
     if (i == arrayscalar_typemap.end()) {
         return -1;
@@ -240,5 +249,6 @@ int dispatcher_get_arrayscalar_typecode(PyArray_Descr* descr) {
 
 void dispatcher_insert_arrayscalar_typecode(PyArray_Descr *descr, int typecode) {
     Record r = descr_to_record(descr);
-    arrayscalar_typemap[r] = typecode;
+    if (!r.empty())
+        arrayscalar_typemap[r] = typecode;
 }
