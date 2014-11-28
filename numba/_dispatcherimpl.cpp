@@ -142,7 +142,7 @@ dispatcher_insert_ndarray_typecode(int ndim, int layout, int type_num,
 
 struct record_field {
     /* The name of the field - may be UCS1, UCS2 or UCS4 as indicated by kind */
-    const void* name;
+    void* name;
     /* Kind of the name string - values as PyUnicode_KIND(o) */
     int kind;
     /* Length of name in bytes (not code points) */
@@ -152,10 +152,22 @@ struct record_field {
     /* Offset of the field into the record */
     int offset;
 
-    record_field(const void* name, int kind, Py_ssize_t length, int type_num,
+    record_field(void* name, int kind, Py_ssize_t length, int type_num,
                  int offset)
         : name(name), kind(kind), length(length), type_num(type_num),
           offset(offset) { }
+
+    record_field(const record_field& other): kind(other.kind),
+                                             length(other.length),
+                                             type_num(other.type_num),
+                                             offset(other.offset) {
+        name = malloc(length);
+        memcpy(name, other.name, length);
+    }
+
+    ~record_field() {
+        free(name);
+    }
 
     bool operator<(const record_field& other) const {
         if (offset < other.offset)

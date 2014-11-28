@@ -320,6 +320,7 @@ int typecode_arrayscalar(DispatcherObject *dispatcher, PyObject* aryscalar) {
                 dispatcher_insert_arrayscalar_typecode(descr, typecode);
             }
         }
+        Py_DECREF(descr);
         return typecode;
     }
     Py_DECREF(descr);
