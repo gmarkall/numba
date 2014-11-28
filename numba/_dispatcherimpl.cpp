@@ -215,6 +215,7 @@ Record descr_to_record(PyArray_Descr* descr) {
         record_field rf(name, kind, datalen, type_num, offset);
         record.insert(rf);
     }
+    Py_DECREF(keys);
     return record;
 }
 

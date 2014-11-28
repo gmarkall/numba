@@ -306,34 +306,43 @@ static
 int typecode_arrayscalar(DispatcherObject *dispatcher, PyObject* aryscalar) {
     int typecode;
     PyArray_Descr* descr;
-    PyObject* keys;
-    Py_ssize_t i;
+    //PyObject* keys;
+    //Py_ssize_t i;
     descr = PyArray_DescrFromScalar(aryscalar);
     if (!descr)
         return typecode_fallback(dispatcher, aryscalar);
     typecode = dtype_num_to_typecode(descr->type_num);
-    Py_DECREF(descr);
     if (typecode == -1) {
-        int type_num = descr->type_num;
-        //typecode = dispatcher_get_arrayscalar_typecode(descr);
+        //int type_num = descr->type_num;
+        if (descr->type_num == NPY_VOID)
+            typecode = dispatcher_get_arrayscalar_typecode(descr);
         if (typecode == -1) {
             /* First use of this type_num, so the cache needs populating */
             typecode = typecode_fallback(dispatcher, aryscalar);
-            //dispatcher_insert_arrayscalar_typecode(descr, typecode);
+            if (descr->type_num == NPY_VOID) {
+                dispatcher_insert_arrayscalar_typecode(descr, typecode);
+            }
         }
-        printf("Arrayscalar type_num %d, typecode %d, descr %llx\n", type_num, typecode, (long long unsigned)descr);
-        keys = PyDict_Keys(descr->fields);
-        for (i = 0; i < PyList_Size(keys); ++i) {
-            PyObject* item;
-            PyObject* value;
-            item = PyList_GetItem(keys, i);
-            value = PyDict_GetItem(descr->fields, item);
-            printf("Key: %s\n", PyString_AsString(item));
-            printf("Type_num: %d\n", ((PyArray_Descr*)PyTuple_GetItem(value, 0))->type_num);
-            printf("offset: %ld\n", PyLong_AsLong(PyTuple_GetItem(value, 1)));
-        }
+        //printf("Arrayscalar type_num %d, typecode %d, descr %llx\n", type_num, typecode, (long long unsigned)descr);
+        // Not all scalar types that we don't have dtype_num_to_typecode have fields
+        // (e.g. datetime, timedelta, half, etc)
+        //if (descr->fields) {
+        //    keys = PyDict_Keys(descr->fields);
+        //    Py_DECREF(keys);
+        //}
+        //for (i = 0; i < PyList_Size(keys); ++i) {
+        //    PyObject* item;
+        //    PyObject* value;
+        //    item = PyList_GetItem(keys, i);
+        //    value = PyDict_GetItem(descr->fields, item);
+        //    printf("Key: %s\n", PyString_AsString(item));
+        //    printf("Type_num: %d\n", ((PyArray_Descr*)PyTuple_GetItem(value, 0))->type_num);
+        //    printf("offset: %ld\n", PyLong_AsLong(PyTuple_GetItem(value, 1)));
+        //}
+        //Py_DECREF(keys);
         return typecode;
     }
+    Py_DECREF(descr);
     return BASIC_TYPECODES[typecode];
 }
 
