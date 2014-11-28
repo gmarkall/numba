@@ -94,14 +94,12 @@ dispatcher_count(dispatcher_t *obj) {
 
 // NDArray type cache
 
-// NDArray type cache
-
 struct ndarray_type {
     int ndim;
     int layout;
-    PyArray_Descr* descr;
-    ndarray_type(int ndim, int layout, PyArray_Descr* descr)
-        : ndim(ndim), layout(layout), descr(descr) { }
+    int type_num;
+    ndarray_type(int ndim, int layout, int type_num)
+        : ndim(ndim), layout(layout), type_num(type_num) { }
 
     bool operator<(const ndarray_type &other) const {
         if (ndim < other.ndim)
@@ -114,7 +112,7 @@ struct ndarray_type {
         else if (layout > other.layout)
             return false;
 
-        if (descr < other.descr)
+        if (type_num < other.type_num)
             return true;
         else
             return false;
@@ -125,8 +123,8 @@ typedef std::map<ndarray_type, int> NDArrayTypeMap;
 static NDArrayTypeMap ndarray_typemap;
 
 int
-dispatcher_get_ndarray_typecode(int ndim, int layout, PyArray_Descr* descr) {
-    ndarray_type k(ndim, layout, descr);
+dispatcher_get_ndarray_typecode(int ndim, int layout, int type_num) {
+    ndarray_type k(ndim, layout, type_num);
     NDArrayTypeMap::iterator i = ndarray_typemap.find(k);
     if (i == ndarray_typemap.end()) {
         return -1;
@@ -136,9 +134,9 @@ dispatcher_get_ndarray_typecode(int ndim, int layout, PyArray_Descr* descr) {
 }
 
 void
-dispatcher_insert_ndarray_typecode(int ndim, int layout, PyArray_Descr* descr,
+dispatcher_insert_ndarray_typecode(int ndim, int layout, int type_num,
                                    int typecode) {
-    ndarray_type k(ndim, layout, descr);
+    ndarray_type k(ndim, layout, type_num);
     ndarray_typemap[k] = typecode;
 }
 

@@ -293,14 +293,12 @@ int typecode_ndarray(DispatcherObject *dispatcher, PyArrayObject *ary) {
 FALLBACK:
     /* "Slow" path, caching types in a map */
     typecode = dispatcher_get_ndarray_typecode(ndim, layout,
-                                               PyArray_DESCR(ary));
+                                               PyArray_TYPE(ary));
     if (typecode == -1) {
         typecode = typecode_fallback(dispatcher, (PyObject*)ary);
-        dispatcher_insert_ndarray_typecode(ndim, layout, PyArray_DESCR(ary),
+        dispatcher_insert_ndarray_typecode(ndim, layout, PyArray_TYPE(ary),
                                            typecode);
     }
-    printf("NDArray dim %d, layout %d, type_num %d, descr %llx\n",
-           ndim, layout, PyArray_TYPE(ary), (long long unsigned)PyArray_DESCR(ary));
     return typecode;
 }
 
