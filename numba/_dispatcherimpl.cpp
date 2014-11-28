@@ -219,17 +219,6 @@ Record descr_to_record(PyArray_Descr* descr) {
     return record;
 }
 
-//class Fields {
-//    RecordFields f;
-//    Fields(PyArray_Descr* descr) {
-//    }
-//
-//    bool operator<(const Fields& other) {
-//        return f < other.f;
-//    }
-//}
-
-
 typedef std::map<Record, int> ArrayScalarTypeMap;
 static ArrayScalarTypeMap arrayscalar_typemap;
 
