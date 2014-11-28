@@ -89,6 +89,10 @@ dispatcher_count(dispatcher_t *obj) {
 // Array type caches
 
 #include <map>
+#include <set>
+#include "_pymodule.h"
+
+// NDArray type cache
 
 // NDArray type cache
 
@@ -138,47 +142,95 @@ dispatcher_insert_ndarray_typecode(int ndim, int layout, PyArray_Descr* descr,
     ndarray_typemap[k] = typecode;
 }
 
-// ArrayScalar type cache
-
-#include <set>
-#include <Python.h>
-
 struct record_field {
-    const char* name;
+    /* The name of the field - may be UCS1, UCS2 or UCS4 as indicated by kind */
+    const void* name;
+    /* Kind of the name string - values as PyUnicode_KIND(o) */
+    int kind;
+    /* Length of name in bytes (not code points) */
+    Py_ssize_t length;
+    /* Type num of the field's data type */
     int type_num;
+    /* Offset of the field into the record */
     int offset;
-    record_field(const char* name, int type_num, int offset)
-        : name(name), type_num(type_num), offset(offset) { }
+
+    record_field(const void* name, int kind, Py_ssize_t length, int type_num,
+                 int offset)
+        : name(name), kind(kind), length(length), type_num(type_num),
+          offset(offset) { }
+
+    bool operator<(const record_field& other) {
+        if (offset < other.offset)
+            return true;
+        else if (offset > other.offset)
+            return false;
+
+        if (type_num < other.type_num)
+            return true;
+        else if (type_num > other.type_num)
+            return false;
+
+        if (length < other.length)
+            return true;
+        else if (length > other.length)
+            return false;
+
+        if (kind < other.kind)
+            return true;
+        else if (kind > other.kind)
+            return false;
+
+        return (memcmp(name, other.name, length) < 0)
+    }
 };
 
-typedef std::set<record_field> RecordFields;
+typedef std::set<record_field> Record;
 
-class Fields {
-    RecordFields f;
-    Fields(PyArray_Descr* descr) {
-        PyObject* fields = descr->fields;
-        PyObject* keys = PyDict_Keys(fields);
-        for (int i = 0; i < PyList_Size(keys); ++i) {
-            PyObject* key = PyList_GetItem(keys, i);
-            PyObject* value = PyDict_GetItem(fields, key);
-            char* name = (char*) malloc(sizeof(char) * PyString_Size(key));
-            strncpy(name, PyString_AsString(key), PyString_Size(key));
-            int type_num = ((PyArray_Descr*)PyTuple_GetItem(value, 0))->type_num;
-            int offset = PyLong_AsLong(PyTuple_GetItem(value, 1));
-            f.insert(record_field(name, type_num, offset));
+Record descr_to_record(PyArray_Descr* descr) {
+    PyObject* fields = descr->fields;
+    PyObject* keys = PyDict_Keys(fields);
+
+    Record record;
+
+    for (int i = 0; i < PyList_Size(keys); ++i) {
+        PyObject* key = PyList_GetItem(keys, i);
+        PyObject* value = PyDict_GetItem(fields, key);
+
+        if (PyUnicode_READY(key) == -1) {
+          return NULL;
         }
-    }
 
-    bool operator<(const Fields& other) {
-        return f < other.f;
+        void* data = PyUnicode_DATA(key);
+        Py_ssize_t length = PyUnicode_GET_LENGTH(key);
+        int cpsize = PyUnicode_KIND(key);
+        Py_ssize_t datalen = length * cpsize;
+        void* name = malloc(datalen);
+        strncpy(name, data, datalen);
+        int type_num = ((PyArray_Descr*)PyTuple_GetItem(value, 0))->type_num;
+        int offset = PyLong_AsLong(PyTuple_GetItem(value, 1));
+        record_field rf(name, kind, datalen, type_num, offset);
+        record.insert(rf)
     }
+    return record;
 }
 
-typedef std::map<Fields, int> ArrayScalarTypeMap;
+//class Fields {
+//    RecordFields f;
+//    Fields(PyArray_Descr* descr) {
+//    }
+//
+//    bool operator<(const Fields& other) {
+//        return f < other.f;
+//    }
+//}
+
+
+typedef std::map<Record, int> ArrayScalarTypeMap;
 static ArrayScalarTypeMap arrayscalar_typemap;
 
 int dispatcher_get_arrayscalar_typecode(PyArray_Descr* descr) {
-    ArrayScalarTypeMap::iterator i = arrayscalar_typemap.find(Fields(descr));
+    Record r = descr_to_record(descr);
+    ArrayScalarTypeMap::iterator i = arrayscalar_typemap.find(r);
     if (i == arrayscalar_typemap.end()) {
         return -1;
     }
@@ -187,5 +239,6 @@ int dispatcher_get_arrayscalar_typecode(PyArray_Descr* descr) {
 }
 
 void dispatcher_insert_arrayscalar_typecode(PyArray_Descr *descr, int typecode) {
-    arrayscalar_typemap[Fields(descr)] = typecode;
+    Record r = descr_to_record(descr);
+    arrayscalar_typemap[r] = typecode;
 }
