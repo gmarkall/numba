@@ -247,8 +247,26 @@ int dispatcher_get_arrayscalar_typecode(PyArray_Descr* descr) {
     return i->second;
 }
 
+#include <iostream>
 void dispatcher_insert_arrayscalar_typecode(PyArray_Descr *descr, int typecode) {
     Record r = descr_to_record(descr);
+    std::cout << "Attempting to cache " << typecode << std::endl;
     if (!r.empty())
         arrayscalar_typemap[r] = typecode;
 }
+
+
+void dispatcher_pop_arrayscalar_typecode(int typecode) {
+    std::cout << "Attempting to erase typecode " << typecode << std::endl;
+    for (ArrayScalarTypeMap::iterator i =  arrayscalar_typemap.begin();
+                                      i != arrayscalar_typemap.end();
+                                      ++i) {
+        std::cout << "Visiting " << i->second << std::endl;
+        if (i->second == typecode) {
+            std::cout << "Erasing typecode " << typecode << std::endl;
+            arrayscalar_typemap.erase(i);
+            break;
+        }
+    }
+}
+

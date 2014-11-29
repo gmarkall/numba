@@ -155,6 +155,22 @@ Dispatcher_Insert(DispatcherObject *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
+static
+PyObject*
+Dispatcher_Pop_Type(PyObject *self, PyObject *args) {
+    int typecode;
+
+    printf("In Dispatcher_Pop_Type\n");
+    if (!PyArg_ParseTuple(args, "i", &typecode)) {
+        printf(" - Args did not parse\n");
+        return NULL;
+    }
+
+    printf("In Dispatcher_Pop_Type, popping %d\n", typecode);
+    dispatcher_pop_arrayscalar_typecode(typecode);
+
+    Py_RETURN_NONE;
+}
 
 // Unused?
 //static
@@ -304,22 +320,29 @@ FALLBACK:
 
 static
 int typecode_arrayscalar(DispatcherObject *dispatcher, PyObject* aryscalar) {
-    int typecode;
+    int typecode;//, typecode2;
     PyArray_Descr* descr;
     descr = PyArray_DescrFromScalar(aryscalar);
     if (!descr)
         return typecode_fallback(dispatcher, aryscalar);
     typecode = dtype_num_to_typecode(descr->type_num);
     if (typecode == -1) {
-        if (descr->type_num == NPY_VOID)
+        if (descr->type_num == NPY_VOID) {
             typecode = dispatcher_get_arrayscalar_typecode(descr);
+        }
         if (typecode == -1) {
             typecode = typecode_fallback(dispatcher, aryscalar);
             if (descr->type_num == NPY_VOID) {
                 /* We can populate the cache with this */
+                printf("Typecode to cache: %d\n", typecode);
                 dispatcher_insert_arrayscalar_typecode(descr, typecode);
             }
-        }
+        }// else {
+         //   if (typecode != typecode2)
+         //       printf("Cached typecode mismatch with fallback typecode, %d / %d\n", typecode, typecode2);
+        //}
+
+
         Py_DECREF(descr);
         return typecode;
     }
@@ -541,6 +564,8 @@ static PyTypeObject DispatcherType = {
 static PyMethodDef ext_methods[] = {
 #define declmethod(func) { #func , ( PyCFunction )func , METH_VARARGS , NULL }
     declmethod(init_types),
+    { "_pop_type", (PyCFunction)Dispatcher_Pop_Type, METH_VARARGS,
+      "remove a typecode from the typecode cache" },
     { NULL },
 #undef declmethod
 };
