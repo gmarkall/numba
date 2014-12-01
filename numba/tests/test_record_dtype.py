@@ -200,8 +200,8 @@ class TestRecordDtype(unittest.TestCase):
         rec2 = numpy_support.from_dtype(recordtype2)
         cfunc = self.get_cfunc(pyfunc, (rec1[:], rec2[:], types.intp))
         for i in range(self.sample1d.size):
-            self.assertEqual(pyfunc(self.sample1d, self.sample1d3, i),
-                              cfunc(self.sample1d, self.sample1d3, i))
+            self.assertEqual(pyfunc(self.sample1d, self.sample1d2, i),
+                              cfunc(self.sample1d, self.sample1d2, i))
 
     def test_get_two_a(self):
         self._test_get_two_equal(get_two_arrays_a)
