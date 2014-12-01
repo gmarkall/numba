@@ -21,6 +21,20 @@ def get_c(ary, i):
     return ary[i].c
 
 
+def get_two_arrays_a(ary1, ary2, i):
+    return ary1[i].a + ary2[i].a
+
+def get_two_arrays_b(ary1, ary2, i):
+    return ary1[i].b + ary2[i].b
+
+def get_two_arrays_c(ary1, ary2, i):
+    return ary1[i].c + ary2[i].c
+
+
+def get_two_arrays_distinct(ary1, ary2, i):
+    return ary1[i].a + ary2[i].f
+
+
 def set_a(ary, i, v):
     ary[i].a = v
 
@@ -127,6 +141,16 @@ class TestRecordDtype(unittest.TestCase):
             ary2[i].e = x
             ary2[i].f = x / 2
 
+        ary3 = np.recarray(3, dtype=recordtype)
+        self.sample1d3 = ary3
+
+        for i in range(ary3.size):
+            x = i + 10
+            ary3[i].a = x / 2
+            ary3[i].b = x
+            ary3[i].c = x * 1j
+            ary3[i].d = "%d" % x
+
     def get_cfunc(self, pyfunc, argspec):
         # Need to keep a reference to the compile result for the
         # wrapper function object to remain valid (!)
@@ -162,6 +186,22 @@ class TestRecordDtype(unittest.TestCase):
 
     def test_get_c(self):
         self._test_get_equal(get_c)
+
+    def _test_get_two_equal(self, pyfunc):
+        rec = numpy_support.from_dtype(recordtype)
+        cfunc = self.get_cfunc(pyfunc, (rec[:], rec[:], types.intp))
+        for i in range(self.sample1d.size):
+            self.assertEqual(pyfunc(self.sample1d, self.sample1d3, i),
+                              cfunc(self.sample1d, self.sample1d3, i))
+
+    def test_get_two_a(self):
+        self._test_get_two_equal(get_two_arrays_a)
+
+    def test_get_two_b(self):
+        self._test_get_two_equal(get_two_arrays_b)
+
+    def test_get_two_c(self):
+        self._test_get_two_equal(get_two_arrays_c)
 
     def _test_set_equal(self, pyfunc, value, valuetype):
         rec = numpy_support.from_dtype(recordtype)
