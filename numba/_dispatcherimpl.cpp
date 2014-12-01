@@ -234,6 +234,10 @@ Record descr_to_record(PyArray_Descr* descr) {
 typedef std::map<Record, int> ArrayScalarTypeMap;
 static ArrayScalarTypeMap arrayscalar_typemap;
 
+typedef std::set<int> DeletedTypecodes;
+DeletedTypecodes deleted;
+
+#include <iostream>
 int dispatcher_get_arrayscalar_typecode(PyArray_Descr* descr) {
     Record r = descr_to_record(descr);
     if (r.empty())
@@ -244,10 +248,13 @@ int dispatcher_get_arrayscalar_typecode(PyArray_Descr* descr) {
         return -1;
     }
 
+    if (deleted.count(i->second) == 1)
+        return -1;
+
+    std::cout << "Type cache returning" << i->second << std::endl;
     return i->second;
 }
 
-#include <iostream>
 void dispatcher_insert_arrayscalar_typecode(PyArray_Descr *descr, int typecode) {
     Record r = descr_to_record(descr);
     std::cout << "Attempting to cache " << typecode << std::endl;
@@ -258,6 +265,8 @@ void dispatcher_insert_arrayscalar_typecode(PyArray_Descr *descr, int typecode) 
 
 void dispatcher_pop_arrayscalar_typecode(int typecode) {
     std::cout << "Attempting to erase typecode " << typecode << std::endl;
+    deleted.insert(typecode);
+
     for (ArrayScalarTypeMap::iterator i =  arrayscalar_typemap.begin();
                                       i != arrayscalar_typemap.end();
                                       ++i) {
