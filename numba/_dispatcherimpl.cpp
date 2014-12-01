@@ -260,26 +260,3 @@ void dispatcher_insert_arrayscalar_typecode(PyArray_Descr *descr, int typecode) 
     if (!r.empty())
         arrayscalar_typemap[r] = typecode;
 }
-
-
-void dispatcher_pop_arrayscalar_typecode(int typecode) {
-#ifdef DEBUG
-    std::cout << "Attempting to erase typecode " << typecode << std::endl;
-#endif
-
-    for (ArrayScalarTypeMap::iterator i =  arrayscalar_typemap.begin();
-                                      i != arrayscalar_typemap.end();
-                                      ++i) {
-#ifdef DEBUG
-        std::cout << "Visiting " << i->second << std::endl;
-#endif
-        if (i->second == typecode) {
-#ifdef DEBUG
-            std::cout << "Erasing typecode " << typecode << std::endl;
-#endif
-            arrayscalar_typemap.erase(i);
-            break;
-        }
-    }
-}
-

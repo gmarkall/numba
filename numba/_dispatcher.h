@@ -43,8 +43,6 @@ int dispatcher_get_arrayscalar_typecode(PyArray_Descr* descr);
 
 void dispatcher_insert_arrayscalar_typecode(PyArray_Descr* descr, int typecode);
 
-void dispatcher_pop_arrayscalar_typecode(int typecode);
-
 #ifdef __cplusplus
     }
 #endif

@@ -155,54 +155,6 @@ Dispatcher_Insert(DispatcherObject *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
-static
-PyObject*
-Dispatcher_Pop_Type(PyObject *self, PyObject *args) {
-    int typecode;
-
-#ifdef DEBUG
-    printf("In Dispatcher_Pop_Type\n");
-#endif
-    if (!PyArg_ParseTuple(args, "i", &typecode)) {
-        printf(" - Args did not parse\n");
-        return NULL;
-    }
-#ifdef DEBUG
-    printf("In Dispatcher_Pop_Type, popping %d\n", typecode);
-#endif
-    dispatcher_pop_arrayscalar_typecode(typecode);
-
-    Py_RETURN_NONE;
-}
-
-// Unused?
-//static
-//PyObject*
-//Dispatcher_Find(DispatcherObject *self, PyObject *args)
-//{
-//    PyObject *sigtup;
-//    int i, sigsz;
-//    int *sig;
-//    void *out;
-//
-//    if (!PyArg_ParseTuple(args, "O", &sigtup)) {
-//        return NULL;
-//    }
-//
-//    sigsz = PySequence_Fast_GET_SIZE(sigtup);
-//
-//    sig = malloc(sigsz * sizeof(int));
-//    for (i = 0; i < sigsz; ++i) {
-//        sig[i] = PyLong_AsLong(PySequence_Fast_GET_ITEM(sigtup, i));
-//    }
-//
-//    out = dispatcher_resolve(self->dispatcher, sig);
-//
-//    free(sig);
-//
-//    return PyLong_FromVoidPtr(out);
-//}
-
 static PyObject *str_typeof_pyval = NULL;
 
 static
@@ -587,8 +539,6 @@ static PyTypeObject DispatcherType = {
 static PyMethodDef ext_methods[] = {
 #define declmethod(func) { #func , ( PyCFunction )func , METH_VARARGS , NULL }
     declmethod(init_types),
-    { "_pop_type", (PyCFunction)Dispatcher_Pop_Type, METH_VARARGS,
-      "remove a typecode from the typecode cache" },
     { NULL },
 #undef declmethod
 };
