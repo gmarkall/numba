@@ -157,8 +157,11 @@ Dispatcher_Insert(DispatcherObject *self, PyObject *args)
 
 static PyObject *str_typeof_pyval = NULL;
 
+/* For void types, we want to keep a reference to the returned type object so
+   that it cannot be deleted, and our cache of void types remains valid. */
 static
-int typecode_fallback(DispatcherObject *dispatcher, PyObject *val) {
+int _typecode_fallback(DispatcherObject *dispatcher, PyObject *val,
+                       int retain_reference) {
     PyObject *tmptype, *tmpcode;
     int typecode;
 
@@ -170,7 +173,8 @@ int typecode_fallback(DispatcherObject *dispatcher, PyObject *val) {
     }
 
     tmpcode = PyObject_GetAttrString(tmptype, "_code");
-    Py_DECREF(tmptype);
+    if (!retain_reference)
+        Py_DECREF(tmptype);
     if (tmpcode == NULL)
         return -1;
     typecode = PyLong_AsLong(tmpcode);
@@ -178,25 +182,14 @@ int typecode_fallback(DispatcherObject *dispatcher, PyObject *val) {
     return typecode;
 }
 
-// Same as above but doesn't decref the type so it isnt deleted.
 static
-int typecode_arrayscalar_fallback(DispatcherObject *dispatcher, PyObject *val) {
-    PyObject *tmptype, *tmpcode;
-    int typecode;
+int typecode_fallback(DispatcherObject *dispatcher, PyObject *val) {
+    return _typecode_fallback(dispatcher, val, 0);
+}
 
-    // Go back to the interpreter
-    tmptype = PyObject_CallMethodObjArgs((PyObject *) dispatcher,
-                                         str_typeof_pyval, val, NULL);
-    if (!tmptype) {
-        return -1;
-    }
-
-    tmpcode = PyObject_GetAttrString(tmptype, "_code");
-    if (tmpcode == NULL)
-        return -1;
-    typecode = PyLong_AsLong(tmpcode);
-    Py_DECREF(tmpcode);
-    return typecode;
+static
+int typecode_fallback_keep_ref(DispatcherObject *dispatcher, PyObject *val) {
+    return _typecode_fallback(dispatcher, val, 1);
 }
 
 #define N_DTYPES 12
@@ -300,28 +293,22 @@ int typecode_arrayscalar(DispatcherObject *dispatcher, PyObject* aryscalar) {
     descr = PyArray_DescrFromScalar(aryscalar);
     if (!descr)
         return typecode_fallback(dispatcher, aryscalar);
-    typecode = dtype_num_to_typecode(descr->type_num);
-    if (typecode == -1) {
-        if (descr->type_num == NPY_VOID) {
-            typecode = dispatcher_get_arrayscalar_typecode(descr);
-        }
-        if (typecode == -1) {
-            if (descr->type_num == NPY_VOID) {
-                /* We can populate the cache with this */
-#ifdef DEBUG
-                typecode = typecode_arrayscalar_fallback(dispatcher, aryscalar);
-                printf("Typecode to cache: %d\n", typecode);
-#endif
-                dispatcher_insert_arrayscalar_typecode(descr, typecode);
-            } else {
-                typecode = typecode_fallback(dispatcher, aryscalar);
-            }
-        }
 
+    if (descr->type_num == NPY_VOID) {
+        typecode = dispatcher_get_arrayscalar_typecode(descr);
+        if (typecode == -1) {
+            /* Resolve through fallback then populate cache */
+            typecode = typecode_fallback_keep_ref(dispatcher, aryscalar);
+            dispatcher_insert_arrayscalar_typecode(descr, typecode);
+        }
         Py_DECREF(descr);
         return typecode;
     }
+
+    typecode = dtype_num_to_typecode(descr->type_num);
     Py_DECREF(descr);
+    if (typecode == -1)
+        return typecode_fallback(dispatcher, aryscalar);
     return BASIC_TYPECODES[typecode];
 }
 
