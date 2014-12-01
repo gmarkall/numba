@@ -8,6 +8,7 @@ from numba import unittest_support as unittest
 from numba.compiler import compile_isolated
 from numba.utils import IS_PY3
 
+
 def get_a(ary, i):
     return ary[i].a
 
@@ -246,11 +247,14 @@ class TestRecordDtype(unittest.TestCase):
         # Check for potential leaks (issue #441)
         self.assertEqual(sys.getrefcount(recval), old_refcnt)
 
+
     def test_record_args(self):
         self._test_record_args(False)
 
+
     def test_record_args_reverse(self):
         self._test_record_args(True)
+
 
     def test_two_records(self):
         '''

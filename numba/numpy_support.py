@@ -292,8 +292,6 @@ else:
 
 
 def from_struct_dtype(dtype):
-    #from pudb import set_trace; set_trace()
-    print("FROM STRUCT DTYPE")
     if dtype.hasobject:
         raise TypeError("Do not support object containing dtype")
 
@@ -307,6 +305,4 @@ def from_struct_dtype(dtype):
     size = dtype.itemsize
     aligned = _is_aligned_struct(dtype)
 
-    r = types.Record(str(dtype.descr), fields, size, aligned, dtype)
-    print(" - code %d" % r._code)
-    return r
+    return types.Record(str(dtype.descr), fields, size, aligned, dtype)
