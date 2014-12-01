@@ -24,7 +24,7 @@ setup_args = {
     'long_description': open('README.md').read(),
 }
 
-GCCFLAGS = ["-Wdeclaration-after-statement", "-Werror", '-O0', '-g']
+GCCFLAGS = ["-Wdeclaration-after-statement", "-Werror", '-O0', '-g', '-DDEBUG']
 
 if os.environ.get("NUMBA_GCC_FLAGS"):
     CFLAGS = GCCFLAGS

@@ -37,9 +37,10 @@ def _on_type_disposal(wr, _pop=_typecache.pop, _popcode=_typecodecache.pop):
         print("Found a type but not a typecode...")
     if popcode:
         print("Types popping code ", popcode)
-        if _dispatcher is None:
-            print("WHY IS THE DISPATCHER NONE?! code ", popcode)
-        else:
+        # This occasionally results in an exception because it seems that
+        # _dispatcher is not None, but it is when the attempt to call
+        # _pop_type is made.
+        if _dispatcher is not None:
             _dispatcher._pop_type(popcode)
 
 class _TypeMetaclass(type):
@@ -69,6 +70,7 @@ class _TypeMetaclass(type):
             _typecache[wr] = wr
             _typecodecache[wr] = inst._code
             inst.post_init()
+            print("Code %d, class %s" % (inst._code, inst.__class__.__name__))
             return inst
 
 

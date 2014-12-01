@@ -160,13 +160,16 @@ PyObject*
 Dispatcher_Pop_Type(PyObject *self, PyObject *args) {
     int typecode;
 
+#ifdef DEBUG
     printf("In Dispatcher_Pop_Type\n");
+#endif
     if (!PyArg_ParseTuple(args, "i", &typecode)) {
         printf(" - Args did not parse\n");
         return NULL;
     }
-
+#ifdef DEBUG
     printf("In Dispatcher_Pop_Type, popping %d\n", typecode);
+#endif
     dispatcher_pop_arrayscalar_typecode(typecode);
 
     Py_RETURN_NONE;
@@ -320,7 +323,7 @@ FALLBACK:
 
 static
 int typecode_arrayscalar(DispatcherObject *dispatcher, PyObject* aryscalar) {
-    int typecode;//, typecode2;
+    int typecode;
     PyArray_Descr* descr;
     descr = PyArray_DescrFromScalar(aryscalar);
     if (!descr)
@@ -334,14 +337,12 @@ int typecode_arrayscalar(DispatcherObject *dispatcher, PyObject* aryscalar) {
             typecode = typecode_fallback(dispatcher, aryscalar);
             if (descr->type_num == NPY_VOID) {
                 /* We can populate the cache with this */
+#ifdef DEBUG
                 printf("Typecode to cache: %d\n", typecode);
+#endif
                 dispatcher_insert_arrayscalar_typecode(descr, typecode);
             }
-        }// else {
-         //   if (typecode != typecode2)
-         //       printf("Cached typecode mismatch with fallback typecode, %d / %d\n", typecode, typecode2);
-        //}
-
+        }
 
         Py_DECREF(descr);
         return typecode;
