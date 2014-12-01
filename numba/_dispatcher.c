@@ -226,6 +226,26 @@ int typecode_fallback(DispatcherObject *dispatcher, PyObject *val) {
     return typecode;
 }
 
+// Same as above but doesn't decref the type so it isnt deleted.
+static
+int typecode_arrayscalar_fallback(DispatcherObject *dispatcher, PyObject *val) {
+    PyObject *tmptype, *tmpcode;
+    int typecode;
+
+    // Go back to the interpreter
+    tmptype = PyObject_CallMethodObjArgs((PyObject *) dispatcher,
+                                         str_typeof_pyval, val, NULL);
+    if (!tmptype) {
+        return -1;
+    }
+
+    tmpcode = PyObject_GetAttrString(tmptype, "_code");
+    if (tmpcode == NULL)
+        return -1;
+    typecode = PyLong_AsLong(tmpcode);
+    Py_DECREF(tmpcode);
+    return typecode;
+}
 
 #define N_DTYPES 12
 #define N_NDIM 5    /* Fast path for up to 5D array */
@@ -334,13 +354,15 @@ int typecode_arrayscalar(DispatcherObject *dispatcher, PyObject* aryscalar) {
             typecode = dispatcher_get_arrayscalar_typecode(descr);
         }
         if (typecode == -1) {
-            typecode = typecode_fallback(dispatcher, aryscalar);
             if (descr->type_num == NPY_VOID) {
                 /* We can populate the cache with this */
 #ifdef DEBUG
+                typecode = typecode_arrayscalar_fallback(dispatcher, aryscalar);
                 printf("Typecode to cache: %d\n", typecode);
 #endif
                 dispatcher_insert_arrayscalar_typecode(descr, typecode);
+            } else {
+                typecode = typecode_fallback(dispatcher, aryscalar);
             }
         }
 

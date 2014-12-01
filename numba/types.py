@@ -70,7 +70,7 @@ class _TypeMetaclass(type):
             _typecache[wr] = wr
             _typecodecache[wr] = inst._code
             inst.post_init()
-            print("Code %d, class %s" % (inst._code, inst.__class__.__name__))
+            #print("Code %d, class %s" % (inst._code, inst.__class__.__name__))
             return inst
 
 
