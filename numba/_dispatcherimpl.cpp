@@ -92,54 +92,6 @@ dispatcher_count(dispatcher_t *obj) {
 #include <set>
 #include "_pymodule.h"
 
-// NDArray type cache
-
-struct ndarray_type {
-    int ndim;
-    int layout;
-    int type_num;
-    ndarray_type(int ndim, int layout, int type_num)
-        : ndim(ndim), layout(layout), type_num(type_num) { }
-
-    bool operator<(const ndarray_type &other) const {
-        if (ndim < other.ndim)
-            return true;
-        else if (ndim > other.ndim)
-            return false;
-
-        if (layout < other.layout)
-            return true;
-        else if (layout > other.layout)
-            return false;
-
-        if (type_num < other.type_num)
-            return true;
-        else
-            return false;
-    }
-};
-
-typedef std::map<ndarray_type, int> NDArrayTypeMap;
-static NDArrayTypeMap ndarray_typemap;
-
-int
-dispatcher_get_ndarray_typecode(int ndim, int layout, int type_num) {
-    ndarray_type k(ndim, layout, type_num);
-    NDArrayTypeMap::iterator i = ndarray_typemap.find(k);
-    if (i == ndarray_typemap.end()) {
-        return -1;
-    }
-
-    return i->second;
-}
-
-void
-dispatcher_insert_ndarray_typecode(int ndim, int layout, int type_num,
-                                   int typecode) {
-    ndarray_type k(ndim, layout, type_num);
-    ndarray_typemap[k] = typecode;
-}
-
 struct record_field {
     /* The name of the field - may be UCS1, UCS2 or UCS4 as indicated by kind */
     void* name;
@@ -230,6 +182,64 @@ Record descr_to_record(PyArray_Descr* descr) {
     Py_DECREF(keys);
     return record;
 }
+
+// NDArray type cache
+
+struct ndarray_type {
+    int ndim;
+    int layout;
+    Record record;
+    ndarray_type(int ndim, int layout, Record record)
+        : ndim(ndim), layout(layout), record(record) { }
+
+    bool operator<(const ndarray_type &other) const {
+        if (ndim < other.ndim)
+            return true;
+        else if (ndim > other.ndim)
+            return false;
+
+        if (layout < other.layout)
+            return true;
+        else if (layout > other.layout)
+            return false;
+
+        if (record < other.record)
+            return true;
+        else
+            return false;
+    }
+};
+
+typedef std::map<ndarray_type, int> NDArrayTypeMap;
+static NDArrayTypeMap ndarray_typemap;
+
+int
+dispatcher_get_ndarray_typecode(int ndim, int layout, PyArray_Descr* descr) {
+    Record r = descr_to_record(descr);
+    if (r.empty())
+        return -1;
+
+    ndarray_type k(ndim, layout, r);
+    NDArrayTypeMap::iterator i = ndarray_typemap.find(k);
+    if (i == ndarray_typemap.end()) {
+        return -1;
+    }
+
+    return i->second;
+}
+
+void
+dispatcher_insert_ndarray_typecode(int ndim, int layout,
+                                   PyArray_Descr* descr, int typecode) {
+    Record r = descr_to_record(descr);
+    if (!r.empty())
+        return;
+
+    ndarray_type k(ndim, layout, r);
+    ndarray_typemap[k] = typecode;
+}
+
+
 
 typedef std::map<Record, int> ArrayScalarTypeMap;
 static ArrayScalarTypeMap arrayscalar_typemap;

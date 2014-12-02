@@ -275,12 +275,19 @@ int typecode_ndarray(DispatcherObject *dispatcher, PyArrayObject *ary) {
     return typecode;
 
 FALLBACK:
-    /* "Slow" path, caching types in a map */
+    /* "Slow" path */
+
+    /* If this isn't a structured array then we can't use the cache */
+    if (PyArray_TYPE(ary) != NPY_VOID)
+        return typecode_fallback(dispatcher, (PyObject*)ary);
+
+    /* Check type cache */
     typecode = dispatcher_get_ndarray_typecode(ndim, layout,
-                                               PyArray_TYPE(ary));
+                                               PyArray_DESCR(ary));
     if (typecode == -1) {
-        typecode = typecode_fallback(dispatcher, (PyObject*)ary);
-        dispatcher_insert_ndarray_typecode(ndim, layout, PyArray_TYPE(ary),
+        /* First use of this type, use fallback and populate the cache */
+        typecode = typecode_fallback_keep_ref(dispatcher, (PyObject*)ary);
+        dispatcher_insert_ndarray_typecode(ndim, layout, PyArray_DESCR(ary),
                                            typecode);
     }
     return typecode;

@@ -34,10 +34,10 @@ dispatcher_resolve(dispatcher_t *obj, int sig[], int *matches,
 int
 dispatcher_count(dispatcher_t *obj);
 
-int dispatcher_get_ndarray_typecode(int ndim, int layout, int type_num);
+int dispatcher_get_ndarray_typecode(int ndim, int layout, PyArray_Descr* descr);
 
-void dispatcher_insert_ndarray_typecode(int ndim, int layout, int type_num,
-                                        int typecode);
+void dispatcher_insert_ndarray_typecode(int ndim, int layout,
+                                        PyArray_Descr*, int typecode);
 
 int dispatcher_get_arrayscalar_typecode(PyArray_Descr* descr);
 
