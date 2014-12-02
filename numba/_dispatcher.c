@@ -158,7 +158,8 @@ Dispatcher_Insert(DispatcherObject *self, PyObject *args)
 static PyObject *str_typeof_pyval = NULL;
 
 /* For void types, we want to keep a reference to the returned type object so
-   that it cannot be deleted, and our cache of void types remains valid. */
+   that it cannot be deleted, and our cache of void types remains valid. So we
+   provide the option to do this in retain_reference */
 static
 int _typecode_fallback(DispatcherObject *dispatcher, PyObject *val,
                        int retain_reference) {
@@ -181,6 +182,8 @@ int _typecode_fallback(DispatcherObject *dispatcher, PyObject *val,
     Py_DECREF(tmpcode);
     return typecode;
 }
+
+/* Variations on _typecode_fallback for convenience */
 
 static
 int typecode_fallback(DispatcherObject *dispatcher, PyObject *val) {
