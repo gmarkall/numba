@@ -385,24 +385,28 @@ class TestRecordDtypeWithDispatcher(TestRecordDtype):
     def get_cfunc(self, pyfunc, argspec):
         return _get_cfunc_nopython(pyfunc, argspec)
 
-#class TestRecordDtypeWithStructArrays(TestRecordDtype):
-#    """
-#    Same as TestRecordDtype, but using structured arrays instead of recarrays.
-#    """
-#
-#    def _createSampleArrays(self):
-#        # Create recarrays
-#        self.recarray1d = np.zeros(3, dtype=recordtype)
-#        self.recarray1d2 = np.zeros(3, dtype=recordtype2)
-#        self.recarray1d3 = np.zeros(3, dtype=recordtype)
-#
-#class TestRecordDtypeWithStructArraysAndDispatcher(TestRecordDtypeWithStructArrays):
-#    """
-#    Same as TestRecordDtype, but using structured arrays instead of recarrays.
-#    """
-#
-#    def get_cfunc(self, pyfunc, argspec):
-#        return _get_cfunc_nopython(pyfunc, argspec)
-#
+class TestRecordDtypeWithStructArrays(TestRecordDtype):
+    """
+    Same as TestRecordDtype, but using structured arrays instead of recarrays.
+    """
+
+    def _createSampleArrays(self):
+        # Create sample arrays
+        self.npsample1d = np.recarray(3, dtype=recordtype)
+        self.npsample1d2 = np.recarray(3, dtype=recordtype2)
+        self.npsample1d3 = np.recarray(3, dtype=recordtype)
+
+        self.nbsample1d = np.recarray(3, dtype=recordtype)
+        self.nbsample1d2 = np.recarray(3, dtype=recordtype2)
+        self.nbsample1d3 = np.recarray(3, dtype=recordtype)
+
+class TestRecordDtypeWithStructArraysAndDispatcher(TestRecordDtypeWithStructArrays):
+    """
+    Same as TestRecordDtype, but using structured arrays instead of recarrays.
+    """
+
+    def get_cfunc(self, pyfunc, argspec):
+        return _get_cfunc_nopython(pyfunc, argspec)
+
 if __name__ == '__main__':
     unittest.main()
