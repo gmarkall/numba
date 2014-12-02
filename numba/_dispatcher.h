@@ -3,14 +3,7 @@
 
 #include "_pymodule.h"
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-
-/* Hack whilst debugging. If you see this in a pull request please berate me. */
-#ifdef __cplusplus
-#define NO_IMPORT_ARRAY
-#endif
-
 #include <numpy/ndarrayobject.h>
-
 
 #ifdef __cplusplus
     extern "C" {
