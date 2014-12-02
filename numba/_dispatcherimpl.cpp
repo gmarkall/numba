@@ -240,14 +240,12 @@ void
 dispatcher_insert_ndarray_typecode(int ndim, int layout,
                                    PyArray_Descr* descr, int typecode) {
     Record r = descr_to_record(descr);
-    if (!r.empty())
+    if (r.empty())
         return;
 
     ndarray_type k(ndim, layout, r);
     ndarray_typemap[k] = typecode;
 }
-
-
 
 typedef std::map<Record, int> ArrayScalarTypeMap;
 static ArrayScalarTypeMap arrayscalar_typemap;
