@@ -86,7 +86,7 @@ dispatcher_count(dispatcher_t *obj) {
     return disp->count();
 }
 
-// Array type caches
+// Structured type cache implementation
 
 #include <map>
 #include <set>
@@ -97,7 +97,7 @@ struct record_field {
     void* name;
     /* Kind of the name string - values as PyUnicode_KIND(o) */
     int kind;
-    /* Length of name in bytes (not code points) */
+    /* Length of name in bytes */
     Py_ssize_t length;
     /* Type num of the field's data type */
     int type_num;
@@ -150,22 +150,21 @@ typedef std::set<record_field> Record;
 
 // Convert a PyArray_Descr to a Record. Return of an empty record indicates
 // a failure in creating the record.
+static
 Record descr_to_record(PyArray_Descr* descr) {
     PyObject* fields = descr->fields;
     PyObject* keys = PyDict_Keys(fields);
 
     Record record;
 
-    // Ensure all keys are in the canonical state
     for (int i = 0; i < PyList_Size(keys); ++i) {
-        PyObject* key = PyList_GetItem(keys, i);
+        PyObject* key = PyList_GET_ITEM(keys, i);
+        // Ensure all keys are in the canonical state
         if (PyUnicode_READY(key) == -1) {
-          return record;
+            Py_DECREF(keys);
+            return Record();
         }
-    }
 
-    for (int i = 0; i < PyList_Size(keys); ++i) {
-        PyObject* key = PyList_GetItem(keys, i);
         PyObject* value = PyDict_GetItem(fields, key);
 
         void* data = PyUnicode_DATA(key);
@@ -174,11 +173,20 @@ Record descr_to_record(PyArray_Descr* descr) {
         Py_ssize_t datalen = length * kind;
         void* name = malloc(datalen);
         memcpy(name, data, datalen);
-        int type_num = ((PyArray_Descr*)PyTuple_GetItem(value, 0))->type_num;
-        int offset = PyLong_AsLong(PyTuple_GetItem(value, 1));
+
+        int type_num = ((PyArray_Descr*)PyTuple_GET_ITEM(value, 0))->type_num;
+        // We do not handle records containing fields that don't have one
+        // of the basic typecodes
+        if (dtype_num_to_typecode(type_num) == -1) {
+            Py_DECREF(keys);
+            return Record();
+        }
+
+        int offset = PyLong_AsLong(PyTuple_GET_ITEM(value, 1));
         record_field rf(name, kind, datalen, type_num, offset);
         record.insert(rf);
     }
+
     Py_DECREF(keys);
     return record;
 }
@@ -244,10 +252,6 @@ dispatcher_insert_ndarray_typecode(int ndim, int layout,
 typedef std::map<Record, int> ArrayScalarTypeMap;
 static ArrayScalarTypeMap arrayscalar_typemap;
 
-#ifdef DEBUG
-#include <iostream>
-#endif
-
 int dispatcher_get_arrayscalar_typecode(PyArray_Descr* descr) {
     Record r = descr_to_record(descr);
     if (r.empty())
@@ -263,9 +267,6 @@ int dispatcher_get_arrayscalar_typecode(PyArray_Descr* descr) {
 
 void dispatcher_insert_arrayscalar_typecode(PyArray_Descr *descr, int typecode) {
     Record r = descr_to_record(descr);
-#ifdef DEBUG
-    std::cout << "Attempting to cache " << typecode << std::endl;
-#endif
 
     if (!r.empty())
         arrayscalar_typemap[r] = typecode;

@@ -200,7 +200,7 @@ int typecode_fallback_keep_ref(DispatcherObject *dispatcher, PyObject *val) {
 #define N_LAYOUT 3
 static int cached_arycode[N_NDIM][N_LAYOUT][N_DTYPES];
 
-static int dtype_num_to_typecode(int type_num) {
+int dtype_num_to_typecode(int type_num) {
     int dtype;
     switch(type_num) {
     case NPY_INT8:

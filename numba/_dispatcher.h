@@ -9,6 +9,8 @@
     extern "C" {
 #endif
 
+int dtype_num_to_typecode(int type_num);
+
 typedef struct _opaque_dispatcher dispatcher_t;
 
 dispatcher_t *
