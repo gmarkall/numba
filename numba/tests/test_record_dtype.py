@@ -197,8 +197,8 @@ class TestRecordDtype(unittest.TestCase):
         rec = numpy_support.from_dtype(recordtype)
         cfunc = self.get_cfunc(pyfunc, (rec[:], rec[:], types.intp))
         for i in range(self.npsample1d.size):
-            self.assertEqual(pyfunc(self.npsample1d, self.nbsample1d3, i),
-                              cfunc(self.npsample1d, self.nbsample1d3, i))
+            self.assertEqual(pyfunc(self.npsample1d, self.npsample1d3, i),
+                              cfunc(self.nbsample1d, self.nbsample1d3, i))
 
     def test_two_distinct_arrays(self):
         pyfunc = get_two_arrays_distinct
@@ -206,8 +206,8 @@ class TestRecordDtype(unittest.TestCase):
         rec2 = numpy_support.from_dtype(recordtype2)
         cfunc = self.get_cfunc(pyfunc, (rec1[:], rec2[:], types.intp))
         for i in range(self.npsample1d.size):
-            pres = pyfunc(self.npsample1d, self.nbsample1d2, i)
-            cres = cfunc(self.npsample1d, self.nbsample1d2, i)
+            pres = pyfunc(self.npsample1d, self.npsample1d2, i)
+            cres = cfunc(self.nbsample1d, self.nbsample1d2, i)
             self.assertEqual(pres,cres)
 
     def test_get_two_a(self):
@@ -298,7 +298,7 @@ class TestRecordDtype(unittest.TestCase):
 
             got = cfunc(*args)
             self.assertEqual(expected, got)
-            self.assertNotEqual(nbval.a, got)
+            self.assertNotEqual(nbval['a'], got)
             del got, expected, args
 
         # Check for potential leaks (issue #441)
@@ -340,7 +340,7 @@ class TestRecordDtype(unittest.TestCase):
         '''
         nbval1 = self.nbsample1d.copy()[0]
         nbval2 = self.npsample1d2.copy()[0]
-        expected = nbval1.a + nbval2.f
+        expected = nbval1['a'] + nbval2['f']
 
         nbrecord1 = numpy_support.from_dtype(recordtype)
         nbrecord2 = numpy_support.from_dtype(recordtype2)
@@ -396,9 +396,9 @@ class TestRecordDtypeWithStructArrays(TestRecordDtype):
         self.npsample1d2 = np.recarray(3, dtype=recordtype2)
         self.npsample1d3 = np.recarray(3, dtype=recordtype)
 
-        self.nbsample1d = np.recarray(3, dtype=recordtype)
-        self.nbsample1d2 = np.recarray(3, dtype=recordtype2)
-        self.nbsample1d3 = np.recarray(3, dtype=recordtype)
+        self.nbsample1d = np.zeros(3, dtype=recordtype)
+        self.nbsample1d2 = np.zeros(3, dtype=recordtype2)
+        self.nbsample1d3 = np.zeros(3, dtype=recordtype)
 
 class TestRecordDtypeWithStructArraysAndDispatcher(TestRecordDtypeWithStructArrays):
     """
