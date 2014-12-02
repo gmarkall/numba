@@ -123,6 +123,12 @@ recordtype2 = np.dtype([('e', np.int32),
 class TestRecordDtype(unittest.TestCase):
 
     def _createSampleArrays(self):
+        '''
+        Set up the data structures to be used with the Numpy and Numba
+        versions of functions.
+
+        In this case, both accept recarrays.
+        '''
         self.npsample1d = np.recarray(3, dtype=recordtype)
         self.npsample1d2 = np.recarray(3, dtype=recordtype2)
         self.npsample1d3 = np.recarray(3, dtype=recordtype)
@@ -377,21 +383,30 @@ def _get_cfunc_nopython(pyfunc, argspec):
     return jit(argspec, nopython=True)(pyfunc)
 
 class TestRecordDtypeWithDispatcher(TestRecordDtype):
-    """
+    '''
     Same as TestRecordDtype, but stressing the Dispatcher's type dispatch
-    mechanism (issue #384).
-    """
+    mechanism (issue #384). Note that this does not stress caching of ndarray
+    typecodes as the path that uses the cache is not taken with recarrays.
+    '''
 
     def get_cfunc(self, pyfunc, argspec):
         return _get_cfunc_nopython(pyfunc, argspec)
 
 class TestRecordDtypeWithStructArrays(TestRecordDtype):
-    """
+    '''
     Same as TestRecordDtype, but using structured arrays instead of recarrays.
-    """
+    '''
 
     def _createSampleArrays(self):
-        # Create sample arrays
+        '''
+        Two different versions of the data structures are required because Numba
+        supports attribute access on structured arrays, whereas Numpy does not.
+
+        However, the semantics of recarrays and structured arrays are equivalent
+        for these tests so Numpy with recarrays can be used for comparison with
+        Numba using structured arrays.
+        '''
+
         self.npsample1d = np.recarray(3, dtype=recordtype)
         self.npsample1d2 = np.recarray(3, dtype=recordtype2)
         self.npsample1d3 = np.recarray(3, dtype=recordtype)
@@ -401,9 +416,11 @@ class TestRecordDtypeWithStructArrays(TestRecordDtype):
         self.nbsample1d3 = np.zeros(3, dtype=recordtype)
 
 class TestRecordDtypeWithStructArraysAndDispatcher(TestRecordDtypeWithStructArrays):
-    """
-    Same as TestRecordDtype, but using structured arrays instead of recarrays.
-    """
+    '''
+    Same as TestRecordDtypeWithStructArrays, stressing the Dispatcher's type
+    dispatch mechanism (issue #384) and caching of ndarray typecodes for void
+    types (which occur in structured arrays).
+    '''
 
     def get_cfunc(self, pyfunc, argspec):
         return _get_cfunc_nopython(pyfunc, argspec)
