@@ -377,6 +377,15 @@ def normalize_index(index):
 
 
 @builtin
+class GetItemVoid(AbstractTemplate):
+    key = "getitem"
+
+    def generic(self, args, kws):
+        vd, idx = args
+        if isinstance(vd, types.Void):
+            return signature(vd.dtype, vd, normalize_index(idx))
+
+@builtin
 class GetItemUniTuple(AbstractTemplate):
     key = "getitem"
 
@@ -438,6 +447,15 @@ class SetItemArray(AbstractTemplate):
                 raise TypeError("Constant array")
             return signature(types.none, ary, normalize_index(idx), ary.dtype)
 
+@builtin
+class LenVoid(AbstractTemplate):
+    key = types.len_type
+
+    def generic(self, args, kws):
+        assert not kws
+        (vd,) = args
+        if isinstance(vd, types.Void):
+            return signature(types.intp, vd)
 
 @builtin
 class LenArray(AbstractTemplate):
