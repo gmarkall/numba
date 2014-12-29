@@ -380,10 +380,7 @@ class TestRecordDtype(unittest.TestCase):
         nbrecord1 = numpy_support.from_dtype(recordwitharray)
         cfunc = self.get_cfunc(record_write_array, (nbrecord1,))
 
-
-        print("Before:", nbval1)
         cfunc(nbval1[0])
-        print("After:", nbval1)
         expected = self.nbsample1d4.copy()
         expected[0][0] = 2
         expected[0][1][0] = 3.0
