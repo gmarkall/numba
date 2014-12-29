@@ -14,11 +14,6 @@ class TypeManager(object):
                                          allow_unsafe)
 
     def check_compatible(self, fromty, toty):
-        try:
-            fromty._code
-            toty._code
-        except:
-            from pudb import set_trace; set_trace()
         return _typeconv.check_compatible(self._ptr, fromty._code, toty._code)
 
     def set_compatible(self, fromty, toty, by):

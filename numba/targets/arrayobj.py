@@ -648,8 +648,6 @@ def array_record_getattr(context, builder, typ, value, attr):
     newdataptr = builder.inttoptr(newdata, rary.data.type)
     rary.data = newdataptr
 
-    from pudb import set_trace; set_trace()
-
     return rary._getvalue()
 
 
