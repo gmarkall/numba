@@ -111,6 +111,11 @@ def record_return(ary, i):
     return ary[i]
 
 
+def record_write_array(ary):
+    ary.g = 2
+    ary.h[0] = 3.0
+    ary.h[1] = 4.0
+
 recordtype = np.dtype([('a', np.float64),
                        ('b', np.int32),
                        ('c', np.complex64),
@@ -119,6 +124,8 @@ recordtype = np.dtype([('a', np.float64),
 recordtype2 = np.dtype([('e', np.int32),
                         ('f', np.float64)])
 
+recordwitharray = np.dtype([('g', np.int32),
+                            ('h', np.float32, 2)])
 
 class TestRecordDtype(unittest.TestCase):
 
@@ -132,10 +139,12 @@ class TestRecordDtype(unittest.TestCase):
         self.refsample1d = np.recarray(3, dtype=recordtype)
         self.refsample1d2 = np.recarray(3, dtype=recordtype2)
         self.refsample1d3 = np.recarray(3, dtype=recordtype)
+        self.refsample1d4 = np.recarray(3, dtype=recordwitharray)
 
         self.nbsample1d = np.recarray(3, dtype=recordtype)
         self.nbsample1d2 = np.recarray(3, dtype=recordtype2)
         self.nbsample1d3 = np.recarray(3, dtype=recordtype)
+        self.nbsample1d4 = np.recarray(3, dtype=recordwitharray)
 
     def setUp(self):
 
@@ -346,6 +355,7 @@ class TestRecordDtype(unittest.TestCase):
             got = cfunc(nbval1, nbval2)
             self.assertEqual(expected, got)
 
+
     def test_two_distinct_records(self):
         '''
         Testing the use of two scalar records of differing type
@@ -360,6 +370,25 @@ class TestRecordDtype(unittest.TestCase):
 
         got = cfunc(nbval1, nbval2)
         self.assertEqual(expected, got)
+
+
+    def test_record_with_array(self):
+        '''
+        Testing the use of a record containing an array
+        '''
+        nbval1 = self.nbsample1d4.copy()
+        nbrecord1 = numpy_support.from_dtype(recordwitharray)
+        cfunc = self.get_cfunc(record_write_array, (nbrecord1,))
+
+
+        print("Before:", nbval1)
+        cfunc(nbval1[0])
+        print("After:", nbval1)
+        expected = self.nbsample1d4.copy()
+        expected[0][0] = 2
+        expected[0][1][0] = 3.0
+        expected[0][1][1] = 4.0
+        np.testing.assert_equal(expected, nbval1)
 
     def test_record_return(self):
         """
@@ -416,10 +445,12 @@ class TestRecordDtypeWithStructArrays(TestRecordDtype):
         self.refsample1d = np.recarray(3, dtype=recordtype)
         self.refsample1d2 = np.recarray(3, dtype=recordtype2)
         self.refsample1d3 = np.recarray(3, dtype=recordtype)
+        self.refsample1d4 = np.recarray(3, dtype=recordwitharray)
 
         self.nbsample1d = np.zeros(3, dtype=recordtype)
         self.nbsample1d2 = np.zeros(3, dtype=recordtype2)
         self.nbsample1d3 = np.zeros(3, dtype=recordtype)
+        self.nbsample1d4 = np.zeros(3, dtype=recordwitharray)
 
 class TestRecordDtypeWithStructArraysAndDispatcher(TestRecordDtypeWithStructArrays):
     '''

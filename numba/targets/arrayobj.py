@@ -43,6 +43,15 @@ def make_array(array_type):
 
     return ArrayTemplate
 
+#def make_void(void_type):
+#    """
+#    Return the Structure representation of a given void type
+#    """
+#    dtype = void_type.dtype
+#
+#    class VoidTemplate(cgutils.Structure):
+#        _fields = [
+
 def make_array_ctype(ndim):
     """Create a ctypes representation of an array_type.
 
@@ -281,6 +290,25 @@ def getitem_array_tuple(context, builder, sig, args):
                                        wraparound=True)
 
         return context.unpack_value(builder, aryty.dtype, ptr)
+
+
+@builtin
+@implement('setitem', types.Kind(types.Void), types.intp, types.Any)
+def setitem_void1d(context, builder, sig, args):
+    vdty, _, valty = sig.args
+    vd, idx, val = args
+
+    #offset = builder.add(Constant.int(idx.type, 0), idx)
+    #from pudb import set_trace; set_trace()
+    ptr = builder.gep(vd, [Constant.int(idx.type, 0), idx])
+
+    #from pudb import set_trace; set_trace()
+    #vdstty = types.CPointer(vdty.dtype)
+    #vd = vdstty(context, builder, vd)
+
+    #ptr = cgutils.get_item_pointer(builder, vdty, vd, [idx], wraparound=True)
+    val = context.cast(builder, val, valty, vdty.dtype)
+    context.pack_value(builder, vdty.dtype, val, ptr)
 
 
 @builtin
@@ -636,6 +664,8 @@ def array_record_getattr(context, builder, typ, value, attr):
     newdata = builder.add(builder.ptrtoint(array.data, llintp), constoffset)
     newdataptr = builder.inttoptr(newdata, rary.data.type)
     rary.data = newdataptr
+
+    from pudb import set_trace; set_trace()
 
     return rary._getvalue()
 

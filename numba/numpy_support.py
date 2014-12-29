@@ -90,6 +90,10 @@ def from_dtype(dtype):
                 return _from_str_dtype(dtype)
             if dtype.char in 'mM' and npdatetime.NPDATETIME_SUPPORTED:
                 return _from_datetime_dtype(dtype)
+            if dtype.char in 'V':
+                subtype = FROM_DTYPE[dtype.subdtype[0]]
+                shape = dtype.subdtype[1]
+                return types.Void(str(dtype.descr), shape, subtype)
             raise NotImplementedError(dtype)
     else:
         return from_struct_dtype(dtype)
