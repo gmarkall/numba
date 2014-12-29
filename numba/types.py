@@ -541,17 +541,6 @@ class Void(Type):
         # types become supported in future.
         return False
 
-    @property
-    def size(self):
-        return len(self) * (self.dtype.bitwidth // 8)
-
-    @property
-    def ndim(self):
-        if isinstance(self.shape, tuple):
-            return len(self.shape)
-        else:
-            return 1
-
     def __len__(self):
         l = 1
         for s in self.shape:
