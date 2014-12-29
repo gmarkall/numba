@@ -149,6 +149,19 @@ def getitem_array1d_intp(context, builder, sig, args):
                             wraparound=idxty.signed)
 
 @builtin
+@implement('getitem', types.Kind(types.Void), types.intp)
+def getitem_void1d_intp(context, builder, sig, args):
+    vdty, _ = sig.args
+    if vdty.ndim != 1:
+        # TODO
+        raise NotImplementedError("1D indexing into %dD array" % aryty.ndim)
+
+    vd, idx = args
+    ptr = builder.gep(vd, [Constant.int(idx.type, 0), idx])
+    return context.unpack_value(builder, vdty.dtype, ptr)
+
+
+@builtin
 @implement('getitem', types.Kind(types.Array), types.slice3_type)
 def getitem_array1d_slice(context, builder, sig, args):
     aryty, _ = sig.args
@@ -436,6 +449,13 @@ def array_len(context, builder, sig, args):
     shapeary = ary.shape
     return builder.extract_value(shapeary, 0)
 
+
+@builtin
+@implement(types.len_type, types.Kind(types.Void))
+def void_len(context, builder, sig, args):
+    # Shape of Void is a compile-time constant
+    shape = sig.args[0].shape
+    return context.get_constant(types.intp, shape[0])
 
 @builtin
 @implement(numpy.sum, types.Kind(types.Array))
