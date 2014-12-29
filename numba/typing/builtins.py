@@ -449,6 +449,18 @@ class LenArray(AbstractTemplate):
         if isinstance(ary, types.Array):
             return signature(types.intp, ary)
 
+@builtin
+class SetItemVoid(AbstractTemplate):
+    key = "setitem"
+
+    def generic(self, args, kws):
+        assert not kws
+        vd, idx, val = args
+        if isinstance(vd, types.Void):
+            if vd.const:
+                raise TypeError("Constant structured type")
+            return signature(types.none, vd, normalize_index(idx), vd.dtype)
+
 #-------------------------------------------------------------------------------
 
 @builtin_attr

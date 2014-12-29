@@ -521,6 +521,43 @@ class UnicodeCharSeq(Type):
         return self.count
 
 
+class Void(Type):
+    mutable = True
+
+    def __init__(self, id, shape, dtype):
+        self.id = id
+        self.shape = shape
+        self.dtype = dtype
+        name = 'Void(%s)' % id
+        super(Void, self).__init__(name)
+
+    @property
+    def key(self):
+        return (self.dtype, self.shape)
+
+    @property
+    def const(self):
+        # Presently always False, but could become True if constant structured
+        # types become supported in future.
+        return False
+
+    @property
+    def size(self):
+        return len(self) * (self.dtype.bitwidth // 8)
+
+    @property
+    def ndim(self):
+        if isinstance(self.shape, tuple):
+            return len(self.shape)
+        else:
+            return 1
+
+    def __len__(self):
+        l = 1
+        for s in self.shape:
+            l = l * s
+        return l
+
 class Record(Type):
     mutable = True
 

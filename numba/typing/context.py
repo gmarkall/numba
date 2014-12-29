@@ -61,6 +61,7 @@ class BaseContext(object):
             res = defn.apply(args, kws)
             if res is not None:
                 return res
+        from pudb import set_trace; set_trace()
 
     def resolve_getattr(self, value, attr):
         if isinstance(value, types.Record):

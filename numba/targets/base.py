@@ -324,6 +324,10 @@ class BaseContext(object):
             # Record are represented as byte array
             return Type.struct([Type.array(Type.int(8), ty.size)])
 
+        elif isinstance(ty, types.Void):
+            ltype = LTYPEMAP[ty.dtype]
+            return Type.array(ltype, len(ty))
+
         elif isinstance(ty, types.UnicodeCharSeq):
             charty = Type.int(numpy_support.sizeof_unicode_char * 8)
             return Type.struct([Type.array(charty, ty.count)])
@@ -348,7 +352,10 @@ class BaseContext(object):
             return self.get_struct_type(pairty)
 
         else:
-            return LTYPEMAP[ty]
+            try:
+                return LTYPEMAP[ty]
+            except:
+                from pudb import set_trace; set_trace()
 
     def get_value_type(self, ty):
         if ty == types.boolean:
@@ -374,6 +381,8 @@ class BaseContext(object):
 
         if ty == types.boolean:
             value = cgutils.as_bool_byte(builder, value)
+        if value.type != ptr.type.pointee:
+            from pudb import set_trace; set_trace()
         assert value.type == ptr.type.pointee
         builder.store(value, ptr)
 
@@ -510,6 +519,7 @@ class BaseContext(object):
         try:
             return _wrap_impl(overloads.find(sig), self, sig)
         except NotImplementedError:
+            from pudb import set_trace; set_trace()
             raise Exception("No definition for lowering %s%s" % (key, sig))
 
     def get_bound_function(self, builder, obj, ty):
@@ -522,11 +532,17 @@ class BaseContext(object):
             offset = typ.offset(attr)
             elemty = typ.typeof(attr)
 
-            @impl_attribute(typ, attr, elemty)
-            def imp(context, builder, typ, val):
-                dptr = cgutils.get_record_member(builder, val, offset,
-                                                 self.get_data_type(elemty))
-                return self.unpack_value(builder, elemty, dptr)
+            if isinstance(elemty, types.Void):
+                @impl_attribute(typ, attr, elemty)
+                def imp(context, builder, typ, val):
+                    return cgutils.get_record_member(builder, val, offset,
+                                                     self.get_data_type(elemty))
+            else:
+                @impl_attribute(typ, attr, elemty)
+                def imp(context, builder, typ, val):
+                    dptr = cgutils.get_record_member(builder, val, offset,
+                                                     self.get_data_type(elemty))
+                    return self.unpack_value(builder, elemty, dptr)
             return imp
 
         if isinstance(typ, types.Module):
