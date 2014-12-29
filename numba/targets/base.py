@@ -352,10 +352,7 @@ class BaseContext(object):
             return self.get_struct_type(pairty)
 
         else:
-            try:
-                return LTYPEMAP[ty]
-            except:
-                from pudb import set_trace; set_trace()
+            return LTYPEMAP[ty]
 
     def get_value_type(self, ty):
         if ty == types.boolean:
@@ -381,8 +378,6 @@ class BaseContext(object):
 
         if ty == types.boolean:
             value = cgutils.as_bool_byte(builder, value)
-        if value.type != ptr.type.pointee:
-            from pudb import set_trace; set_trace()
         assert value.type == ptr.type.pointee
         builder.store(value, ptr)
 
@@ -519,7 +514,6 @@ class BaseContext(object):
         try:
             return _wrap_impl(overloads.find(sig), self, sig)
         except NotImplementedError:
-            from pudb import set_trace; set_trace()
             raise Exception("No definition for lowering %s%s" % (key, sig))
 
     def get_bound_function(self, builder, obj, ty):
@@ -533,6 +527,8 @@ class BaseContext(object):
             elemty = typ.typeof(attr)
 
             if isinstance(elemty, types.Void):
+                # Void is an array, so we need to return the pointer to the
+                # data rather than the data
                 @impl_attribute(typ, attr, elemty)
                 def imp(context, builder, typ, val):
                     return cgutils.get_record_member(builder, val, offset,
