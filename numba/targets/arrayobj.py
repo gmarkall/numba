@@ -242,6 +242,33 @@ def getitem_array_unituple(context, builder, sig, args):
 
 
 @builtin
+@implement('getitem', types.Kind(types.Void), types.Kind(types.Tuple))
+def getitem_void_tuple(context, builder, sig, args):
+    vdty, idxty = sig.args
+    vd, idx = args
+
+    shape = list(vdty.shape)
+    indices = cgutils.unpack_tuple(builder, idx, count=len(idxty))
+    indices = [context.cast(builder, i, t, types.intp)
+               for t, i in zip(idxty, indices)]
+
+    # We cannot use gep for the whole index computation because the
+    # void type is flattened to 1D. So using the shape of the type
+    # we build the index computation here.
+    indices.reverse()
+    shape.reverse()
+
+    stride = 1
+    gepindex = Constant.int(indices[0].type, 0)
+    for i, idx in enumerate(indices):
+        m = builder.mul(Constant.int(idx.type, stride), idx)
+        gepindex = builder.add(gepindex, m)
+        stride *= shape[i]
+
+    ptr = builder.gep(vd, [Constant.int(indices[0].type, 0), gepindex])
+    return context.unpack_value(builder, vdty.dtype, ptr)
+
+@builtin
 @implement('getitem', types.Kind(types.Array),
            types.Kind(types.Tuple))
 def getitem_array_tuple(context, builder, sig, args):
