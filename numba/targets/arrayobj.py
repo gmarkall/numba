@@ -243,6 +243,7 @@ def getitem_array_unituple(context, builder, sig, args):
 
 @builtin
 @implement('getitem', types.Kind(types.Void), types.Kind(types.Tuple))
+@implement('getitem', types.Kind(types.Void), types.Kind(types.UniTuple))
 def getitem_void_tuple(context, builder, sig, args):
     vdty, idxty = sig.args
     vd, idx = args
