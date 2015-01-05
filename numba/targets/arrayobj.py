@@ -686,6 +686,11 @@ def array_size(context, builder, typ, value):
     dims = cgutils.unpack_tuple(builder, array.shape, typ.ndim)
     return reduce(builder.mul, dims[1:], dims[0])
 
+@builtin_attr
+@impl_attribute(types.Kind(types.Void), "size", types.intp)
+def void_size(context, builder, typ, value):
+    llintp = context.get_value_type(types.intp)
+    return Constant.int(llintp, len(typ))
 
 @builtin_attr
 @impl_attribute_generic(types.Kind(types.Array))

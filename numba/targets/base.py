@@ -363,8 +363,10 @@ class BaseContext(object):
             # Record data are passed by refrence
             memory = dataty.elements[0]
             return Type.struct([Type.pointer(memory)])
-
-        return dataty
+        elif isinstance(ty, types.Void):
+            return Type.pointer(dataty)
+        else:
+            return dataty
 
     def pack_value(self, builder, ty, value, ptr):
         """Pack data for array storage

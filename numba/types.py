@@ -529,7 +529,7 @@ class Void(Type):
         self.shape = shape
         self.dtype = dtype
         name = 'Void(%s)' % id
-        super(Void, self).__init__(name)
+        super(Void, self).__init__(name, param=True)
 
     @property
     def key(self):

@@ -509,6 +509,12 @@ class ArrayAttribute(AttributeTemplate):
                 return types.Array(ary.dtype.typeof(attr), ndim=ary.ndim,
                                    layout='A')
 
+@builtin_attr
+class VoidAttribute(AttributeTemplate):
+    key = types.Void
+
+    def resolve_size(self, vd):
+        return types.intp
 
 def generic_homog(self, args, kws):
     assert not args

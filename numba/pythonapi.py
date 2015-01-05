@@ -834,6 +834,16 @@ class PythonAPI(object):
         elif isinstance(typ, types.Array):
             return self.to_native_array(typ, obj)
 
+        elif isinstance(typ, types.Void):
+            # Void type extracted from a record within the Numpy Python API
+            # is just another ndarray. However, the Numba code that works with
+            # it is expecting just a pointer to the data, so we need to pull
+            # this out first.
+            ptr = self.to_native_array(typ, obj)
+            llintp = self.context.get_value_type(types.intp)
+            dataptr = self.builder.extract_value(ptr, 3)
+            return self.builder.bitcast(dataptr, self.context.get_value_type(typ))
+
         elif isinstance(typ, types.Optional):
             isnone = self.builder.icmp(lc.ICMP_EQ, obj, self.borrow_none())
             with cgutils.ifelse(self.builder, isnone) as (then, orelse):
