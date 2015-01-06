@@ -1008,6 +1008,11 @@ class BaseContext(object):
         if self.strict_alignment:
             offset = rectyp.offset(attr)
             elemty = rectyp.typeof(attr)
+            if isinstance(elemty, types.Void):
+                # For Void types, we check alignment with the size of
+                # the primitive type of which it makes up an array,
+                # not the size of the entire array.
+                elemty = elemty.dtype
             align = self.get_abi_sizeof(self.get_data_type(elemty))
             if offset % align:
                 msg = "{rec}.{attr} of type {type} is not aligned".format(

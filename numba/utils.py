@@ -131,7 +131,8 @@ class SortedSet(collections.Set):
 
 class UniqueDict(dict):
     def __setitem__(self, key, value):
-        assert key not in self
+        if key in self:
+            raise KeyError('Key %s already present in UniqueDict' % key)
         super(UniqueDict, self).__setitem__(key, value)
 
 
