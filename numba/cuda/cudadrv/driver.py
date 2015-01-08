@@ -1252,7 +1252,7 @@ def host_pointer(obj):
     """
     if isinstance(obj, (int, long)):
         return obj
-    return mviewbuf.memoryview_get_buffer(obj)
+    return mviewbuf.memoryview_get_buffer(obj, True)
 
 
 def host_memory_extents(obj):

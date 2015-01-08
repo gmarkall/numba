@@ -5,6 +5,11 @@ static int get_buffer(PyObject* obj, Py_buffer *buf)
     return PyObject_GetBuffer(obj, buf, PyBUF_WRITABLE|PyBUF_ND|PyBUF_STRIDES|PyBUF_FORMAT);
 }
 
+static int get_ro_buffer(PyObject* obj, Py_buffer *buf)
+{
+    return PyObject_GetBuffer(obj, buf, PyBUF_ND|PyBUF_STRIDES|PyBUF_FORMAT);
+}
+
 static void free_buffer(Py_buffer * buf)
 {
     PyBuffer_Release(buf);
@@ -13,20 +18,32 @@ static void free_buffer(Py_buffer * buf)
 static PyObject*
 memoryview_get_buffer(PyObject *self, PyObject *args){
     PyObject *obj = NULL;
+    PyObject *readonly = NULL;
     PyObject *ret = NULL;
     void * ptr = NULL;
     Py_ssize_t buflen;
     Py_buffer buf;
 
-    if (!PyArg_ParseTuple(args, "O", &obj))
+    if (!PyArg_ParseTuple(args, "O|O", &obj, &readonly))
         return NULL;
 
-    if (!get_buffer(obj, &buf)) { /* new buffer api */
+    int res;
+    if(readonly && PyObject_IsTrue(readonly)) {
+        res = get_ro_buffer(obj, &buf);
+    } else {
+        res = get_buffer(obj, &buf);
+    }
+
+    if (!res) { /* new buffer api */
         ret = PyLong_FromVoidPtr(buf.buf);
         free_buffer(&buf);
     } else { /* old buffer api */
         PyErr_Clear();
-        if (-1 == PyObject_AsWriteBuffer(obj, &ptr, &buflen)) return NULL;
+        if (readonly && PyObject_IsTrue(readonly)) {
+            if (-1 == PyObject_AsWriteBuffer(obj, &ptr, &buflen)) return NULL;
+        } else {
+            if (-1 == PyObject_AsWriteBuffer(obj, &ptr, &buflen)) return NULL;
+        }
         ret = PyLong_FromVoidPtr(ptr);
     }
     return ret;
