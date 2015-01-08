@@ -71,13 +71,29 @@ class CUDATargetContext(BaseContext):
 
     def generate_kernel_wrapper(self, func, argtypes):
         module = func.module
-        argtys = [self.get_argument_type(ty) for ty in argtypes]
+
+        argtys = []
+
+        for ty in argtypes:
+            if isinstance(ty, types.Record):
+                # Special case Record type at kernel argument boundary
+                argtys.append(self.get_argument_type(types.Array(ndim=0,
+                                                                 layout='C',
+                                                                 dtype=ty)))
+            else:
+                argtys.append(self.get_argument_type(ty))
+
+
+        innerargtys = [self.get_argument_type(ty) for ty in argtypes]
+
         wrapfnty = Type.function(Type.void(), argtys)
         wrapper_module = self.create_module("cuda.kernel.wrapper")
         fnty = Type.function(Type.int(),
-                             [self.get_return_type(types.pyobject)] + argtys)
+                             [self.get_return_type(types.pyobject)] + innerargtys)
+
         func = wrapper_module.add_function(fnty, name=func.name)
         wrapfn = wrapper_module.add_function(wrapfnty, name="cudaPy_" + func.name)
+
         builder = Builder.new(wrapfn.append_basic_block(''))
 
         # Define error handling variables
@@ -96,8 +112,15 @@ class CUDATargetContext(BaseContext):
 
         callargs = []
         for at, av in zip(argtypes, wrapfn.args):
-            av = self.get_argument_value(builder, at, av)
-            callargs.append(av)
+            if isinstance(at, types.Record):
+                asary = types.Array(ndim=0, layout='C', dtype=ty)
+                av = self.get_argument_value(builder, asary, av)
+                ary = self.make_array(asary)(self, builder, value=av)
+                rec = self.unpack_value(builder, at, ary.data)
+                callargs.append(rec)
+            else:
+                av = self.get_argument_value(builder, at, av)
+                callargs.append(av)
 
         status, _ = self.call_function(builder, func, types.void, argtypes,
                                        callargs)
