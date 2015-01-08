@@ -191,7 +191,7 @@ class TestRecordDtype(unittest.TestCase):
         expected[0][1][0] = 3.0
         expected[0][1][1] = 4.0
 
-        np.testing.assert_equal(expected, result)
+        np.testing.assert_equal(expected[:1], result)
 
 
 class TestRecordDtypeWithStructArrays(TestRecordDtype):
