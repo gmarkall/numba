@@ -1,5 +1,5 @@
 """
-A CUDA ND Array is recognized by checking the __cuda_memory__ attribute
+A CUDA ND Array is recognized by checking the __cuda_ndarray__ attribute
 on the object.  If it exists and evaluate to True, it must define shape,
 strides, dtype and size attributes similar to a NumPy ndarray.
 """
