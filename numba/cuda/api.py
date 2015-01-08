@@ -52,7 +52,10 @@ def to_device(ary, stream=0, copy=True, to=None):
         hary = d_ary.copy_to_host(stream=stream)
     """
     if to is None:
-        devarray = devicearray.from_array_like(ary, stream=stream)
+        if isinstance(ary, np.void):
+            devarray = devicearray.from_record_like(ary, stream=stream)
+        else:
+            devarray = devicearray.from_array_like(ary, stream=stream)
     else:
         devarray = to
     if copy:

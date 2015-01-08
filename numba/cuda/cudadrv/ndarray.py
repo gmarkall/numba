@@ -132,7 +132,7 @@ def ndarray_populate_head(gpu_mem, gpu_data, shape, strides, stream=0):
     Populate the array header
     """
     nd = len(shape)
-    assert nd > 0, "0 or negative dimension"
+    assert nd >= 0, "negative dimension"
 
     arraytype = make_array_ctype(nd)
     struct = arraytype(parent=None,

@@ -411,6 +411,15 @@ class CUDAKernel(CUDAKernelBase):
                                   stream=stream)
             return dmem
 
+        elif isinstance(ty, types.Record):
+            devrec, conv = devicearray.auto_device(val, stream=stream)
+            if conv:
+                # If conversion occurred, copy back to host after kernel
+                # launch is implied, but not implemented for Record types
+                # since they provide a read-only buffer.
+                raise NotImplementedError("Writeback with Record type")
+            return devrec.as_cuda_arg()
+
         else:
             raise NotImplementedError(ty, val)
 

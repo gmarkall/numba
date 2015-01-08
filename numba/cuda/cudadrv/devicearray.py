@@ -235,6 +235,22 @@ class DeviceNDArrayBase(object):
         return self.gpu_head
 
 
+class DeviceRecord(DeviceNDArrayBase):
+    def __init__(self, dtype, stream=0, gpu_head=None, gpu_data=None):
+        shape = ()
+        strides = ()
+        super(DeviceRecord, self).__init__(shape, strides, dtype, stream,
+                                           gpu_head, gpu_data)
+
+    @property
+    def _numba_type_(self):
+        """
+        Magic attribute expected by Numba to get the numba type that
+        represents this object.
+        """
+        return numpy_support.from_dtype(self.dtype)
+
+
 class DeviceNDArray(DeviceNDArrayBase):
     def is_f_contiguous(self):
         return self._dummy.is_f_contig
@@ -338,6 +354,12 @@ def from_array_like(ary, stream=0, gpu_head=None, gpu_data=None):
                          gpu_data=gpu_data)
 
 
+def from_record_like(rec, stream=0, gpu_head=None, gpu_data=None):
+    "Create a DeviceRecord object that is like rec."
+    return DeviceRecord(rec.dtype, stream=stream, gpu_head=gpu_head,
+                        gpu_data=gpu_data)
+
+
 errmsg_contiguous_buffer = ("Array contains non-contiguous buffer and cannot "
                             "be transferred as a single memory region. Please "
                             "ensure contiguous buffer with numpy "
@@ -355,7 +377,10 @@ def auto_device(ary, stream=0, copy=True):
         return ary, False
     else:
         sentry_contiguous(ary)
-        devarray = from_array_like(ary, stream=stream)
+        if isinstance(ary, np.void):
+            devarray = from_record_like(ary, stream=stream)
+        else:
+            devarray = from_array_like(ary, stream=stream)
         if copy:
             devarray.copy_to_device(ary, stream=stream)
         return devarray, True
