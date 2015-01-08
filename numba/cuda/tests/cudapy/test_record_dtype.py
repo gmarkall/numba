@@ -103,7 +103,7 @@ class TestRecordDtype(unittest.TestCase):
 
 
     def get_cfunc(self, pyfunc, argspec):
-        return cuda.jit()(pyfunc)
+        return cuda.jit(debug=True)(pyfunc)
 
     def test_from_dtype(self):
         rec = numpy_support.from_dtype(recordtype)
@@ -176,12 +176,22 @@ class TestRecordDtype(unittest.TestCase):
         cfunc = self.get_cfunc(record_write_array, (nbrecord1,))
 
         d_nbval1 = cuda.to_device(nbval1[0])
+        # For copying the result back into, since we can't copy back into a
+        # record type (it only provides a read-only buffer)
+        result = np.zeros(1, dtype=nbval1.dtype)
+        d_nbval1.copy_to_host(result) # Works OK
+
+        # Call kernel
         cfunc(d_nbval1)
+
+        d_nbval1.copy_to_host(result) # Launch Failed
+
         expected = self.nbsample1d4.copy()
         expected[0][0] = 2
         expected[0][1][0] = 3.0
         expected[0][1][1] = 4.0
-        np.testing.assert_equal(expected, nbval1)
+
+        np.testing.assert_equal(expected, result)
 
 
 class TestRecordDtypeWithStructArrays(TestRecordDtype):
