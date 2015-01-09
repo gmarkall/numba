@@ -113,7 +113,7 @@ class CUDATargetContext(BaseContext):
         callargs = []
         for at, av in zip(argtypes, wrapfn.args):
             if isinstance(at, types.Record):
-                asary = types.Array(ndim=0, layout='C', dtype=ty)
+                asary = types.Array(ndim=0, layout='C', dtype=at)
                 av = self.get_argument_value(builder, asary, av)
                 ary = self.make_array(asary)(self, builder, value=av)
                 rec = self.unpack_value(builder, at, ary.data)
