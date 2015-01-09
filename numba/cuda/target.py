@@ -57,7 +57,13 @@ class CUDATargetContext(BaseContext):
             ch = m.group(0)
             return "_%X_" % ord(ch)
 
-        qualified = name + '.' + '.'.join(str(a) for a in argtypes)
+        def transform_name(arg):
+            if isinstance(arg, types.Record):
+                return "Record_%s" % arg._code
+            else:
+                return str(arg)
+
+        qualified = name + '.' + '.'.join(transform_name(a) for a in argtypes)
         mangled = VALID_CHARS.sub(repl, qualified)
         return mangled
 

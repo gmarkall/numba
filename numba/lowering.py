@@ -23,7 +23,12 @@ class ForbiddenConstruct(LoweringError):
 
 
 def default_mangler(name, argtypes):
-    codedargs = '.'.join(str(a).replace(' ', '_') for a in argtypes)
+    def transform_name(arg):
+        if isinstance(arg, types.Record):
+            return "Record_%s" % arg._code
+        else:
+            return str(arg).replace(' ', '_')
+    codedargs = '.'.join(transform_name(a) for a in argtypes)
     return '.'.join([name, codedargs])
 
 
