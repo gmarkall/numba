@@ -1,6 +1,7 @@
 from __future__ import absolute_import, print_function
 import copy
 import ctypes
+import inspect
 
 
 from numba.typing.templates import AbstractTemplate
@@ -213,10 +214,19 @@ class CachedPTX(object):
         self.cache = {}
         self._extra_options = options.copy()
 
-    def get(self):
+    def get(self, sourcefile=None, lineno=None):
         """
         Get PTX for the current active context.
         """
+        if sourcefile is None:
+            sourcefile = b'/tmp/blank.cu'
+        else:
+            sourcefile = bytes(sourcefile, 'utf-8')
+        if lineno is None:
+            lineno = 1
+        fileinfo = b'.file 1 "' + sourcefile + b'"'
+        lineinfo = b'.loc 1 ' + bytes('%s' % lineno, 'utf-8') + b' 0'
+
         cuctx = get_context()
         device = cuctx.device
         cc = device.compute_capability
@@ -225,6 +235,19 @@ class CachedPTX(object):
             arch = nvvm.get_arch_option(*cc)
             ptx = nvvm.llvm_to_ptx(self.llvmir, opt=3, arch=arch,
                                    **self._extra_options)
+
+            # Hack in the fake source file information
+            lines = ptx.splitlines()
+            newlines = []
+            for line in lines:
+                newlines.append(line)
+                if len(line) > 0:
+                    if line[:13] == b'.address_size':
+                        newlines.append(fileinfo)
+                    elif line[0] == b'{'[0]:
+                        newlines.append(lineinfo)
+            ptx = b'\n'.join(newlines)
+
             self.cache[cc] = ptx
             if config.DUMP_ASSEMBLY:
                 print(("ASSEMBLY %s" % self.name).center(80, '-'))
@@ -247,12 +270,12 @@ class CachedCUFunction(object):
         self.cache = {}
         self.ccinfos = {}
 
-    def get(self):
+    def get(self, sourcefile=None, lineno=None):
         cuctx = get_context()
         device = cuctx.device
         cufunc = self.cache.get(device.id)
         if cufunc is None:
-            ptx = self.ptx.get()
+            ptx = self.ptx.get(sourcefile=sourcefile, lineno=lineno)
 
             # Link
             linker = driver.Linker()
@@ -306,11 +329,11 @@ class CUDAKernel(CUDAKernelBase):
                           stream=self.stream,
                           sharedmem=self.sharedmem)
 
-    def bind(self):
+    def bind(self, sourcefile=None, lineno=None):
         """
         Force binding to current CUDA context
         """
-        self._func.get()
+        self._func.get(sourcefile=sourcefile, lineno=lineno)
 
     @property
     def ptx(self):
@@ -476,5 +499,7 @@ class AutoJitCUDAKernel(CUDAKernelBase):
                                     **self.targetoptions)
             self.definitions[argtypes] = kernel
             if self.bind:
-                kernel.bind()
+                sourcefile = inspect.getsourcefile(self.py_func)
+                lineno = inspect.getsourcelines(self.py_func)[1]
+                kernel.bind(sourcefile=sourcefile, lineno=lineno)
         return kernel
