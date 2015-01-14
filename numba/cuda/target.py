@@ -60,8 +60,14 @@ class CUDATargetContext(BaseContext):
         def transform_name(arg):
             if isinstance(arg, types.Record):
                 return "Record_%s" % arg._code
+            elif (isinstance(arg, types.Array) and
+                  isinstance(arg.dtype, types.Record)):
+                c = '' and arg.const or 'non'
+                return "array(Record_%s, %sd, %s, %sconst)" % \
+                    (arg.dtype._code, arg.ndim, arg.layout, c)
             else:
-                return str(arg)
+                ret = str(arg)
+                return ret
 
         qualified = name + '.' + '.'.join(transform_name(a) for a in argtypes)
         mangled = VALID_CHARS.sub(repl, qualified)
