@@ -466,6 +466,7 @@ class Context(object):
         self.is_managed = finalizer is not None
         self.allocations = utils.UniqueDict()
         self.modules = utils.UniqueDict()
+        self.allocated = 0
 
     def __del__(self):
         try:
@@ -511,6 +512,10 @@ class Context(object):
         mem = MemoryPointer(weakref.proxy(self), ptr, bytesize,
                             _memory_finalizer(self, ptr))
         self.allocations[ptr.value] = mem
+        self.allocated += bytesize
+        if bytesize > 100 * 1048576:
+            from pudb import set_trace; set_trace()
+        print("Allocated", self.allocated/1048576, "M")
         return mem.own()
 
     def memhostalloc(self, bytesize, mapped=False, portable=False, wc=False):
@@ -544,7 +549,10 @@ class Context(object):
 
     def memfree(self, pointer):
         try:
-            del self.allocations[pointer.value]
+            mem = self.allocations[pointer.value]
+            self.allocated -= mem.size
+            del mem
+            print("Allocated", self.allocated/1048576, "M")
         except KeyError:
             raise DeadMemoryError
         self.trashing.service()
@@ -997,6 +1005,7 @@ class Function(object):
         self.handle = handle
         self.name = name
         self.attrs = self._read_func_attr_all()
+        self.cache_config(prefer_cache=True)
 
     def __repr__(self):
         return "<CUDA function %s>" % self.name
