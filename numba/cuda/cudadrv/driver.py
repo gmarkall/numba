@@ -1113,6 +1113,7 @@ class Linker(object):
         linkererrors = (c_char * logsz)()
 
         options = {
+            enums.CU_JIT_MAX_REGISTERS: c_void_p(32),
             enums.CU_JIT_INFO_LOG_BUFFER: addressof(linkerinfo),
             enums.CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES: c_void_p(logsz),
             enums.CU_JIT_ERROR_LOG_BUFFER: addressof(linkererrors),
@@ -1120,6 +1121,7 @@ class Linker(object):
             enums.CU_JIT_LOG_VERBOSE: c_void_p(1),
             enums.CU_JIT_GENERATE_DEBUG_INFO: c_void_p(1),
             enums.CU_JIT_GENERATE_LINE_INFO: c_void_p(1),
+            #enums.CU_JIT_CACHE_MODE: c_void_p(2),
         }
 
         raw_keys = list(options.keys()) + [enums.CU_JIT_TARGET_FROM_CUCONTEXT]
