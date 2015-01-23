@@ -437,11 +437,6 @@ class BaseContext(object):
                       for i, v in enumerate(val)]
             return Constant.struct(consts)
 
-        elif isinstance(ty, types.Record):
-            consts = [self.get_constant(types.int8, b)
-                      for b in bytearray(val.tostring())]
-            return Constant.array(consts[0].type, consts)
-
         else:
             raise NotImplementedError("%s as constant unsupported" % ty)
 
