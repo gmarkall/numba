@@ -515,7 +515,7 @@ class Context(object):
         self.allocated += bytesize
         if bytesize > 100 * 1048576:
             from pudb import set_trace; set_trace()
-        print("Allocated", self.allocated/1048576, "M")
+        #print("Allocated", self.allocated/1048576, "M")
         return mem.own()
 
     def memhostalloc(self, bytesize, mapped=False, portable=False, wc=False):
@@ -552,7 +552,7 @@ class Context(object):
             mem = self.allocations[pointer.value]
             self.allocated -= mem.size
             del mem
-            print("Allocated", self.allocated/1048576, "M")
+            #print("Allocated", self.allocated/1048576, "M")
         except KeyError:
             raise DeadMemoryError
         self.trashing.service()
