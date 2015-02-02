@@ -210,6 +210,9 @@ def ptx_atomic_add_intp(context, builder, sig, args):
     if aryty.dtype == types.float32:
         lmod = cgutils.get_module(builder)
         return builder.call(nvvmutils.declare_atomic_add_float32(lmod), (ptr, val))
+    elif aryty.dtype == types.float64:
+        lmod = cgutils.get_module(builder)
+        return builder.call(nvvmutils.declare_atomic_add_float64(lmod), (ptr, val))
     else:
         return builder.atomic_rmw('add', ptr, val, 'monotonic')
 
@@ -239,6 +242,9 @@ def ptx_atomic_add_unituple(context, builder, sig, args):
     if aryty.dtype == types.float32:
         lmod = cgutils.get_module(builder)
         return builder.call(nvvmutils.declare_atomic_add_float32(lmod), (ptr, val))
+    elif aryty.dtype == types.float64:
+        lmod = cgutils.get_module(builder)
+        return builder.call(nvvmutils.declare_atomic_add_float64(lmod), (ptr, val))
     else:
         return builder.atomic_rmw('add', ptr, val, 'monotonic')
 
@@ -268,6 +274,9 @@ def ptx_atomic_add_tuple(context, builder, sig, args):
     if aryty.dtype == types.float32:
         lmod = cgutils.get_module(builder)
         return builder.call(nvvmutils.declare_atomic_add_float32(lmod), (ptr, val))
+    elif aryty.dtype == types.float64:
+        lmod = cgutils.get_module(builder)
+        return builder.call(nvvmutils.declare_atomic_add_float64(lmod), (ptr, val))
     else:
         return builder.atomic_rmw('add', ptr, val, 'monotonic')
 
