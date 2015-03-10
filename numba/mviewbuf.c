@@ -120,7 +120,7 @@ static PyTypeObject BufferProxyType = {
 
 static int get_buffer(PyObject* obj, Py_buffer *buf)
 {
-    return PyObject_GetBuffer(obj, buf, PyBUF_ND|PyBUF_STRIDES|PyBUF_FORMAT|PyBUF_WRITABLE);
+    return PyObject_GetBuffer(obj, buf, PyBUF_WRITABLE|PyBUF_ND|PyBUF_STRIDES|PyBUF_FORMAT);
 }
 
 static void free_buffer(Py_buffer * buf)
