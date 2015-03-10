@@ -120,11 +120,10 @@ static PyTypeObject BufferProxyType = {
 
 static int get_buffer(PyObject* obj, Py_buffer *buf)
 {
-    int flags = PyBUF_ND|PyBUF_STRIDES|PyBUF_FORMAT|PyBUF_WRITABLE;
-    return PyObject_GetBuffer(obj, buf, flags);
+    return PyObject_GetBuffer(obj, buf, PyBUF_ND|PyBUF_STRIDES|PyBUF_FORMAT|PyBUF_WRITABLE);
 }
 
-static void free_buffer(Py_buffer *buf)
+static void free_buffer(Py_buffer * buf)
 {
     PyBuffer_Release(buf);
 }
@@ -145,9 +144,7 @@ memoryview_get_buffer(PyObject *self, PyObject *args){
         free_buffer(&buf);
     } else { /* old buffer api */
         PyErr_Clear();
-        if (-1 == PyObject_AsWriteBuffer(obj, &ptr, &buflen)) {
-            return NULL;
-        }
+        if (-1 == PyObject_AsWriteBuffer(obj, &ptr, &buflen)) return NULL;
         ret = PyLong_FromVoidPtr(ptr);
     }
     return ret;
