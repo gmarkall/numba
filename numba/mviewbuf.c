@@ -33,7 +33,8 @@ BufferProxyObject_getbuffer(BufferProxyObject *self, Py_buffer *view,
     if (self->ob_exports == 0) {
         if(-1 == PyObject_GetBuffer(self->wrapped, &(self->wrapped_buf),
                                     wrapped_flags)) {
-            PyErr_SetString(PyExc_BufferError, "Could not get buffer for wrapped (new protocol)");
+            PyErr_SetString(PyExc_BufferError,
+                            "Could not get buffer for wrapped (new protocol)");
             view->obj = NULL;
             return -1;
         }
@@ -57,16 +58,18 @@ BufferProxyObject_releasebuffer(BufferProxyObject *self, Py_buffer *view) {
         PyBuffer_Release(&(self->wrapped_buf));
 }
 
-#if PY_MAJOR_VERSION >= 3
+#if (PY_MAJOR_VERSION >= 3)
 static PyBufferProcs BufferProxy_as_buffer = {
     (getbufferproc)BufferProxyObject_getbuffer,
     (releasebufferproc)BufferProxyObject_releasebuffer,
 };
 #else
 static Py_ssize_t
-BufferProxyObject_getwritebuf(BufferProxyObject *self, Py_ssize_t index, const void **ptr) {
+BufferProxyObject_getwritebuf(BufferProxyObject *self, Py_ssize_t index,
+                              const void **ptr) {
     if (index != 0) {
-        PyErr_SetString(PyExc_TypeError, "Accessing non-existent BufferProxy segment");
+        PyErr_SetString(PyExc_TypeError,
+                        "Accessing non-existent BufferProxy segment");
         return -1;
     }
 
@@ -76,9 +79,11 @@ BufferProxyObject_getwritebuf(BufferProxyObject *self, Py_ssize_t index, const v
     }
 
     if (self->ob_old_exports == 0) {
-        if (-1 == PyObject_AsReadBuffer(self->wrapped, (const void**) &(self->wrapped_ptr),
+        if (-1 == PyObject_AsReadBuffer(self->wrapped,
+                                        (const void**) &(self->wrapped_ptr),
                                         &(self->wrapped_len))) {
-            PyErr_SetString(PyExc_TypeError, "Could not get buffer for wrapped (old protocol)");
+            PyErr_SetString(PyExc_TypeError,
+                            "Could not get buffer for wrapped (old protocol)");
             return -1;
         }
     }
@@ -89,28 +94,31 @@ BufferProxyObject_getwritebuf(BufferProxyObject *self, Py_ssize_t index, const v
 }
 
 static Py_ssize_t
-BufferProxyObject_getreadbuf(BufferProxyObject *self, Py_ssize_t index, const void **ptr) {
+BufferProxyObject_getreadbuf(BufferProxyObject *self, Py_ssize_t index,
+                             const void **ptr) {
     return BufferProxyObject_getwritebuf(self, index, ptr);
 }
 
 static Py_ssize_t
 BufferProxyObject_getsegcount(BufferProxyObject *self, Py_ssize_t *lenp) {
-    return self->wrapped->ob_type->tp_as_buffer->bf_getsegcount(self->wrapped, lenp);
+    return self->wrapped->ob_type->tp_as_buffer->bf_getsegcount(self->wrapped,
+                                                                lenp);
 }
 
 static Py_ssize_t
-BufferProxyObject_getcharbuf(BufferProxyObject *self, Py_ssize_t index, const char **ptr) {
+BufferProxyObject_getcharbuf(BufferProxyObject *self, Py_ssize_t index,
+                             const char **ptr) {
     return BufferProxyObject_getwritebuf(self, index, (const void **) ptr);
 }
 
 static PyBufferProcs BufferProxy_as_buffer = {
-    (readbufferproc)BufferProxyObject_getreadbuf,      /*bf_getreadbuffer*/
+    (readbufferproc)BufferProxyObject_getreadbuf,       /*bf_getreadbuffer*/
     (writebufferproc)BufferProxyObject_getwritebuf,     /*bf_getwritebuffer*/
     (segcountproc)BufferProxyObject_getsegcount,        /*bf_getsegcount*/
-    (charbufferproc)BufferProxyObject_getcharbuf,      /*bf_getcharbuffer*/
+    (charbufferproc)BufferProxyObject_getcharbuf,       /*bf_getcharbuffer*/
     /* new buffer protocol */
-    (getbufferproc)BufferProxyObject_getbuffer,       /*bf_getbuffer*/
-    (releasebufferproc)BufferProxyObject_releasebuffer,   /*bf_releasebuffer*/
+    (getbufferproc)BufferProxyObject_getbuffer,         /*bf_getbuffer*/
+    (releasebufferproc)BufferProxyObject_releasebuffer, /*bf_releasebuffer*/
 };
 #endif
 
@@ -136,28 +144,28 @@ BufferProxy_dealloc(BufferProxyObject *self) {
 static PyTypeObject BufferProxyType = {
 #if (PY_MAJOR_VERSION < 3)
     PyObject_HEAD_INIT(NULL)
-    0,                         /*ob_size*/
+    0,                               /*ob_size*/
 #else
     PyVarObject_HEAD_INIT(NULL, 0)
 #endif
-    "mviewbuf.BufferProxy",    /*tp_name*/
-    sizeof(BufferProxyObject), /*tp_basicsize*/
-    0,                         /*tp_itemsize*/
-    (destructor)BufferProxy_dealloc,     /*tp_dealloc*/
-    0,                         /*tp_print*/
-    0,                         /*tp_getattr*/
-    0,                         /*tp_setattr*/
-    0,                         /*tp_compare*/
-    0,                         /*tp_repr*/
-    0,                         /*tp_as_number*/
-    0,                         /*tp_as_sequence*/
-    0,                         /*tp_as_mapping*/
-    0,                         /*tp_hash */
-    0,                         /*tp_call*/
-    0,                         /*tp_str*/
-    0,                         /*tp_getattro*/
-    0,                         /*tp_setattro*/
-    &BufferProxy_as_buffer,     /*tp_as_buffer*/
+    "mviewbuf.BufferProxy",          /*tp_name*/
+    sizeof(BufferProxyObject),       /*tp_basicsize*/
+    0,                               /*tp_itemsize*/
+    (destructor)BufferProxy_dealloc, /*tp_dealloc*/
+    0,                               /*tp_print*/
+    0,                               /*tp_getattr*/
+    0,                               /*tp_setattr*/
+    0,                               /*tp_compare*/
+    0,                               /*tp_repr*/
+    0,                               /*tp_as_number*/
+    0,                               /*tp_as_sequence*/
+    0,                               /*tp_as_mapping*/
+    0,                               /*tp_hash */
+    0,                               /*tp_call*/
+    0,                               /*tp_str*/
+    0,                               /*tp_getattro*/
+    0,                               /*tp_setattro*/
+    &BufferProxy_as_buffer,          /*tp_as_buffer*/
     (Py_TPFLAGS_DEFAULT
 #if PY_MAJOR_VERSION < 3
      | Py_TPFLAGS_CHECKTYPES
@@ -165,25 +173,25 @@ static PyTypeObject BufferProxyType = {
 #if (PY_VERSION_HEX >= 0x02060000) && (PY_VERSION_HEX < 0x03000000)
      | Py_TPFLAGS_HAVE_NEWBUFFER
 #endif
-     | Py_TPFLAGS_BASETYPE),   /*tp_flags*/
-    "BufferProxy object",      /* tp_doc */
-    0,                         /* tp_traverse */
-    0,                         /* tp_clear */
-    0,                         /* tp_richcompare */
-    0,                         /* tp_weaklistoffset */
-    0,                         /* tp_iter */
-    0,                         /* tp_iternext */
-    0,                         /* tp_methods */
-    0,                         /* tp_members */
-    0,                         /* tp_getset */
-    0,                         /* tp_base */
-    0,                         /* tp_dict */
-    0,                         /* tp_descr_get */
-    0,                         /* tp_descr_set */
-    0,                         /* tp_dictoffset */
-    (initproc)BufferProxy_init,/* tp_init */
-    0,                         /* tp_alloc */
-    0,                         /* tp_new */
+     | Py_TPFLAGS_BASETYPE),         /*tp_flags*/
+    "BufferProxy object",            /*tp_doc*/
+    0,                               /*tp_traverse*/
+    0,                               /*tp_clear*/
+    0,                               /*tp_richcompare*/
+    0,                               /*tp_weaklistoffset*/
+    0,                               /*tp_iter*/
+    0,                               /*tp_iternext*/
+    0,                               /*tp_methods*/
+    0,                               /*tp_members*/
+    0,                               /*tp_getset*/
+    0,                               /*tp_base*/
+    0,                               /*tp_dict*/
+    0,                               /*tp_descr_get*/
+    0,                               /*tp_descr_set*/
+    0,                               /*tp_dictoffset*/
+    (initproc)BufferProxy_init,      /*tp_init*/
+    0,                               /*tp_alloc*/
+    0,                               /*tp_new*/
 };
 
 static int get_buffer(PyObject* obj, Py_buffer *buf)
