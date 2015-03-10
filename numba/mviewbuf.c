@@ -11,9 +11,10 @@ typedef struct {
     PyObject *wrapped;
     int ob_exports;
     Py_buffer wrapped_buf;
-#if PY_MAJOR_VERSION < 3
+#if (PY_MAJOR_VERSION < 3)
     void *wrapped_ptr;
     Py_ssize_t wrapped_len;
+    int ob_old_exports;
 #endif
 } BufferProxyObject;
 
@@ -74,13 +75,15 @@ BufferProxyObject_getwritebuf(BufferProxyObject *self, Py_ssize_t index, const v
         return -1;
     }
 
-    if (-1 == PyObject_AsReadBuffer(self->wrapped, (const void**) &(self->wrapped_ptr),
-                                    &(self->wrapped_len))) {
-        PyErr_SetString(PyExc_TypeError, "Could not get buffer for wrapped (old protocol)");
-        return -1;
+    if (self->ob_old_exports == 0) {
+        if (-1 == PyObject_AsReadBuffer(self->wrapped, (const void**) &(self->wrapped_ptr),
+                                        &(self->wrapped_len))) {
+            PyErr_SetString(PyExc_TypeError, "Could not get buffer for wrapped (old protocol)");
+            return -1;
+        }
     }
 
-    self->ob_exports += 1;
+    self->ob_old_exports += 1;
     *ptr = self->wrapped_ptr;
     return self->wrapped_len;
 }
@@ -119,6 +122,9 @@ BufferProxy_init(BufferProxyObject *self, PyObject *args, PyObject *kwds) {
     }
     Py_INCREF(self->wrapped);
     self->ob_exports = 0;
+#if (PY_MAJOR_VERSION < 3)
+    self->ob_old_exports = 0;
+#endif
     return 0;
 }
 
