@@ -1,53 +1,109 @@
 #include "_pymodule.h"
 
+/**
+ * A BufferProxy wraps a read-only buffer in a writable buffer. This is required
+ * for NumPy void and record types, which only expose a read-only buffer. Note
+ * that wrapping a read-only buffer may have some surprising effects on buffers
+ * which expect the data from their read-only buffer not to be modified.
+ */
 typedef struct {
     PyObject_HEAD
     PyObject *wrapped;
+    int ob_exports;
     Py_buffer wrapped_buf;
+#if PY_MAJOR_VERSION < 3
+    void *wrapped_ptr;
+    Py_ssize_t wrapped_len;
+#endif
 } BufferProxyObject;
 
-#if PY_MAJOR_VERSION >= 3
 static int
 BufferProxyObject_getbuffer(BufferProxyObject *self, Py_buffer *view,
                             int flags) {
-    int wrapped_flags = flags & ~PyBUF_WRITABLE;
-    if(-1 == PyObject_GetBuffer(self->wrapped, &(self->wrapped_buf),
-                                wrapped_flags)) {
-        PyErr_SetString(PyExc_BufferError, "Could not get buffer for wrapped");
+    int supported_flags = PyBUF_WRITABLE|PyBUF_ND|PyBUF_STRIDES|PyBUF_FORMAT;
+    int wrapped_flags = supported_flags & ~PyBUF_WRITABLE;
+
+    if (flags & ~supported_flags) {
+        PyErr_SetString(PyExc_BufferError, "Unsupported flags for BufferProxy");
         view->obj = NULL;
         return -1;
     }
 
+    if (self->ob_exports == 0) {
+        if(-1 == PyObject_GetBuffer(self->wrapped, &(self->wrapped_buf),
+                                    wrapped_flags)) {
+            PyErr_SetString(PyExc_BufferError, "Could not get buffer for wrapped (new protocol)");
+            view->obj = NULL;
+            return -1;
+        }
+    }
+
     if(-1 == PyBuffer_FillInfo(view, (PyObject*) self, self->wrapped_buf.buf,
-                               self->wrapped_buf.len, 0, flags)) {
+                               self->wrapped_buf.len, 0, supported_flags)) {
         PyBuffer_Release(&(self->wrapped_buf));
         view->obj = NULL;
         return -1;
     }
 
+    self->ob_exports += 1;
     return 0;
 }
 
 static void
 BufferProxyObject_releasebuffer(BufferProxyObject *self, Py_buffer *view) {
-    PyBuffer_Release(&(self->wrapped_buf));
+    self->ob_exports -= 1;
+    if (self->ob_exports == 0)
+        PyBuffer_Release(&(self->wrapped_buf));
 }
 
+#if PY_MAJOR_VERSION >= 3
 static PyBufferProcs BufferProxy_as_buffer = {
     (getbufferproc)BufferProxyObject_getbuffer,
     (releasebufferproc)BufferProxyObject_releasebuffer,
 };
 #else
-static PyBufferProcs BufferProxy_as_buffer = {
-    BufferProxyObject_readbufferproc,      /*bf_getreadbuffer*/
-    BufferProxyObject_writebufferproc,     /*bf_getwritebuffer*/
-    BufferProxyObject_segcountproc,        /*bf_getsegcount*/
-    BufferProxyObject_charbufferproc,      /*bf_getcharbuffer*/
-    /* new buffer protocol */
-    BufferProxyObject_getbufferproc,       /*bf_getbuffer*/
-    BufferProxyObject_releasebufferproc,   /*bf_releasebuffer*/
-};
+static Py_ssize_t
+BufferProxyObject_getwritebuf(BufferProxyObject *self, Py_ssize_t index, const void **ptr) {
+    if (index != 0) {
+        PyErr_SetString(PyExc_TypeError, "Accessing non-existent BufferProxy segment");
+        return -1;
+    }
 
+    if (-1 == PyObject_AsReadBuffer(self->wrapped, self->wrapped_ptr,
+                                    &(self->wrapped_len))) {
+        PyErr_SetString(PyExc_TypeError, "Could not get buffer for wrapped (old protocol)");
+        return -1;
+    }
+
+    self->ob_exports += 1;
+    *ptr = self->wrapped_ptr;
+    return self->wrapped_len;
+}
+
+static Py_ssize_t
+BufferProxyObject_getreadbuf(BufferProxyObject *self, Py_ssize_t index, const void **ptr) {
+    return BufferProxyObject_getwritebuf(self, index, ptr);
+}
+
+static Py_ssize_t
+BufferProxyObject_getsegcount(BufferProxyObject *self, Py_ssize_t *lenp) {
+    return self->wrapped->ob_type->tp_as_buffer->bf_getsegcount(self->wrapped, lenp);
+}
+
+static Py_ssize_t
+BufferProxyObject_getcharbuf(BufferProxyObject *self, Py_ssize_t index, const char **ptr) {
+    return BufferProxyObject_getwritebuf(self, index, (const void **) ptr);
+}
+
+static PyBufferProcs BufferProxy_as_buffer = {
+    (readbufferproc)BufferProxyObject_getreadbuf,      /*bf_getreadbuffer*/
+    (writebufferproc)BufferProxyObject_getwritebuf,     /*bf_getwritebuffer*/
+    (segcountproc)BufferProxyObject_getsegcount,        /*bf_getsegcount*/
+    (charbufferproc)BufferProxyObject_getcharbuf,      /*bf_getcharbuffer*/
+    /* new buffer protocol */
+    (getbufferproc)BufferProxyObject_getbuffer,       /*bf_getbuffer*/
+    (releasebufferproc)BufferProxyObject_releasebuffer,   /*bf_releasebuffer*/
+};
 #endif
 
 static int
@@ -57,6 +113,7 @@ BufferProxy_init(BufferProxyObject *self, PyObject *args, PyObject *kwds) {
         return -1;
     }
     Py_INCREF(self->wrapped);
+    self->ob_exports = 0;
     return 0;
 }
 
