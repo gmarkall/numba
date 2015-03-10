@@ -3,7 +3,7 @@
 typedef struct {
     PyObject_HEAD
     PyObject *wrapped;
-    Py_buffer *wrapped_buf;
+    Py_buffer wrapped_buf;
 } BufferProxyObject;
 
 #if PY_MAJOR_VERSION >= 3
@@ -11,16 +11,16 @@ static int
 BufferProxyObject_getbuffer(BufferProxyObject *self, Py_buffer *view,
                             int flags) {
     int wrapped_flags = flags & ~PyBUF_WRITABLE;
-    if(-1 == PyObject_GetBuffer(self->wrapped, self->wrapped_buf,
+    if(-1 == PyObject_GetBuffer(self->wrapped, &(self->wrapped_buf),
                                 wrapped_flags)) {
         PyErr_SetString(PyExc_BufferError, "Could not get buffer for wrapped");
         view->obj = NULL;
         return -1;
     }
 
-    if(-1 == PyBuffer_FillInfo(view, (PyObject*) self, self->wrapped_buf->buf,
-                               self->wrapped_buf->len, 0, flags)) {
-        PyBuffer_Release(self->wrapped_buf);
+    if(-1 == PyBuffer_FillInfo(view, (PyObject*) self, self->wrapped_buf.buf,
+                               self->wrapped_buf.len, 0, flags)) {
+        PyBuffer_Release(&(self->wrapped_buf));
         view->obj = NULL;
         return -1;
     }
@@ -30,7 +30,7 @@ BufferProxyObject_getbuffer(BufferProxyObject *self, Py_buffer *view,
 
 static void
 BufferProxyObject_releasebuffer(BufferProxyObject *self, Py_buffer *view) {
-    PyBuffer_Release(self->wrapped_buf);
+    PyBuffer_Release(&(self->wrapped_buf));
 }
 
 static PyBufferProcs BufferProxy_as_buffer = {
@@ -52,7 +52,7 @@ static PyBufferProcs BufferProxy_as_buffer = {
 
 static int
 BufferProxy_init(BufferProxyObject *self, PyObject *args, PyObject *kwds) {
-    if (!PyArg_ParseTuple(args, "O", self->wrapped)) {
+    if (!PyArg_ParseTuple(args, "O", &(self->wrapped))) {
         self->wrapped = NULL;
         return -1;
     }
@@ -124,7 +124,7 @@ static int get_buffer(PyObject* obj, Py_buffer *buf)
     return PyObject_GetBuffer(obj, buf, flags);
 }
 
-static void free_buffer(Py_buffer * buf)
+static void free_buffer(Py_buffer *buf)
 {
     PyBuffer_Release(buf);
 }
