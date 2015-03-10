@@ -69,7 +69,12 @@ BufferProxyObject_getwritebuf(BufferProxyObject *self, Py_ssize_t index, const v
         return -1;
     }
 
-    if (-1 == PyObject_AsReadBuffer(self->wrapped, self->wrapped_ptr,
+    if (self->wrapped == NULL) {
+        PyErr_SetString(PyExc_TypeError, "No wrapped object");
+        return -1;
+    }
+
+    if (-1 == PyObject_AsReadBuffer(self->wrapped, (const void**) &(self->wrapped_ptr),
                                     &(self->wrapped_len))) {
         PyErr_SetString(PyExc_TypeError, "Could not get buffer for wrapped (old protocol)");
         return -1;
