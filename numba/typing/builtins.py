@@ -294,6 +294,7 @@ class UnaryPositive(UnaryOp):
 
 class OrderedCmpOp(ConcreteTemplate):
     cases = [signature(types.boolean, types.boolean, types.boolean)]
+    cases += [signature(types.boolean, types.CharSeq(3), types.CharSeq(3))]
     cases += [signature(types.boolean, op, op) for op in sorted(types.signed_domain)]
     cases += [signature(types.boolean, op, op) for op in sorted(types.unsigned_domain)]
     cases += [signature(types.boolean, op, op) for op in sorted(types.real_domain)]

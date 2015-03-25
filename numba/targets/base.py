@@ -380,6 +380,9 @@ class BaseContext(object):
             consts = [self.get_constant(ty.dtype, v) for v in val]
             return Constant.array(consts[0].type, consts)
 
+        elif isinstance(ty, types.CharSeq):
+            return Constant.stringz(val)
+
         raise NotImplementedError("cannot lower constant of type '%s'" % (ty,))
 
     def get_constant_undef(self, ty):

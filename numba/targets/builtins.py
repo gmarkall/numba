@@ -449,6 +449,69 @@ def _implement_integer_operators():
 _implement_integer_operators()
 
 
+def charseq_eq_impl(context, builder, sig, args):
+    intp_t = context.get_value_type(types.intp)
+    bool_t = context.get_value_type(types.boolean)
+    char_t = context.get_value_type(types.CharSeq(1))
+    equal = cgutils.alloca_once(builder, bool_t, name='equal')
+    builder.store(Constant.int(bool_t, 1), equal)
+
+    start = Constant.int(intp_t, 0)
+    bbstart = builder.basic_block
+
+    bbcond = cgutils.append_basic_block(builder, "while.cond")
+    bbbody = cgutils.append_basic_block(builder, "while.body")
+    bbend = cgutils.append_basic_block(builder, "while.end")
+
+    condp = cgutils.alloca_once(builder, bool_t, name='cond')
+    builder.store(Constant.int(bool_t, 1), condp)
+
+    builder.branch(bbcond)
+
+    with cgutils.goto_block(builder, bbcond):
+        ind = builder.phi(intp_t, "cmp.index")
+        cond = builder.load(condp)
+        builder.cbranch(cond, bbbody, bbend)
+
+    with cgutils.goto_block(builder, bbbody):
+        c0p = cgutils.gep(builder, args[0], ind)
+        c0 = builder.load(c0p)
+        c1pc = builder.bitcast(args[1], char_t)
+        c1p = cgutils.gep(builder, c1pc, ind)
+        c1 = builder.load(c1p)
+
+        res = builder.icmp(lc.ICMP_NE, c0, c1)
+        with cgutils.if_unlikely(builder, res):
+            builder.store(Constant.int(bool_t, 0), equal)
+
+        c0end = builder.icmp(lc.ICMP_EQ, c0, Constant.int(intp_t, 0))
+        with cgutils.if_unlikely(builder, c0end):
+            builder.store(Constant.int(bool_t, 0), condp)
+
+        c1end = builder.icmp(lc.ICMP_EQ, c1, Constant.int(intp_t, 0))
+        with cgutils.if_unlikely(builder, c1end):
+            builder.store(Constant.int(bool_t, 0), condp)
+
+        incr = builder.add(ind, Constant.int(intp_t, 1))
+        bbincr = builder.basic_block
+
+        builder.branch(bbcond)
+
+    ind.add_incoming(start, bbstart)
+    ind.add_incoming(incr, bbincr)
+
+    builder.position_at_end(bbend)
+
+    return builder.load(equal)
+
+def _implement_char_operators():
+    ty = types.Kind(types.CharSeq)
+    builtin(implement('==', ty, ty)(charseq_eq_impl))
+
+
+_implement_char_operators()
+
+
 def optional_is_none(context, builder, sig, args):
     """Check if an Optional value is invalid
     """

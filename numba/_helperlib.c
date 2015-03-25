@@ -1110,6 +1110,12 @@ int Numba_adapt_ndarray(PyObject *obj, arystruct_t* arystruct) {
     return 0;
 }
 
+char* Numba_adapt_string(PyObject *obj) {
+    // Leaked ref
+    char* ret = PyBytes_AsString(PyUnicode_AsASCIIString(obj));
+    return ret;
+}
+
 static int
 Numba_get_buffer(PyObject *obj, Py_buffer *buf)
 {
@@ -1396,6 +1402,7 @@ build_c_helpers_dict(void)
     declmethod(complex_adaptor);
     declmethod(extract_record_data);
     declmethod(adapt_ndarray);
+    declmethod(adapt_string);
     declmethod(ndarray_new);
     declmethod(get_buffer);
     declmethod(adapt_buffer);

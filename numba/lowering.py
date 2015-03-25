@@ -2,8 +2,8 @@ from __future__ import print_function, division, absolute_import
 
 import sys
 
-from llvmlite.llvmpy.core import Constant, Type, Builder
-
+from llvmlite.llvmpy.core import Type, Builder
+import llvmlite.ir as llvmir
 
 from . import (_dynfunc, cgutils, config, funcdesc, generators, ir, types,
                typing, utils)
@@ -186,7 +186,15 @@ class Lower(BaseLower):
         if isinstance(inst, ir.Assign):
             ty = self.typeof(inst.target.name)
             val = self.lower_assign(ty, inst)
-            self.storevar(val, inst.target.name)
+            if isinstance(ty, types.CharSeq) and isinstance(val, llvmir.Constant):
+                globname = inst.target.name[1:]
+                globval = self.context.insert_unique_const(self.module, globname, val)
+                char_t = Type.pointer(Type.int(8))
+                name = inst.target.name
+                cast = self.builder.bitcast(globval, char_t, name + '.ptr')
+                self.storevar(cast, name)
+            else:
+                self.storevar(val, inst.target.name)
 
         elif isinstance(inst, ir.Branch):
             cond = self.loadvar(inst.cond.name)

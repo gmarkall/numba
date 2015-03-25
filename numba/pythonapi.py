@@ -932,6 +932,9 @@ class PythonAPI(object):
                         builder.store(builder.inttoptr(intval, ptrty), ret)
                 return NativeValue(builder.load(ret), is_error=c_api_error())
 
+        elif isinstance(typ, types.CharSeq):
+            return NativeValue(self.to_native_charseq(obj, typ), is_error=c_api_error())
+
         raise NotImplementedError("cannot convert %s to native value" % (typ,))
 
     def from_native_return(self, val, typ):
@@ -1021,6 +1024,15 @@ class PythonAPI(object):
             self.decref(longobj)
             self.builder.store(self.builder.trunc(llval, ll_type), val)
         return self.builder.load(val)
+
+    def to_native_charseq(self, obj, typ):
+        ll_type = self.context.get_argument_type(typ)
+        val = cgutils.alloca_once(self.builder, ll_type)
+
+        fnty = Type.function(ll_type, [self.pyobj])
+        fn = self._get_function(fnty, name="numba_adapt_string")
+        fn.args[0].add_attribute(lc.ATTR_NO_CAPTURE)
+        return self.builder.call(fn, (obj,))
 
     def to_native_buffer(self, obj, typ):
         buf = self.alloca_buffer()
