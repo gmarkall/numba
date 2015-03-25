@@ -39,7 +39,7 @@ def real_print_impl(context, builder, sig, args):
 
 
 @register
-@implement(types.print_item_type, types.Kind(types.CharSeq))
+@implement(types.print_item_type, types.Kind(types.FixedLenCharSeq))
 def print_charseq(context, builder, sig, args):
     [tx] = sig.args
     [x] = args

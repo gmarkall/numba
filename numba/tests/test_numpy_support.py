@@ -76,9 +76,9 @@ class TestFromDtype(TestCase):
             self.assertEqual(numpy_support.from_dtype(dtype), numba_type)
             self.assertEqual(dtype, numpy_support.as_dtype(numba_type))
 
-        check('S10', types.CharSeq(10))
-        check('a11', types.CharSeq(11))
-        check('U12', types.UnicodeCharSeq(12))
+        check('S10', types.FixedLenCharSeq(10))
+        check('a11', types.FixedLenCharSeq(11))
+        check('U12', types.FixedLenUnicodeCharSeq(12))
 
     @skip_on_numpy_16
     def check_datetime_types(self, letter, nb_class):

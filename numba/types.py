@@ -607,26 +607,26 @@ class ZipType(IteratorType):
         return self.source_types
 
 
-class CharSeq(Type):
-    mutable = True
+class FixedLenCharSeq(Type):
+    mutable = False
 
     def __init__(self, count):
         self.count = count
         name = "[char x %d]" % count
-        super(CharSeq, self).__init__(name, param=True)
+        super(FixedLenCharSeq, self).__init__(name, param=True)
 
     @property
     def key(self):
         return self.count
 
 
-class UnicodeCharSeq(Type):
-    mutable = True
+class FixedLenUnicodeCharSeq(Type):
+    mutable = False
 
     def __init__(self, count):
         self.count = count
         name = "[unichr x %d]" % count
-        super(UnicodeCharSeq, self).__init__(name, param=True)
+        super(FixedLenUnicodeCharSeq, self).__init__(name, param=True)
 
     @property
     def key(self):

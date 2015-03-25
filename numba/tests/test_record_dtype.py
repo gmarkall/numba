@@ -223,9 +223,9 @@ class TestRecordDtype(unittest.TestCase):
         self.assertEqual(rec.typeof('b'), types.int32)
         self.assertEqual(rec.typeof('c'), types.complex64)
         if IS_PY3:
-            self.assertEqual(rec.typeof('d'), types.UnicodeCharSeq(5))
+            self.assertEqual(rec.typeof('d'), types.FixedLenUnicodeCharSeq(5))
         else:
-            self.assertEqual(rec.typeof('d'), types.CharSeq(5))
+            self.assertEqual(rec.typeof('d'), types.FixedLenCharSeq(5))
         self.assertEqual(rec.offset('a'), recordtype.fields['a'][1])
         self.assertEqual(rec.offset('b'), recordtype.fields['b'][1])
         self.assertEqual(rec.offset('c'), recordtype.fields['c'][1])

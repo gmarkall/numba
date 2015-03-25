@@ -31,7 +31,7 @@ class PrintOthers(AbstractTemplate):
         if ty in types.integer_domain or ty in types.real_domain:
             return True
 
-        if isinstance(ty, types.CharSeq):
+        if isinstance(ty, types.FixedLenCharSeq):
             return True
 
     def generic(self, args, kws):
@@ -294,7 +294,7 @@ class UnaryPositive(UnaryOp):
 
 class OrderedCmpOp(ConcreteTemplate):
     cases = [signature(types.boolean, types.boolean, types.boolean)]
-    cases += [signature(types.boolean, types.CharSeq(3), types.CharSeq(3))]
+    cases += [signature(types.boolean, types.FixedLenCharSeq(3), types.FixedLenCharSeq(3))]
     cases += [signature(types.boolean, op, op) for op in sorted(types.signed_domain)]
     cases += [signature(types.boolean, op, op) for op in sorted(types.unsigned_domain)]
     cases += [signature(types.boolean, op, op) for op in sorted(types.real_domain)]

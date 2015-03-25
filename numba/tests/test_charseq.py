@@ -1,11 +1,11 @@
 from __future__ import print_function
 
 from numba import jit
-from numba.types import CharSeq, boolean
+from numba.types import FixedLenCharSeq, boolean
 from numba.tests.support import unittest
 
 
-charseq = CharSeq(3)
+charseq = FixedLenCharSeq(3)
 
 @jit(boolean(charseq), nopython=True)
 def f(chars):

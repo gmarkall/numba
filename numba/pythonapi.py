@@ -932,7 +932,7 @@ class PythonAPI(object):
                         builder.store(builder.inttoptr(intval, ptrty), ret)
                 return NativeValue(builder.load(ret), is_error=c_api_error())
 
-        elif isinstance(typ, types.CharSeq):
+        elif isinstance(typ, types.FixedLenCharSeq):
             return NativeValue(self.to_native_charseq(obj, typ), is_error=c_api_error())
 
         raise NotImplementedError("cannot convert %s to native value" % (typ,))

@@ -598,10 +598,10 @@ class RecordModel(CompositeModel):
         return builder.bitcast(ptr, self.get_value_type())
 
 
-@register_default(types.UnicodeCharSeq)
-class UnicodeCharSeq(DataModel):
+@register_default(types.FixedLenUnicodeCharSeq)
+class FixedLenUniqcodeCharSeq(DataModel):
     def __init__(self, dmm, fe_type):
-        super(UnicodeCharSeq, self).__init__(dmm, fe_type)
+        super(FixedLenUniqcodeCharSeq, self).__init__(dmm, fe_type)
         charty = ir.IntType(numpy_support.sizeof_unicode_char * 8)
         self._be_type = ir.ArrayType(charty, fe_type.count)
 
@@ -612,10 +612,10 @@ class UnicodeCharSeq(DataModel):
         return self._be_type
 
 
-@register_default(types.CharSeq)
-class CharSeq(DataModel):
+@register_default(types.FixedLenCharSeq)
+class FixedLenCharSeq(DataModel):
     def __init__(self, dmm, fe_type):
-        super(CharSeq, self).__init__(dmm, fe_type)
+        super(FixedLenCharSeq, self).__init__(dmm, fe_type)
         charty = ir.IntType(8)
         self._be_type = ir.PointerType(charty)
 

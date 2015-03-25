@@ -452,7 +452,7 @@ _implement_integer_operators()
 def charseq_eq_impl(context, builder, sig, args):
     intp_t = context.get_value_type(types.intp)
     bool_t = context.get_value_type(types.boolean)
-    char_t = context.get_value_type(types.CharSeq(1))
+    char_t = context.get_value_type(types.FixedLenCharSeq(1))
     equal = cgutils.alloca_once(builder, bool_t, name='equal')
     builder.store(Constant.int(bool_t, 1), equal)
 
@@ -505,7 +505,7 @@ def charseq_eq_impl(context, builder, sig, args):
     return builder.load(equal)
 
 def _implement_char_operators():
-    ty = types.Kind(types.CharSeq)
+    ty = types.Kind(types.FixedLenCharSeq)
     builtin(implement('==', ty, ty)(charseq_eq_impl))
 
 

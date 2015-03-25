@@ -50,13 +50,13 @@ def _from_str_dtype(dtype):
                                       "byteorder")
         count = dtype.itemsize // sizeof_unicode_char
         assert count == int(groups[1]), "Unicode char size mismatch"
-        return types.UnicodeCharSeq(count)
+        return types.FixedLenUnicodeCharSeq(count)
 
     elif typecode == 'S':
         # char
         count = dtype.itemsize
         assert count == int(groups[1]), "Char size mismatch"
-        return types.CharSeq(count)
+        return types.FixedLenCharSeq(count)
 
     else:
         raise NotImplementedError(dtype)
@@ -101,8 +101,8 @@ def from_dtype(dtype):
 _as_dtype_letters = {
     types.NPDatetime: 'M8',
     types.NPTimedelta: 'm8',
-    types.CharSeq: 'S',
-    types.UnicodeCharSeq: 'U',
+    types.FixedLenCharSeq: 'S',
+    types.FixedLenUnicodeCharSeq: 'U',
 }
 
 def as_dtype(nbtype):
@@ -120,7 +120,7 @@ def as_dtype(nbtype):
             return numpy.dtype('%s[%s]' % (letter, nbtype.unit))
         else:
             return numpy.dtype(letter)
-    if isinstance(nbtype, (types.CharSeq, types.UnicodeCharSeq)):
+    if isinstance(nbtype, (types.FixedLenCharSeq, types.FixedLenUnicodeCharSeq)):
         letter = _as_dtype_letters[type(nbtype)]
         return numpy.dtype('%s%d' % (letter, nbtype.count))
     raise NotImplementedError("%r cannot be represented as a Numpy dtype"
