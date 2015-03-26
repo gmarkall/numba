@@ -505,7 +505,7 @@ def charseq_eq_impl(context, builder, sig, args):
     return builder.load(equal)
 
 def _implement_char_operators():
-    ty = types.Kind(types.FixedLenCharSeq)
+    ty = types.Kind(types.CharSeq)
     builtin(implement('==', ty, ty)(charseq_eq_impl))
 
 

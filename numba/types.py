@@ -607,6 +607,20 @@ class ZipType(IteratorType):
         return self.source_types
 
 
+class CharSeq(Type):
+    mutable = False
+
+    def __init__(self):
+        super(CharSeq, self).__init__('[char x n]')
+
+
+class UnicodeCharSeq(Type):
+    mutable = False
+
+    def __init__(self):
+        super(UnicodeCharSeq, self).__init__('[unichr x n]')
+
+
 class FixedLenCharSeq(Type):
     mutable = False
 

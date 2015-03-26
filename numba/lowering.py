@@ -186,7 +186,7 @@ class Lower(BaseLower):
         if isinstance(inst, ir.Assign):
             ty = self.typeof(inst.target.name)
             val = self.lower_assign(ty, inst)
-            if isinstance(ty, types.FixedLenCharSeq) and isinstance(val, llvmir.Constant):
+            if isinstance(ty, (types.FixedLenCharSeq, types.CharSeq)) and isinstance(val, llvmir.Constant):
                 globname = inst.target.name[1:]
                 globval = self.context.insert_unique_const(self.module, globname, val)
                 char_t = Type.pointer(Type.int(8))

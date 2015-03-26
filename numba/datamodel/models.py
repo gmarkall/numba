@@ -599,9 +599,9 @@ class RecordModel(CompositeModel):
 
 
 @register_default(types.FixedLenUnicodeCharSeq)
-class FixedLenUniqcodeCharSeq(DataModel):
+class FixedLenUnicodeCharSeq(DataModel):
     def __init__(self, dmm, fe_type):
-        super(FixedLenUniqcodeCharSeq, self).__init__(dmm, fe_type)
+        super(FixedLenUnicodeCharSeq, self).__init__(dmm, fe_type)
         charty = ir.IntType(numpy_support.sizeof_unicode_char * 8)
         self._be_type = ir.ArrayType(charty, fe_type.count)
 
@@ -612,10 +612,11 @@ class FixedLenUniqcodeCharSeq(DataModel):
         return self._be_type
 
 
+@register_default(types.CharSeq)
 @register_default(types.FixedLenCharSeq)
-class FixedLenCharSeq(DataModel):
+class CharSeq(DataModel):
     def __init__(self, dmm, fe_type):
-        super(FixedLenCharSeq, self).__init__(dmm, fe_type)
+        super(CharSeq, self).__init__(dmm, fe_type)
         charty = ir.IntType(8)
         self._be_type = ir.PointerType(charty)
 

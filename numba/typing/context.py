@@ -158,7 +158,7 @@ class BaseContext(object):
             return types.none
 
         elif isinstance(val, str):
-            return types.FixedLenCharSeq(len(val))
+            return types.CharSeq()
 
         elif isinstance(val, complex):
             return types.complex128
