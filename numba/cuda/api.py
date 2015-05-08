@@ -212,11 +212,11 @@ event_elapsed_time = driver.event_elapsed_time
 # Device selection
 
 def select_device(device_id):
-    """Creates a new CUDA context with the selected device.
-    The context is associated with the current thread.
-    Numba currently allows only one context per thread.
+    """Creates a new CUDA context with device specified by *device_id*.  The
+    context is associated with the current thread.  Numba currently allows only
+    one context per thread.
 
-    Returns a device instance
+    Returns a device instance.
 
     Raises exception on error.
     """
@@ -235,9 +235,9 @@ def list_devices():
 
 
 def close():
-    """Explicitly closes the context.
-
-    Destroy the current context of the current thread
+    """
+    Explicitly clears all contexts in the current thread, and destroys all
+    contexts if the current thread is the main thread.
     """
     devices.reset()
 

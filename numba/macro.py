@@ -174,3 +174,16 @@ class Macro(object):
     def __repr__(self):
         return '<macro %s -> %s>' % (self.name, self.func)
 
+def documented_macro(name, func, callable=False, argnames=None):
+    '''
+    Factory function for creating macros with docstrings inherited from their
+    function.
+    '''
+
+    name = func.__name__ + '_macro'
+    bases = (Macro,)
+    dct = { '__doc__': func.__doc__,
+            '__init__': Macro.__init__,
+            '__slots__': Macro.__slots__,
+            '__repr__': Macro.__repr__ }
+    return type(name, bases, dct)(name, func, callable, argnames)

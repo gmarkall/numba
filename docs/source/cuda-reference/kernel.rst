@@ -18,7 +18,8 @@ Thread Indexing
 Memory Management
 -----------------
 
-.. autofunction:: numba.cuda.shared
+.. autoclass:: numba.cuda.shared
+   :members: array
 .. autofunction:: numba.cuda.local
 .. autofunction:: numba.cuda.const
 

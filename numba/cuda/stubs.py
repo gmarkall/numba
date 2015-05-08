@@ -158,9 +158,11 @@ gridsize = macro.Macro('ptx.gridsize', gridsize_expand, callable=True)
 # synthreads
 
 class syncthreads(Stub):
-    '''syncthreads()
-
-    Synchronizes all threads in the thread block.
+    '''
+    Synchronize all threads in the same thread block.  This function implements
+    the same pattern as barriers in traditional multi-threaded programming: this
+    function waits until all threads in the block call it, at which point it
+    returns control to all its callers.
     '''
     _description_ = '<syncthread()>'
 
@@ -177,6 +179,15 @@ def _legalize_shape(shape):
 
 
 def shared_array(shape, dtype):
+    '''
+    Allocate a shared array of the given *shape* and *type*. *shape* is either
+    an integer or a tuple of integers representing the array's dimensions.
+    *type* is a :ref:`Numba type <numba-types>` of the elements needing to be
+    stored in the array.
+
+    The returned array-like object can be read and written to like any normal
+    device array (e.g. through indexing).
+    '''
     shape = _legalize_shape(shape)
     ndim = len(shape)
     fname = "ptx.smem.alloc"
@@ -190,7 +201,7 @@ class shared(Stub):
     """
     _description_ = '<shared>'
 
-    array = macro.Macro('shared.array', shared_array, callable=True,
+    array = macro.documented_macro('shared.array', shared_array, callable=True,
                         argnames=['shape', 'dtype'])
 
 
@@ -199,6 +210,12 @@ class shared(Stub):
 
 
 def local_array(shape, dtype):
+    '''
+    Allocate a local array of the given *shape* and *type*. The array is private
+    to the current thread, and resides in global memory. An array-like object is
+    returned which can be read and written to like any standard array (e.g.
+    through indexing).
+    '''
     shape = _legalize_shape(shape)
     ndim = len(shape)
     fname = "ptx.lmem.alloc"
