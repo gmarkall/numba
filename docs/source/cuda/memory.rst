@@ -42,11 +42,13 @@ Streams
 =======
 
 .. autofunction:: numba.cuda.stream
+   :noindex:
 
 CUDA streams have the following methods:
 
 .. autoclass:: numba.cuda.cudadrv.driver.Stream
     :members: synchronize, auto_synchronize
+    :noindex:
 
 .. _cuda-shared-memory:
 
@@ -78,6 +80,7 @@ traditional dynamic memory management.
    shared array and then wait for all threads to finish using :func:`.syncthreads`.
 
 .. function:: numba.cuda.syncthreads()
+   :noindex:
 
    Synchronize all threads in the same thread block.  This function
    implements the same pattern as `barriers <http://en.wikipedia.org/wiki/Barrier_%28computer_science%29>`_

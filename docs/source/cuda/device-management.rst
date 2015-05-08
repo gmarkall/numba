@@ -34,6 +34,7 @@ Users can then create a new context with another device.
 
 
 .. function:: numba.cuda.select_device(device_id)
+   :noindex:
 
    Create a new CUDA context for the selected *device_id*.  *device_id*
    should be the number of the device (starting from 0; the device order
