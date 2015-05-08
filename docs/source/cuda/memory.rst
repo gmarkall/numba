@@ -14,8 +14,11 @@ read-only arrays, you can use the following APIs to manually control the
 transfer:
 
 .. autofunction:: numba.cuda.device_array
+   :noindex:
 .. autofunction:: numba.cuda.device_array_like
+   :noindex:
 .. autofunction:: numba.cuda.to_device
+   :noindex:
 
 Device arrays
 -------------
@@ -25,12 +28,15 @@ called in host code, not within CUDA-jitted functions.
 
 .. autoclass:: numba.cuda.cudadrv.devicearray.DeviceNDArray
     :members: copy_to_host, is_c_contiguous, is_f_contiguous, ravel, reshape
+    :noindex:
 
 Pinned memory
 =============
 
 .. autofunction:: numba.cuda.pinned
+   :noindex:
 .. autofunction:: numba.cuda.pinned_array
+   :noindex:
 
 Streams
 =======
