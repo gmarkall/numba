@@ -200,7 +200,7 @@ def local_array(shape, dtype):
 
 
 class local(Stub):
-    '''shared namespace
+    '''local namespace
     '''
     _description_ = '<local>'
 
@@ -274,7 +274,7 @@ def const_array_like(ndarray):
 
 
 class const(Stub):
-    '''shared namespace
+    '''const namespace
     '''
     _description_ = '<const>'
 
