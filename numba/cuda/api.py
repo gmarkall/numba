@@ -207,6 +207,8 @@ def event(timing=True):
     evt = current_context().create_event(timing=timing)
     return evt
 
+event_elapsed_time = driver.event_elapsed_time
+
 # Device selection
 
 def select_device(device_id):
