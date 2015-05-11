@@ -3,7 +3,7 @@ CUDA Python Reference
 
 .. toctree::
 
-   memory.rst
    host.rst
    kernel.rst
+   memory.rst
    supported.rst

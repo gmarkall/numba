@@ -113,7 +113,7 @@ def mapped_array(shape, dtype=np.float, strides=None, order='C', stream=0,
 
 
 def synchronize():
-    "Synchronize current context"
+    "Synchronize the current context."
     return current_context().synchronize()
 
 
@@ -212,11 +212,10 @@ event_elapsed_time = driver.event_elapsed_time
 # Device selection
 
 def select_device(device_id):
-    """Creates a new CUDA context with device specified by *device_id*.  The
-    context is associated with the current thread.  Numba currently allows only
-    one context per thread.
+    """
+    Make the context associated with device *device_id* the current context.
 
-    Returns a device instance.
+    Returns a Device instance.
 
     Raises exception on error.
     """
@@ -230,7 +229,7 @@ def get_current_device():
 
 
 def list_devices():
-    "List all CUDA devices"
+    "Return a list of all detected devices"
     return devices.gpus
 
 
@@ -247,7 +246,10 @@ def _auto_device(ary, stream=0, copy=True):
 
 
 def detect():
-    """Detect hardware support
+    """
+    Detect supported CUDA hardware and print a summary of the detected hardware.
+
+    Returns a boolean indicating whether any supported devices were detected.
     """
     devlist = list_devices()
     print('Found %d CUDA devices' % len(devlist))

@@ -439,11 +439,10 @@ def met_requirement_for_device(device):
 
 
 class Context(object):
-    """This object is tied to the lifetime of the actual context resource.
+    """
+    This object wraps a CUDA Context resource.
 
-    This object is usually wrapped in a weakref proxy for user.  User seldom
-    owns this object.
-
+    Contexts should not be constructed directly by user code.
     """
 
     def __init__(self, device, handle, finalizer=None):
@@ -468,7 +467,8 @@ class Context(object):
             traceback.print_exc()
 
     def reset(self):
-        """Clean up all owned resources in this context
+        """
+        Clean up all owned resources in this context.
         """
         # Free owned resources
         self.allocations.clear()
@@ -485,12 +485,15 @@ class Context(object):
         return free.value, total.value
 
     def push(self):
-        """Push context
+        """
+        Pushes this context on the current CPU Thread.
         """
         driver.cuCtxPushCurrent(self.handle)
 
     def pop(self):
-        """Pop context
+        """
+        Pops this context on the current CPU thread. Note that this context must
+        be at the top of the context stack, otherwise an error will occur.
         """
         popped = drvapi.cu_context()
         driver.cuCtxPopCurrent(byref(popped))
