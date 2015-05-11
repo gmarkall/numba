@@ -91,17 +91,39 @@ the functionality of the selected device:
       Delete the context for the device. This will destroy all memory
       allocations, events, and streams created within the context.
 
+Measurement
+-----------
 
+Profiling
+~~~~~~~~~
 
-Profiling and Measurement
--------------------------
+The NVidia Visual Profiler can be used directly on executing CUDA Python code -
+it is not a requirement to insert calls to these functions into user code.
+However, these functions can be used to allow profiling to be performed
+selectively on specific portions of the code. For further information on
+profiling, see the `NVidia Profiler User's Guide
+<docs.nvidia.com/cuda/profiler-users-guide/>`_.
 
 .. autofunction:: numba.cuda.profile_start
 .. autofunction:: numba.cuda.profile_stop
 .. autofunction:: numba.cuda.profiling
 
+Events
+~~~~~~
+
+Events can be used to monitor the progress of execution and to record the
+timestamps of specific points being reached. Event creation returns immediately,
+and the created event can be queried to determine if it has been reached. For
+further information, see the `CUDA C Programming Guide Events section
+<http://docs.nvidia.com/cuda/cuda-c-programming-guide/#events>`_.
+
+The following functions are used for creating and measuring the time between
+events:
+
 .. autofunction:: numba.cuda.event
 .. autofunction:: numba.cuda.event_elapsed_time
+
+Events are instances of the :class:`numba.cuda.cudadrv.driver.Event` class:
 
 .. autoclass:: numba.cuda.cudadrv.driver.Event
    :members: query, record, synchronize, wait
@@ -109,7 +131,19 @@ Profiling and Measurement
 Stream Management
 -----------------
 
+Streams allow concurrency of execution on a single device within a given
+context. Queued work items in the same stream execute sequentially, but work
+items in different streams may execute concurrently. Most operations involving a
+CUDA device can be performed asynchronously using streams, including data
+transfers and kernel execution. For further details on streams, see the `CUDA C
+Programming Guide Streams section
+<http://docs.nvidia.com/cuda/cuda-c-programming-guide/#streams>`_.
+
+To create a stream:
+
 .. autofunction:: numba.cuda.stream
+
+Streams are instances of :class:`numba.cuda.cudadrv.driver.Stream`:
 
 .. autoclass:: numba.cuda.cudadrv.driver.Stream
    :members: synchronize, auto_synchronize

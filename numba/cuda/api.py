@@ -202,7 +202,9 @@ def mapped(*arylist, **kws):
 
 
 def event(timing=True):
-    """Create a CUDA event.
+    """
+    Create a CUDA event. Timing data is only recorded by the event if it is
+    created with ``timing=True``.
     """
     evt = current_context().create_event(timing=timing)
     return evt
