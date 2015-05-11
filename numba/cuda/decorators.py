@@ -1,5 +1,6 @@
 from __future__ import print_function, absolute_import, division
 from numba import config, sigutils, types
+from warnings import warn
 from .compiler import (compile_kernel, compile_device, declare_device_function,
                        AutoJitCUDAKernel, compile_device_template)
 from .simulator.kernel import FakeCUDAKernel
@@ -102,14 +103,27 @@ def jit(restype=None, argtypes=None, device=False, inline=False, bind=True,
 
     if argtypes is None and not sigutils.is_signature(restype):
         if restype is None:
-            return autojit(device=device, bind=bind, link=link, debug=debug,
-                           inline=inline, **kws)
+            if config.ENABLE_CUDASIM:
+                def autojitwrapper(func):
+                    return FakeCUDAKernel(func, device=device, fastmath=fastmath,
+                                          debug=debug)
+            else:
+                def autojitwrapper(func):
+                    return jit(func, device=device, bind=bind, **kws)
 
+            return autojitwrapper
         # restype is a function
         else:
-            decor = autojit(device=device, bind=bind, link=link, debug=debug,
-                            inline=inline, **kws)
-            return decor(restype)
+            if config.ENABLE_CUDASIM:
+                return FakeCUDAKernel(restype, device=device, fastmath=fastmath,
+                                       debug=debug)
+            elif device:
+                return jitdevice(restype, **kws)
+            else:
+                targetoptions = kws.copy()
+                targetoptions['debug'] = debug
+                return AutoJitCUDAKernel(restype, bind=bind, targetoptions=targetoptions)
+            #return decor(restype)
 
     else:
         fastmath = kws.get('fastmath', False)
@@ -144,53 +158,9 @@ def jit(restype=None, argtypes=None, device=False, inline=False, bind=True,
             return kernel_jit
 
 
-def autojit(func=None, device=False, bind=True, **kws):
-    """JIT at callsite.  Function signature is not needed as this
-    will capture the type at call time.  Each signature of the kernel
-    is cached for future use.
-
-    .. note:: Can only compile CUDA kernel.
-
-    Example::
-
-        import numpy
-
-        @cuda.autojit
-        def foo(aryA, aryB):
-            ...
-
-        aryA = numpy.arange(10, dtype=np.int32)
-        aryB = numpy.arange(10, dtype=np.float32)
-        foo[griddim, blockdim](aryA, aryB)
-
-    In the above code, a version of foo with the signature
-    "void(int32[:], float32[:])" is compiled.
-
-    A device function can be created as shown below::
-
-        @cuda.autojit(device=True)
-        def add(a, b):
-            return a + b
-
-    """
-    if func is None:
-        if config.ENABLE_CUDASIM:
-            def autojitwrapper(func):
-                return FakeCUDAKernel(func, device=device, fastmath=fastmath,
-                                      debug=debug)
-        else:
-            def autojitwrapper(func):
-                return autojit(func, device=device, bind=bind, **kws)
-
-        return autojitwrapper
-    else:
-        if config.ENABLE_CUDASIM:
-            return FakeCUDAKernel(func, device=device, fastmath=fastmath,
-                                  debug=debug)
-        elif device:
-            return jitdevice(func, **kws)
-        else:
-            return AutoJitCUDAKernel(func, bind=bind, targetoptions=kws)
+def autojit(*args, **kwargs):
+    warn('autojit is deprecated and will be removed in a future release. Use jit instead.')
+    return jit(*args, **kwargs)
 
 
 def declare_device(name, restype=None, argtypes=None):
