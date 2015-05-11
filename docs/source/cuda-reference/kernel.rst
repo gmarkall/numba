@@ -1,9 +1,21 @@
 CUDA Kernel API
 ===============
 
+Kernel declaration
+------------------
+
+The ``@cuda.jit`` decorator is used to create a CUDA kernel:
+
 .. autofunction:: numba.cuda.jit
-.. autofunction:: numba.cuda.autojit
-.. autofunction:: numba.cuda.declare_device
+
+.. autoclass:: numba.cuda.compiler.AutoJitCUDAKernel
+   :members: inspect_asm, inspect_llvm, inspect_types, specialize
+
+Individual specialized kernels are instances of
+:class:`numba.cuda.compiler.CUDAKernel`:
+
+.. autoclass:: numba.cuda.compiler.CUDAKernel
+   :members: bind, ptx, device, inspect_llvm, inspect_asm, inspect_types
 
 Thread Indexing
 ---------------

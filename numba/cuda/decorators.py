@@ -13,96 +13,41 @@ def jitdevice(func, link=[], debug=False, inline=False):
     return compile_device_template(func, debug=debug, inline=inline)
 
 
-def jit(restype=None, argtypes=None, device=False, inline=False, bind=True,
+def jit(func_or_sig=None, argtypes=None, device=False, inline=False, bind=True,
         link=[], debug=False, **kws):
-    """JIT compile a python function conforming to
-    the CUDA-Python specification.
+    """
+    JIT compile a python function conforming to the CUDA Python specification.
+    If a signature is supplied, then a function is returned that takes a
+    function to compile. If
 
-    To define a CUDA kernel that takes two int 1D-arrays::
+    :param func_or_sig: A function to JIT compile, or a signature of a function
+       to compile. If a function is supplied, then an :class:`AutoJitCUDAKernel`
+       is returned. If a signature is supplied, then a function which takes a
+       function to compile and returns an :class:`AutoJitCUDAKernel` is
+       returned.
 
-        @cuda.jit('void(int32[:], int32[:])')
-        def foo(aryA, aryB):
-            ...
-
-    .. note:: A kernel cannot have any return value.
-
-    To launch the cuda kernel::
-
-        griddim = 1, 2
-        blockdim = 3, 4
-        foo[griddim, blockdim](aryA, aryB)
-
-
-    ``griddim`` is the number of thread-block per grid.
-    It can be:
-
-    * an int;
-    * tuple-1 of ints;
-    * tuple-2 of ints.
-
-    ``blockdim`` is the number of threads per block.
-    It can be:
-
-    * an int;
-    * tuple-1 of ints;
-    * tuple-2 of ints;
-    * tuple-3 of ints.
-
-    The above code is equaivalent to the following CUDA-C.
-
-    .. code-block:: c
-
-        dim3 griddim(1, 2);
-        dim3 blockdim(3, 4);
-        foo<<<griddim, blockdim>>>(aryA, aryB);
-
-
-    To access the compiled PTX code::
-
-        print foo.ptx
-
-
-    To define a CUDA device function that takes two ints and returns a int::
-
-        @cuda.jit('int32(int32, int32)', device=True)
-        def bar(a, b):
-            ...
-
-    To force inline the device function::
-
-        @cuda.jit('int32(int32, int32)', device=True, inline=True)
-        def bar_forced_inline(a, b):
-            ...
-
-    A device function can only be used inside another kernel.
-    It cannot be called from the host.
-
-    Using ``bar`` in a CUDA kernel::
-
-        @cuda.jit('void(int32[:], int32[:], int32[:])')
-        def use_bar(aryA, aryB, aryOut):
-            i = cuda.grid(1) # global position of the thread for a 1D grid.
-            aryOut[i] = bar(aryA[i], aryB[i])
-
-    When the function signature is not given, this decorator behaves like
-    autojit.
-
-
-    The following addition options are available for kernel functions only.
-    They are ignored in device function.
-
-    - fastmath: bool
-        Enables flush-to-zero for denormal float;
-        Enables fused-multiply-add;
-        Disables precise division;
-        Disables precise square root.
+       .. note:: A kernel cannot have any return value.
+    :type func_or_sig: function or numba.typing.Signature
+    :param device: Indicates whether this is a device function.
+    :type device: bool
+    :param bind: Force binding to CUDA context immediately
+    :type bind: bool
+    :param link: A list of files containing PTX source to link with the function
+    :type link: list
+    :param debug: If True, check for exceptions thrown when executing the
+       kernel. Since this degrades performance, this should only be used for
+       debugging purposes.
+    :param fastmath: If true, enables flush-to-zero and fused-multiply-add,
+       disables precise division and square root. This parameter has no effect
+       on device function, whose fastmath setting depends on the kernel function
+       from which they are called.
     """
 
     if link and config.ENABLE_CUDASIM:
         raise NotImplementedError('Cannot link PTX in the simulator')
 
-    if argtypes is None and not sigutils.is_signature(restype):
-        if restype is None:
+    if argtypes is None and not sigutils.is_signature(func_or_sig):
+        if func_or_sig is None:
             if config.ENABLE_CUDASIM:
                 def autojitwrapper(func):
                     return FakeCUDAKernel(func, device=device, fastmath=fastmath,
@@ -112,18 +57,17 @@ def jit(restype=None, argtypes=None, device=False, inline=False, bind=True,
                     return jit(func, device=device, bind=bind, **kws)
 
             return autojitwrapper
-        # restype is a function
+        # func_or_sig is a function
         else:
             if config.ENABLE_CUDASIM:
-                return FakeCUDAKernel(restype, device=device, fastmath=fastmath,
+                return FakeCUDAKernel(func_or_sig, device=device, fastmath=fastmath,
                                        debug=debug)
             elif device:
-                return jitdevice(restype, **kws)
+                return jitdevice(func_or_sig, **kws)
             else:
                 targetoptions = kws.copy()
                 targetoptions['debug'] = debug
-                return AutoJitCUDAKernel(restype, bind=bind, targetoptions=targetoptions)
-            #return decor(restype)
+                return AutoJitCUDAKernel(func_or_sig, bind=bind, targetoptions=targetoptions)
 
     else:
         fastmath = kws.get('fastmath', False)
@@ -133,7 +77,7 @@ def jit(restype=None, argtypes=None, device=False, inline=False, bind=True,
                                       debug=debug)
             return jitwrapper
 
-        restype, argtypes = convert_types(restype, argtypes)
+        restype, argtypes = convert_types(func_or_sig, argtypes)
 
         if restype and not device and restype != types.void:
             raise TypeError("CUDA kernel must have void return type.")
