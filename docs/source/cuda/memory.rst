@@ -102,8 +102,8 @@ are not enough.  The memory is allocated once for the duration of the kernel,
 unlike traditional dynamic memory management.
 
 .. function:: numba.cuda.local.array(shape, type)
-
    Allocate a local array of the given *shape* and *type* on the device.
    The array is private to the current thread.  An array-like object is
    returned which can be read and written to like any standard array
    (e.g. through indexing).
+   :noindex:

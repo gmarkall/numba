@@ -117,7 +117,6 @@ def grid_expand(ndim):
     return ir.Intrinsic(fname, typing.signature(restype, types.intp),
                         args=[ndim])
 
-
 grid = macro.Macro('ptx.grid', grid_expand, callable=True)
 
 #-------------------------------------------------------------------------------
@@ -179,15 +178,6 @@ def _legalize_shape(shape):
 
 
 def shared_array(shape, dtype):
-    '''
-    Allocate a shared array of the given *shape* and *type*. *shape* is either
-    an integer or a tuple of integers representing the array's dimensions.
-    *type* is a :ref:`Numba type <numba-types>` of the elements needing to be
-    stored in the array.
-
-    The returned array-like object can be read and written to like any normal
-    device array (e.g. through indexing).
-    '''
     shape = _legalize_shape(shape)
     ndim = len(shape)
     fname = "ptx.smem.alloc"
@@ -197,12 +187,22 @@ def shared_array(shape, dtype):
 
 
 class shared(Stub):
-    """shared namespace
+    """
+    Shared memory namespace.
     """
     _description_ = '<shared>'
 
-    array = macro.documented_macro('shared.array', shared_array, callable=True,
+    array = macro.Macro('shared.array', shared_array, callable=True,
                         argnames=['shape', 'dtype'])
+    '''
+    Allocate a shared array of the given *shape* and *type*. *shape* is either
+    an integer or a tuple of integers representing the array's dimensions.
+    *type* is a :ref:`Numba type <numba-types>` of the elements needing to be
+    stored in the array.
+
+    The returned array-like object can be read and written to like any normal
+    device array (e.g. through indexing).
+    '''
 
 
 #-------------------------------------------------------------------------------
@@ -210,12 +210,6 @@ class shared(Stub):
 
 
 def local_array(shape, dtype):
-    '''
-    Allocate a local array of the given *shape* and *type*. The array is private
-    to the current thread, and resides in global memory. An array-like object is
-    returned which can be read and written to like any standard array (e.g.
-    through indexing).
-    '''
     shape = _legalize_shape(shape)
     ndim = len(shape)
     fname = "ptx.lmem.alloc"
@@ -225,12 +219,19 @@ def local_array(shape, dtype):
 
 
 class local(Stub):
-    '''local namespace
+    '''
+    Local memory namespace.
     '''
     _description_ = '<local>'
 
     array = macro.Macro('local.array', local_array, callable=True,
                         argnames=['shape', 'dtype'])
+    '''
+    Allocate a local array of the given *shape* and *type*. The array is private
+    to the current thread, and resides in global memory. An array-like object is
+    returned which can be read and written to like any standard array (e.g.
+    through indexing).
+    '''
 
 #-------------------------------------------------------------------------------
 # const array
@@ -299,12 +300,17 @@ def const_array_like(ndarray):
 
 
 class const(Stub):
-    '''const namespace
+    '''
+    Constant memory namespace.
     '''
     _description_ = '<const>'
 
     array_like = macro.Macro('const.array_like', const_array_like,
                              callable=True, argnames=['ary'])
+    '''
+    Create a const array from *ary*. The resulting const array will have the
+    same shape, type, and values as *ary*.
+    '''
 
 #-------------------------------------------------------------------------------
 # atomic

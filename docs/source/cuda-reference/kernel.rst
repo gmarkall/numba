@@ -64,8 +64,10 @@ Memory Management
 
 .. autoclass:: numba.cuda.shared
    :members: array
-.. autofunction:: numba.cuda.local
-.. autofunction:: numba.cuda.const
+.. autoclass:: numba.cuda.local
+   :members: array
+.. autoclass:: numba.cuda.const
+   :members: array_like
 
 Synchronization and Atomic Operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
