@@ -173,3 +173,4 @@ class Macro(object):
 
     def __repr__(self):
         return '<macro %s -> %s>' % (self.name, self.func)
+
