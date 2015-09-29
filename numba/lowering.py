@@ -789,6 +789,8 @@ class Lower(BaseLower):
         # Store variable
         ptr = self.getvar(name)
         if value.type != ptr.type.pointee:
+            import pdb
+            pdb.set_trace()
             msg = ("Storing {value.type} to ptr of {ptr.type.pointee} ('{name}'). "
                    "FE type {fetype}").format(value=value, ptr=ptr,
                                               fetype=fetype, name=name)

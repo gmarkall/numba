@@ -48,6 +48,25 @@ def real_print_impl(context, builder, sig, args):
 
 
 @register
+@implement(types.print_item_type, types.Kind(types.CharSeq))
+def string_print_impl(context, builder, sig, args):
+    #print('string_print_impl called')
+    [x] = args
+    [srctype] = sig.args
+    mod = builder.module
+    vprint = nvvmutils.declare_vprint(mod)
+    rawfmt = "%s"
+    #dsttype = types.CharSeq
+    fmt = context.insert_string_const_addrspace(builder, rawfmt)
+    #lld = context.cast(builder, x, srctype, dsttype)
+    #valptr = cgutils.alloca_once(builder, context.get_value_type(srctype))
+    #builder.store(x, valptr)
+    builder.call(vprint, [fmt, builder.bitcast(x, voidptr)])
+    #builder.call(vprint, [fmt, x])
+    return context.get_dummy_value()
+
+
+@register
 @implement(types.print_type, types.VarArg(types.Any))
 def print_varargs(context, builder, sig, args):
     """This function is a generic 'print' wrapper for arbitrary types.
@@ -58,10 +77,11 @@ def print_varargs(context, builder, sig, args):
     vprint = nvvmutils.declare_vprint(mod)
     sep = context.insert_string_const_addrspace(builder, " ")
     eol = context.insert_string_const_addrspace(builder, "\n")
-
+    #print('print')
     for i, (argtype, argval) in enumerate(zip(sig.args, args)):
         signature = typing.signature(types.none, argtype)
         imp = context.get_function(types.print_item_type, signature)
+        #print('find print instance for', signature)
         imp(builder, [argval])
         if i < len(args) - 1:
             builder.call(vprint, (sep, Constant.null(voidptr)))

@@ -28,8 +28,10 @@ def transpose(a, b=None):
     @cuda.jit
     def kernel(input, output):
 
+        print('hello')
+        pass
         tile = cuda.shared.array(shape=tile_shape, dtype=dt)
-
+        print('hello')
         tx = cuda.threadIdx.x
         ty = cuda.threadIdx.y
         bx = cuda.blockIdx.x * cuda.blockDim.x
@@ -48,6 +50,7 @@ def transpose(a, b=None):
     blocks = int(b.shape[0]/tile_height + 1), int(b.shape[1]/tile_width + 1)
     # one thread per tile element
     threads = tile_height, tile_width
-    kernel[blocks, threads](a, b)
+    #kernel[blocks, threads](a, b)    
+    kernel[1, 1](a, b)
 
     return b

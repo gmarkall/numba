@@ -393,6 +393,9 @@ class BaseContext(object):
         elif ty in types.real_domain:
             return Constant.real(lty, val)
 
+        elif isinstance(ty, types.CharSeq):
+            return Constant.stringz(val)
+
         elif isinstance(ty, (types.NPDatetime, types.NPTimedelta)):
             return Constant.real(lty, val.astype(numpy.int64))
 

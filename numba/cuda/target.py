@@ -227,7 +227,33 @@ class CUDATargetContext(BaseContext):
         # fpm.run(func)
         # fpm.finalize()
 
+    def get_constant_generic(self, builder, ty, val):
+        if isinstance(ty, types.CharSeq):
 
+            text = Constant.stringz(val)
+            name = '.'.join(["__conststring__", self.mangle_name(val)])
+            # Try to reuse existing global
+            gv = builder.module.globals.get(name)
+            if gv is None:
+                # Not defined yet
+                gv = builder.module.add_global_variable(text.type, name=name,
+                                                        addrspace=nvvm.ADDRSPACE_CONSTANT)
+                gv.linkage = LINKAGE_INTERNAL
+                gv.global_constant = True
+                gv.initializer = text
+
+            return gv
+            #pty = self.get_value_type(ty)
+            #ptr = cgutils.alloca_once(builder, pty)
+            #casted = builder.bitcast(self.insert_string_const(builder, val), pty)
+            #builder.store(casted, ptr)
+            #return self.insert_string_const_addrspace(builder, val)
+            #return casted
+        else:
+            return super(CUDATargetContext, self).get_constant_generic(builder, ty, val)
+            
+
+        
 class CUDACallConv(MinimalCallConv):
     pass
 
