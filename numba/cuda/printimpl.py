@@ -48,6 +48,21 @@ def real_print_impl(context, builder, sig, args):
 
 
 @register
+@implement(types.print_item_type, types.Kind(types.CharSeq))
+def string_print_impl(context, builder, sig, args):
+    [x] = args
+    actualarg = x.operands[0] # strip off the load
+    mod = builder.module
+    vprint = nvvmutils.declare_vprint(mod)
+    rawfmt = "%s"
+    fmt = context.insert_string_const_addrspace(builder, rawfmt)
+    valptr = cgutils.alloca_once(builder, actualarg.type)
+    builder.store(actualarg, valptr)
+    builder.call(vprint, [fmt, builder.bitcast(valptr, voidptr)])
+    return context.get_dummy_value()
+
+
+@register
 @implement(types.print_type, types.VarArg(types.Any))
 def print_varargs(context, builder, sig, args):
     """This function is a generic 'print' wrapper for arbitrary types.

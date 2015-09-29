@@ -236,7 +236,13 @@ class Lower(BaseLower):
         if isinstance(inst, ir.Assign):
             ty = self.typeof(inst.target.name)
             val = self.lower_assign(ty, inst)
-            self.storevar(val, inst.target.name)
+            if isinstance(ty, types.CharSeq):
+                # Don't attempt to store the value, just map the name of
+                # the target to the source for the assignment so that any
+                # use of the target uses the source
+                self.varmap[inst.target.name] = val
+            else:
+                self.storevar(val, inst.target.name)
 
         elif isinstance(inst, ir.Branch):
             cond = self.loadvar(inst.cond.name)
@@ -820,4 +826,6 @@ class Lower(BaseLower):
         Zero-fill variable to avoid crashing due to extra ir.Del
         """
         storage = self.getvar(varname)
-        self.builder.store(Constant.null(storage.type.pointee), storage)
+        # Don't overwrite character sequences, because they're constant
+        if not isinstance(self.typeof(varname), types.CharSeq):
+            self.builder.store(Constant.null(storage.type.pointee), storage)

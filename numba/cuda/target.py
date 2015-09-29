@@ -227,6 +227,12 @@ class CUDATargetContext(BaseContext):
         # fpm.run(func)
         # fpm.finalize()
 
+    def get_constant_generic(self, builder, ty, val):
+        if isinstance(ty, types.CharSeq):
+            return self.insert_string_const_addrspace(builder, val)
+        else:
+            return super(CUDATargetContext, self).get_constant_generic(builder, ty, val)
+
 
 class CUDACallConv(MinimalCallConv):
     pass

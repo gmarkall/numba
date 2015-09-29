@@ -100,7 +100,7 @@ def _typeof_numpy_scalar(val, c):
 
 @typeof_impl.register(str)
 def _typeof_str(val, c):
-    return types.string
+    return types.CharSeq(len(val))
 
 @typeof_impl.register(type(None))
 def _typeof_none(val, c):

@@ -771,7 +771,7 @@ class CharSeq(DataModel):
     def __init__(self, dmm, fe_type):
         super(CharSeq, self).__init__(dmm, fe_type)
         charty = ir.IntType(8)
-        self._be_type = ir.ArrayType(charty, fe_type.count)
+        self._be_type = ir.ArrayType(charty, fe_type.count + 1)
 
     def get_value_type(self):
         return self._be_type
