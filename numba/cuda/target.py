@@ -246,10 +246,11 @@ class CUDATargetContext(BaseContext):
 #            #ptr = cgutils.alloca_once(builder, pty)
 #            #casted = builder.bitcast(self.insert_string_const(builder, val), pty)
 #            #builder.store(casted, ptr)
-            pty = self.get_value_type(ty).as_pointer()
+            #pty = self.get_value_type(ty).as_pointer()
             i8ptr = self.insert_string_const_addrspace(builder, val)
-            casted = builder.bitcast(i8ptr, pty)
-            return builder.load(casted)
+            return i8ptr
+            #casted = builder.bitcast(i8ptr, pty)
+            #return builder.load(casted)
             #return casted
         else:
             return super(CUDATargetContext, self).get_constant_generic(builder, ty, val)
