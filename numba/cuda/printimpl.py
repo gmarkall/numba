@@ -59,10 +59,10 @@ def string_print_impl(context, builder, sig, args):
     #dsttype = types.CharSeq
     fmt = context.insert_string_const_addrspace(builder, rawfmt)
     #lld = context.cast(builder, x, srctype, dsttype)
-    #valptr = cgutils.alloca_once(builder, context.get_value_type(srctype))
-    #builder.store(x, valptr)
     actualarg = x.operands[0] # strip off the load
-    builder.call(vprint, [fmt, actualarg])
+    valptr = cgutils.alloca_once(builder, actualarg.type)
+    builder.store(actualarg, valptr)
+    builder.call(vprint, [fmt, builder.bitcast(valptr, voidptr)])
     #builder.call(vprint, [fmt, builder.bitcast(valptr, voidptr)])
     #builder.call(vprint, [fmt, builder.gep(x, [0], inbounds=True)])
     return context.get_dummy_value()
