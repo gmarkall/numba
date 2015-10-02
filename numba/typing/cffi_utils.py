@@ -19,6 +19,7 @@ except ImportError:
 
 SUPPORTED = ffi is not None
 _ool_func_types = {}
+_pydll = ctypes.pythonapi
 
 def is_cffi_func(obj):
     """Check whether the obj is a CFFI function"""
@@ -32,6 +33,8 @@ def get_pointer(cffi_func):
     Get a pointer to the underlying function for a CFFI function as an
     integer.
     """
+    if cffi_func in _ool_func_types:
+        return ctypes.cast(getattr(_pydll, cffi_func.__name__), ctypes.c_void_p).value
     return int(ffi.cast("uintptr_t", cffi_func))
 
 
