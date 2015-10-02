@@ -5,6 +5,7 @@ obtaining the pointer and numba signature.
 """
 from __future__ import print_function, division, absolute_import
 
+import types as pytypes
 import ctypes
 
 from numba import types
@@ -17,14 +18,14 @@ except ImportError:
     ffi = None
 
 SUPPORTED = ffi is not None
-
+_ool_func_types = {}
 
 def is_cffi_func(obj):
     """Check whether the obj is a CFFI function"""
     try:
         return ffi.typeof(obj).kind == 'function'
     except TypeError:
-        return False
+        return obj in _ool_func_types
 
 def get_pointer(cffi_func):
     """
@@ -68,6 +69,8 @@ def _type_map():
             ffi.typeof('char *') :              types.voidptr,
             ffi.typeof('void *') :              types.voidptr,
             ffi.typeof('uint8_t *') :           types.CPointer(types.uint8),
+            ffi.typeof('float *') :             types.CPointer(types.float32),
+            ffi.typeof('double *') :            types.CPointer(types.float64),
             ffi.typeof('ssize_t') :             types.intp,
             ffi.typeof('size_t') :              types.uintp,
             ffi.typeof('void') :                types.void,
@@ -101,7 +104,7 @@ def make_function_type(cffi_func):
     """
     Return a Numba type for the given CFFI function pointer.
     """
-    cffi_type = ffi.typeof(cffi_func)
+    cffi_type = _ool_func_types.get(cffi_func) or ffi.typeof(cffi_func)
     sig = map_type(cffi_type)
     return types.ExternalFunctionPointer(sig, get_pointer=get_pointer)
 
@@ -118,3 +121,12 @@ class ExternCFunction(types.ExternalFunction):
         self.argtypes = [type_map[arg.build_backend_type(ffi, None)] for arg in rft.args]
         signature = templates.signature(self.restype, *self.argtypes)
         super(ExternCFunction, self).__init__(symbol, signature)
+
+def register_ool_module(mod):
+    """
+    Add typing for all functions in the CFFI module to the type registry
+    """
+    for f in dir(mod.lib):
+        f = getattr(mod.lib, f)
+        if isinstance(f, pytypes.BuiltinFunctionType):
+            _ool_func_types[f] = mod.ffi.typeof(f)
