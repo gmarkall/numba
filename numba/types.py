@@ -863,6 +863,11 @@ class Array(Buffer):
                 and (self.mutable or not other.mutable)
                 and (self.aligned or not other.aligned)):
                 return Conversion.safe
+        # Allow casting to a pointer to the underlying C type, but only for
+        # contiguous arrays
+        if (isinstance(other, CPointer) and other.dtype == self.dtype
+            and self.layout in ('C', 'F')):
+            return Conversion.safe
 
 
 class ArrayCTypes(Type):
