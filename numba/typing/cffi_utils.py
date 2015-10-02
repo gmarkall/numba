@@ -76,6 +76,8 @@ def _type_map():
             ffi.typeof('char *') :              types.voidptr,
             ffi.typeof('void *') :              types.voidptr,
             ffi.typeof('uint8_t *') :           types.CPointer(types.uint8),
+            ffi.typeof('float *') :             types.CPointer(types.float32),
+            ffi.typeof('double *') :            types.CPointer(types.float64),
             ffi.typeof('ssize_t') :             types.intp,
             ffi.typeof('size_t') :              types.uintp,
             ffi.typeof('void') :                types.void,

@@ -716,6 +716,15 @@ class BaseContext(object):
             assert toty.layout == 'A'
             return val
 
+        elif (isinstance(fromty, types.Array) and
+                  isinstance(toty, types.CPointer)):
+            # Type inference should prevent casting down to a pointer of the
+            # wrong type
+            assert fromty.dtype == toty.dtype
+            ary = self.make_array(fromty)(self, builder, val)
+            res = ary.data
+            return res
+
         elif (isinstance(fromty, types.RangeType) and
               isinstance(toty, types.RangeType)):
             olditems = cgutils.unpack_tuple(builder, val, 3)
