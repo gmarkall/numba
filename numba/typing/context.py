@@ -130,6 +130,7 @@ class BaseContext(object):
                     attrty = self.resolve_module_constants(value, attr)
                     if attrty is not None:
                         return attrty
+                from pudb import set_trace; set_trace()
                 raise
 
         ret = attrinfo.resolve(value, attr)
@@ -444,4 +445,6 @@ class Context(BaseContext):
         self.install(npydecl.registry)
         self.install(operatordecl.registry)
         self.install(randomdecl.registry)
+        from pudb import set_trace; set_trace()
+        self.install(cffi_utils.registry)
 

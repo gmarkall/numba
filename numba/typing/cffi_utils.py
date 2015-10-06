@@ -20,7 +20,12 @@ except ImportError:
 SUPPORTED = ffi is not None
 _ool_func_types = {}
 _ool_func_ptr = {}
+_ffi_modules = set()
 
+registry = templates.Registry()
+
+def is_ffi_module(obj):
+    return obj in _ffi_modules or isinstance(obj, cffi.FFI)
 
 def is_cffi_func(obj):
     """Check whether the obj is a CFFI function"""
@@ -129,6 +134,43 @@ class ExternCFunction(types.ExternalFunction):
         signature = templates.signature(self.restype, *self.argtypes)
         super(ExternCFunction, self).__init__(symbol, signature)
 
+
+class FFIModule(types.Module):
+    pass
+
+
+ffi_module = FFIModule(cffi.FFI)
+
+
+@registry.register
+class FFI_from_buffer(templates.AbstractTemplate):
+    key = "from_buffer"
+
+    def apply(self, args, kws):
+        from pudb import set_trace; set_trace()
+        super().apply(args, kws)
+
+    def generic(self, args, kws):
+        from pudb import set_trace; set_trace()
+        if kws or (len(args) != 1):
+            return
+        ary = args[0]
+        # Check ary is an array
+        if not isinstance(ary, types.Array):
+            from pudb import set_trace; set_trace()
+            return
+        # Get dtype of array
+        dtype = ary.dtype
+        # Make ptr signature
+        ptr = CPointer(dtype)
+        return types.signature(ptr, ary) # fill in
+#    cases = [ signature(types.Kind(types.Array)) ]
+
+@registry.register_attr
+class FFIAttribute(templates.AttributeTemplate):
+    key = ffi_module
+
+
 def register_module(mod):
     """
     Add typing for all functions in an out-of-line CFFI module to the typemap
@@ -139,3 +181,7 @@ def register_module(mod):
             _ool_func_types[f] = mod.ffi.typeof(f)
             addr = mod.ffi.addressof(mod.lib, f.__name__)
             _ool_func_ptr[f] = int(mod.ffi.cast("uintptr_t", addr))
+        _ffi_modules.add(mod.ffi)
+        #registry.resolves_global(mod.ffi.from_buffer)(FFI_from_buffer)
+        #typing.context.
+
