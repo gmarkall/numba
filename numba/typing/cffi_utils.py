@@ -10,6 +10,8 @@ import ctypes
 
 from numba import types
 from . import templates
+from numba.datamodel.registry import register_default
+from numba.datamodel.models import OpaqueModel
 
 try:
     import cffi
@@ -170,6 +172,7 @@ class FFIAttribute(templates.AttributeTemplate):
         ty = types.Function(FFI_from_buffer)
         return ty
 
+register_default(FFIModule)(OpaqueModel)
 
 def register_module(mod):
     """
