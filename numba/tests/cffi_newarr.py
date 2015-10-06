@@ -57,3 +57,5 @@ numba_y = numba_version(x)
 
 # These two versions do produce the same thing
 assert np.all(python_y == numba_y)
+print(python_y)
+print(numba_y)
