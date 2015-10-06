@@ -147,11 +147,11 @@ class FFI_from_buffer(templates.AbstractTemplate):
     key = "from_buffer"
 
     def apply(self, args, kws):
-        from pudb import set_trace; set_trace()
+        #from pudb import set_trace; set_trace()
         super().apply(args, kws)
 
     def generic(self, args, kws):
-        from pudb import set_trace; set_trace()
+        #from pudb import set_trace; set_trace()
         if kws or (len(args) != 1):
             return
         ary = args[0]
@@ -162,13 +162,17 @@ class FFI_from_buffer(templates.AbstractTemplate):
         # Get dtype of array
         dtype = ary.dtype
         # Make ptr signature
-        ptr = CPointer(dtype)
-        return types.signature(ptr, ary) # fill in
+        ptr = types.CPointer(dtype)
+        return templates.signature(ptr, ary) # fill in
 #    cases = [ signature(types.Kind(types.Array)) ]
 
 @registry.register_attr
 class FFIAttribute(templates.AttributeTemplate):
     key = ffi_module
+
+    def resolve_from_buffer(self, ffi):
+        ty = types.Function(FFI_from_buffer)
+        return ty
 
 
 def register_module(mod):
