@@ -146,10 +146,6 @@ ffi_module = FFIModule(cffi.FFI)
 class FFI_from_buffer(templates.AbstractTemplate):
     key = "from_buffer"
 
-    def apply(self, args, kws):
-        #from pudb import set_trace; set_trace()
-        super().apply(args, kws)
-
     def generic(self, args, kws):
         #from pudb import set_trace; set_trace()
         if kws or (len(args) != 1):
