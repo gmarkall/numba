@@ -47,7 +47,7 @@ python_y = python_version(x)
 @jit(nopython=True)
 def numba_version(x):
     y = np.empty_like(x)
-    vsSin(len(x), ffi.from_buffer(x),
+    vsSin(len(x), vectormaths.ffi.from_buffer(x),
                   ffi.from_buffer(y))
     return y
 

@@ -85,12 +85,16 @@ def use_func_pointer(fa, fb, x):
 def use_user_defined_symbols():
     return cffi_foo(1, 2, 3)
 
+# Test from_buffer method, as a member of cffi.FFI, and a CompiledFFI object
+
 def vector_sin_float32(x):
     y = np.empty_like(x)
-    vsSin(len(x), x, y)
+    vsSin(len(x), ffi.from_buffer(x),
+        cffi_usecases_ool.ffi.from_buffer(y))
     return y
 
 def vector_sin_float64(x):
     y = np.empty_like(x)
-    vdSin(len(x), x, y)
+    vdSin(len(x), ffi.from_buffer(x),
+        cffi_usecases_ool.ffi.from_buffer(y))
     return y
