@@ -23,5 +23,4 @@ def from_buffer(context, builder, sig, args):
     # array to a pointer of the wrong type
     assert fromty.dtype == sig.return_type.dtype
     ary = arrayobj.make_array(fromty)(context, builder, val)
-    res = ary.data
-    return res
+    return ary.data
