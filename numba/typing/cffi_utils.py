@@ -157,6 +157,9 @@ class FFI_from_buffer(templates.AbstractTemplate):
         if not isinstance(ary, types.Array):
             from pudb import set_trace; set_trace()
             return
+        # Check array is contiguous
+        if not ary.layout in ('C', 'F'):
+            return
         # Get dtype of array
         dtype = ary.dtype
         # Make ptr signature
