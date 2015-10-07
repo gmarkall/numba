@@ -463,6 +463,7 @@ class BaseContext(object):
         if isinstance(fn, types.Type):
             # It's a type instance => try to find a definition for the type class
             return self.get_function(type(fn), sig)
+        from pudb import set_trace; set_trace()
         raise NotImplementedError("No definition for lowering %s%s" % (key, sig))
 
     def get_generator_desc(self, genty):
@@ -548,6 +549,7 @@ class BaseContext(object):
         try:
             return overloads.find(typing.signature(types.Any, typ))
         except NotImplementedError:
+            from pudb import set_trace; set_trace()
             raise Exception("No definition for lowering %s.%s" % (typ, attr))
 
     def get_argument_value(self, builder, ty, val):

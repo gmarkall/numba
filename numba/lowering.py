@@ -192,13 +192,13 @@ class BaseLower(object):
         self.pre_block(block)
         for inst in block.body:
             self.loc = inst.loc
-            try:
-                self.lower_inst(inst)
-            except LoweringError:
-                raise
-            except Exception as e:
-                msg = "Internal error:\n%s: %s" % (type(e).__name__, e)
-                raise LoweringError(msg, inst.loc)
+            #try:
+            self.lower_inst(inst)
+            #except LoweringError:
+            #    raise
+            #except Exception as e:
+            #    msg = "Internal error:\n%s: %s" % (type(e).__name__, e)
+             #   raise LoweringError(msg, inst.loc)
 
     def create_cpython_wrapper(self, release_gil=False):
         """
