@@ -10,8 +10,6 @@ import ctypes
 
 from numba import types
 from . import templates
-from numba.datamodel.registry import register_default
-from numba.datamodel.models import OpaqueModel
 
 try:
     import cffi
@@ -24,6 +22,8 @@ _ool_func_types = {}
 _ool_func_ptr = {}
 _ffi_modules = set()
 
+
+ffi_module = types.Module(cffi.FFI)
 
 def is_ffi_module(obj):
     # Compiled FFI modules have a member, ffi, which is an instance of
@@ -137,13 +137,6 @@ class ExternCFunction(types.ExternalFunction):
         self.argtypes = [type_map[arg.build_backend_type(ffi, None)] for arg in rft.args]
         signature = templates.signature(self.restype, *self.argtypes)
         super(ExternCFunction, self).__init__(symbol, signature)
-
-
-class FFIModule(types.Module):
-    pass
-
-ffi_module = FFIModule(cffi.FFI)
-register_default(FFIModule)(OpaqueModel)
 
 
 registry = templates.Registry()
