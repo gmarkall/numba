@@ -26,6 +26,10 @@ _ffi_modules = set()
 
 
 def is_ffi_module(obj):
+    # Compiled FFI modules have a member, ffi, which is an instance of
+    # CompiledFFI, which behaves similarly to an instance of cffi.FFI. In
+    # order to simplify handling a CompiledFFI object, we treat them as
+    # if they're cffi.FFI instances for typing and lowering purposes.
     return obj in _ffi_modules or isinstance(obj, cffi.FFI)
 
 def is_cffi_func(obj):
@@ -146,7 +150,7 @@ registry = templates.Registry()
 
 @registry.register
 class FFI_from_buffer(templates.AbstractTemplate):
-    key = "from_buffer"
+    key = cffi.FFI.from_buffer
 
     def generic(self, args, kws):
         if kws or (len(args) != 1):
