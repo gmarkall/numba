@@ -3,6 +3,7 @@ from __future__ import print_function, division, absolute_import
 from numba import cffi_support
 import numpy as np
 
+
 if cffi_support.SUPPORTED:
     from cffi import FFI
     defs = """
@@ -73,9 +74,6 @@ def use_cffi_sin_ool(x):
 def use_two_funcs_ool(x):
     return cffi_sin_ool(x) - cffi_cos_ool(x)
 
-def use_cffi_vsin(x, y):
-    cffi_vsin(len(x), x, y)
-
 def use_func_pointer(fa, fb, x):
     if x > 0:
         return fa(x)
@@ -85,7 +83,9 @@ def use_func_pointer(fa, fb, x):
 def use_user_defined_symbols():
     return cffi_foo(1, 2, 3)
 
-# Test from_buffer method, as a member of cffi.FFI, and a CompiledFFI object
+# The from_buffer method is member of cffi.FFI, and also of CompiledFFI objects
+# (cffi_usecases_ool.ffi is a CompiledFFI object) so we use both in these
+# functions.
 
 def vector_sin_float32(x):
     y = np.empty_like(x)
