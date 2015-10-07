@@ -24,7 +24,6 @@ _ool_func_types = {}
 _ool_func_ptr = {}
 _ffi_modules = set()
 
-registry = templates.Registry()
 
 def is_ffi_module(obj):
     return obj in _ffi_modules or isinstance(obj, cffi.FFI)
@@ -79,7 +78,6 @@ def _type_map():
             ffi.typeof('uint64_t') :            types.ulonglong,
             ffi.typeof('float') :               types.float_,
             ffi.typeof('double') :              types.double,
-            # ffi.typeof('long double') :         longdouble,
             ffi.typeof('char *') :              types.voidptr,
             ffi.typeof('void *') :              types.voidptr,
             ffi.typeof('uint8_t *') :           types.CPointer(types.uint8),
@@ -140,32 +138,26 @@ class ExternCFunction(types.ExternalFunction):
 class FFIModule(types.Module):
     pass
 
-
 ffi_module = FFIModule(cffi.FFI)
+register_default(FFIModule)(OpaqueModel)
 
+
+registry = templates.Registry()
 
 @registry.register
 class FFI_from_buffer(templates.AbstractTemplate):
     key = "from_buffer"
 
     def generic(self, args, kws):
-        #from pudb import set_trace; set_trace()
         if kws or (len(args) != 1):
             return
-        ary = args[0]
-        # Check ary is an array
+        [ary] = args
         if not isinstance(ary, types.Array):
-            from pudb import set_trace; set_trace()
             return
-        # Check array is contiguous
         if not ary.layout in ('C', 'F'):
             return
-        # Get dtype of array
-        dtype = ary.dtype
-        # Make ptr signature
-        ptr = types.CPointer(dtype)
-        return templates.signature(ptr, ary) # fill in
-#    cases = [ signature(types.Kind(types.Array)) ]
+        ptr = types.CPointer(ary.dtype)
+        return templates.signature(ptr, ary)
 
 @registry.register_attr
 class FFIAttribute(templates.AttributeTemplate):
@@ -175,7 +167,6 @@ class FFIAttribute(templates.AttributeTemplate):
         ty = types.Function(FFI_from_buffer)
         return ty
 
-register_default(FFIModule)(OpaqueModel)
 
 def register_module(mod):
     """
@@ -188,6 +179,3 @@ def register_module(mod):
             addr = mod.ffi.addressof(mod.lib, f.__name__)
             _ool_func_ptr[f] = int(mod.ffi.cast("uintptr_t", addr))
         _ffi_modules.add(mod.ffi)
-        #registry.resolves_global(mod.ffi.from_buffer)(FFI_from_buffer)
-        #typing.context.
-

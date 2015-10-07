@@ -14,21 +14,13 @@ registry = Registry()
 @registry.register
 @implement('from_buffer', types.Kind(types.Array))
 def from_buffer(context, builder, sig, args):
-    # Type inference should have prevented passing a buffer from an
-    # array to a pointer of the wrong type
     assert len(sig.args) == 1
     assert len(args) == 1
     [fromty] = sig.args
     [val] = args
-    toty = sig.return_type
-    assert fromty.dtype == toty.dtype
+    # Type inference should have prevented passing a buffer from an
+    # array to a pointer of the wrong type
+    assert fromty.dtype == sig.return_type.dtype
     ary = arrayobj.make_array(fromty)(context, builder, val)
     res = ary.data
     return res
-    #Get form type
-    # get to type
-    #check theyre the same
-    # make array struct from from
-    # get the data pointer
-    # return the data pointer
-
