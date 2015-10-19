@@ -174,3 +174,14 @@ def register_module(mod):
             addr = mod.ffi.addressof(mod.lib, f.__name__)
             _ool_func_ptr[f] = int(mod.ffi.cast("uintptr_t", addr))
         _ffi_instances.add(mod.ffi)
+
+
+def register_type(cffi_type, numba_type):
+    """
+    Add a type conversion from a given numba type to a given cffi type. Numba
+    does nothing to ensure that these types are compatible - the user must
+    ensure that the pairs of types supplied can be interpreted consistently
+    between Python and any C libraries that use these types.
+    """
+    type_map = _type_map()
+    type_map[cffi_type] = numba_type
