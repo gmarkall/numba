@@ -648,7 +648,7 @@ class PythonAPI(object):
 
     def bool_from_long(self, ival):
         fnty = Type.function(self.pyobj, [self.long])
-        fn = self._get_function(fnty, name="PyBool_FromLong")
+        fn = self._get_function(fnty, name="PyPyBool_FromLong")
         return self.builder.call(fn, [ival])
 
     def complex_from_doubles(self, realval, imagval):
