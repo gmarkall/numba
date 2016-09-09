@@ -206,7 +206,7 @@ class PythonAPI(object):
 
     def decref(self, obj):
         fnty = Type.function(Type.void(), [self.pyobj])
-        fn = self._get_function(fnty, name="Py_DecRef")
+        fn = self._get_function(fnty, name="PyPy_DecRef")
         self.builder.call(fn, [obj])
 
     def get_type(self, obj):
@@ -237,7 +237,7 @@ class PythonAPI(object):
         charptr = Type.pointer(Type.int(8))
         argtypes = [self.pyobj, charptr, self.py_ssize_t, self.py_ssize_t]
         fnty = Type.function(Type.int(), argtypes, var_arg=True)
-        fn = self._get_function(fnty, name="PyArg_UnpackTuple")
+        fn = self._get_function(fnty, name="PyPyArg_UnpackTuple")
         n_min = Constant.int(self.py_ssize_t, n_min)
         n_max = Constant.int(self.py_ssize_t, n_max)
         if isinstance(name, str):
@@ -250,7 +250,7 @@ class PythonAPI(object):
 
     def err_occurred(self):
         fnty = Type.function(self.pyobj, ())
-        fn = self._get_function(fnty, name="PyErr_Occurred")
+        fn = self._get_function(fnty, name="PyPyErr_Occurred")
         return self.builder.call(fn, ())
 
     def err_clear(self):
@@ -260,7 +260,7 @@ class PythonAPI(object):
 
     def err_set_string(self, exctype, msg):
         fnty = Type.function(Type.void(), [self.pyobj, self.cstring])
-        fn = self._get_function(fnty, name="PyErr_SetString")
+        fn = self._get_function(fnty, name="PyPyErr_SetString")
         if isinstance(exctype, str):
             exctype = self.get_c_object(exctype)
         if isinstance(msg, str):
@@ -450,7 +450,7 @@ class PythonAPI(object):
 
     def number_long(self, numobj):
         fnty = Type.function(self.pyobj, [self.pyobj])
-        fn = self._get_function(fnty, name="PyNumber_Long")
+        fn = self._get_function(fnty, name="PyPyNumber_Long")
         return self.builder.call(fn, [numobj])
 
     def long_as_ulonglong(self, numobj):
@@ -460,7 +460,7 @@ class PythonAPI(object):
 
     def long_as_longlong(self, numobj):
         fnty = Type.function(self.ulonglong, [self.pyobj])
-        fn = self._get_function(fnty, name="PyLong_AsLongLong")
+        fn = self._get_function(fnty, name="PyPyLong_AsLongLong")
         return self.builder.call(fn, [numobj])
 
     def long_as_voidptr(self, numobj):
@@ -482,7 +482,7 @@ class PythonAPI(object):
             # Under Python 2, we try to return a PyInt object whenever
             # the given number fits in a C long.
             pyint_fnty = Type.function(self.pyobj, [self.long])
-            pyint_fn = self._get_function(pyint_fnty, name="PyInt_FromLong")
+            pyint_fn = self._get_function(pyint_fnty, name="PyPyInt_FromLong")
             long_max = Constant.int(native_int_type, _helperlib.long_max)
             if signed:
                 long_min = Constant.int(native_int_type, _helperlib.long_min)
