@@ -835,6 +835,9 @@ class Interpreter(object):
         getattr = ir.Expr.getattr(item, attr, loc=self.loc)
         self.store(getattr, res)
 
+    # FIXME PYPY
+    op_LOOKUP_METHOD = op_LOAD_ATTR
+
     def op_LOAD_CONST(self, inst, res):
         value = self.code_consts[inst.arg]
         const = ir.Const(value, loc=self.loc)
@@ -883,6 +886,8 @@ class Interpreter(object):
         self.store(expr, res)
 
     op_CALL_FUNCTION_VAR = op_CALL_FUNCTION
+    # FIXME PYPY
+    op_CALL_METHOD = op_CALL_FUNCTION
 
     def op_GET_ITER(self, inst, value, res):
         expr = ir.Expr.getiter(value=self.get(value), loc=self.loc)

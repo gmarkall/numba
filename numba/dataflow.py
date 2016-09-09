@@ -235,6 +235,9 @@ class DataFlowAnalysis(object):
         info.append(inst, item=item, res=res)
         info.push(res)
 
+    # FIXME PYPY
+    op_LOOKUP_METHOD = op_LOAD_ATTR
+
     def op_BINARY_SUBSCR(self, info, inst):
         index = info.pop()
         target = info.pop()
@@ -288,6 +291,9 @@ class DataFlowAnalysis(object):
 
     def op_CALL_FUNCTION(self, info, inst):
         self._op_call_function(info, inst, has_vararg=False)
+
+    # FIXME PYPY
+    op_CALL_METHOD = op_CALL_FUNCTION
 
     def op_CALL_FUNCTION_VAR(self, info, inst):
         self._op_call_function(info, inst, has_vararg=True)

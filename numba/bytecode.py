@@ -99,6 +99,7 @@ def _make_bytecode_table():
         ('BUILD_TUPLE', 2),
         ('CALL_FUNCTION', 2),
         ('CALL_FUNCTION_VAR', 2),
+        ('CALL_METHOD', 2), # FIXME PYPY
         ('COMPARE_OP', 2),
         ('DELETE_ATTR', 2),
         ('DELETE_SUBSCR', 0),
@@ -128,6 +129,7 @@ def _make_bytecode_table():
         ('LOAD_FAST', 2),
         ('LOAD_GLOBAL', 2),
         ('LOAD_DEREF', 2),
+        ('LOOKUP_METHOD', 2), # FIXME PYPY
         ('MAKE_CLOSURE', 2),
         ('MAKE_FUNCTION', 2),
         ('POP_BLOCK', 0),
