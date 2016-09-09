@@ -15,12 +15,13 @@ from numba.numpy_support import from_dtype
 from numba import jit, vectorize
 from numba.config import PYVERSION
 from numba.errors import LoweringError, TypingError
-from .support import TestCase, CompilationCache, MemoryLeakMixin, tag
-from .test_operators import _avoid_windows_floordiv_heisenbug
+from numba.tests.support import TestCase, CompilationCache, MemoryLeakMixin, tag
+from numba.tests.test_operators import _avoid_windows_floordiv_heisenbug
 
 from numba.typing.npydecl import supported_ufuncs, all_ufuncs
 
-is32bits = tuple.__itemsize__ == 4
+# FIXME PYPY
+is32bits = False
 iswindows = sys.platform.startswith('win32')
 
 # NOTE: to test the implementation of Numpy ufuncs, we disable rewriting
