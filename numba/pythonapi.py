@@ -303,7 +303,7 @@ class PythonAPI(object):
 
     def err_write_unraisable(self, obj):
         fnty = Type.function(Type.void(), [self.pyobj])
-        fn = self._get_function(fnty, name="PyErr_WriteUnraisable")
+        fn = self._get_function(fnty, name="PyPyErr_WriteUnraisable")
         return self.builder.call(fn, (obj,))
 
     def err_fetch(self, pty, pval, ptb):
@@ -393,7 +393,7 @@ class PythonAPI(object):
         Returns a borrowed reference
         """
         fnty = Type.function(self.pyobj, [self.pyobj, self.pyobj])
-        fn = self._get_function(fnty, name="PyDict_GetItem")
+        fn = self._get_function(fnty, name="PyPyDict_GetItem")
         return self.builder.call(fn, [dic, name])
 
     def dict_new(self, presize=0):
@@ -438,7 +438,7 @@ class PythonAPI(object):
 
     def float_from_double(self, fval):
         fnty = Type.function(self.pyobj, [self.double])
-        fn = self._get_function(fnty, name="PyFloat_FromDouble")
+        fn = self._get_function(fnty, name="PyPyFloat_FromDouble")
         return self.builder.call(fn, [fval])
 
     def number_as_ssize_t(self, numobj):
@@ -558,7 +558,7 @@ class PythonAPI(object):
 
     def _get_number_operator(self, name):
         fnty = Type.function(self.pyobj, [self.pyobj, self.pyobj])
-        fn = self._get_function(fnty, name="PyNumber_%s" % name)
+        fn = self._get_function(fnty, name="PyPyNumber_%s" % name)
         return fn
 
     def _call_number_operator(self, name, lhs, rhs, inplace=False):
@@ -616,7 +616,7 @@ class PythonAPI(object):
 
     def number_negative(self, obj):
         fnty = Type.function(self.pyobj, [self.pyobj])
-        fn = self._get_function(fnty, name="PyNumber_Negative")
+        fn = self._get_function(fnty, name="PyPyNumber_Negative")
         return self.builder.call(fn, (obj,))
 
     def number_positive(self, obj):
@@ -777,7 +777,7 @@ class PythonAPI(object):
 
     def tuple_pack(self, items):
         fnty = Type.function(self.pyobj, [self.py_ssize_t], var_arg=True)
-        fn = self._get_function(fnty, name="PyTuple_Pack")
+        fn = self._get_function(fnty, name="PyPyTuple_Pack")
         n = self.context.get_constant(types.intp, len(items))
         args = [n]
         args.extend(items)
@@ -967,7 +967,7 @@ class PythonAPI(object):
         if kws is None:
             kws = self.get_null_object()
         fnty = Type.function(self.pyobj, [self.pyobj] * 3)
-        fn = self._get_function(fnty, name="PyObject_Call")
+        fn = self._get_function(fnty, name="PyPyObject_Call")
         return self.builder.call(fn, (callee, args, kws))
 
     def object_istrue(self, obj):
@@ -989,7 +989,7 @@ class PythonAPI(object):
         if opstr in ops:
             opid = ops.index(opstr)
             fnty = Type.function(self.pyobj, [self.pyobj, self.pyobj, Type.int()])
-            fn = self._get_function(fnty, name="PyObject_RichCompare")
+            fn = self._get_function(fnty, name="PyPyObject_RichCompare")
             lopid = self.context.get_constant(types.int32, opid)
             return self.builder.call(fn, (lhs, rhs, lopid))
         elif opstr == 'is':
@@ -1034,12 +1034,12 @@ class PythonAPI(object):
     def object_getattr_string(self, obj, attr):
         cstr = self.context.insert_const_string(self.module, attr)
         fnty = Type.function(self.pyobj, [self.pyobj, self.cstring])
-        fn = self._get_function(fnty, name="PyObject_GetAttrString")
+        fn = self._get_function(fnty, name="PyPyObject_GetAttrString")
         return self.builder.call(fn, [obj, cstr])
 
     def object_getattr(self, obj, attr):
         fnty = Type.function(self.pyobj, [self.pyobj, self.pyobj])
-        fn = self._get_function(fnty, name="PyObject_GetAttr")
+        fn = self._get_function(fnty, name="PyPyObject_GetAttr")
         return self.builder.call(fn, [obj, attr])
 
     def object_setattr_string(self, obj, attr, val):
@@ -1092,7 +1092,7 @@ class PythonAPI(object):
         if PYVERSION >= (3, 0):
             fname = "PyUnicode_AsUTF8"
         else:
-            fname = "PyString_AsString"
+            fname = "PyPyString_AsString"
         fn = self._get_function(fnty, name=fname)
         return self.builder.call(fn, [strobj])
 
@@ -1146,7 +1146,7 @@ class PythonAPI(object):
         if PYVERSION >= (3, 0):
             fname = "PyUnicode_FromString"
         else:
-            fname = "PyString_FromString"
+            fname = "PyPyString_FromString"
         fn = self._get_function(fnty, name=fname)
         return self.builder.call(fn, [string])
 
@@ -1161,7 +1161,7 @@ class PythonAPI(object):
 
     def object_str(self, obj):
         fnty = Type.function(self.pyobj, [self.pyobj])
-        fn = self._get_function(fnty, name="PyObject_Str")
+        fn = self._get_function(fnty, name="PyPyObject_Str")
         return self.builder.call(fn, [obj])
 
     def make_none(self):
@@ -1170,11 +1170,11 @@ class PythonAPI(object):
         return obj
 
     def borrow_none(self):
-        return self.get_c_object("_Py_NoneStruct")
+        return self.get_c_object("_PyPy_NoneStruct")
 
     def sys_write_stdout(self, fmt, *args):
         fnty = Type.function(Type.void(), [self.cstring], var_arg=True)
-        fn = self._get_function(fnty, name="PySys_WriteStdout")
+        fn = self._get_function(fnty, name="PyPySys_WriteStdout")
         return self.builder.call(fn, (fmt,) + args)
 
     def object_dump(self, obj):
