@@ -201,7 +201,7 @@ class PythonAPI(object):
 
     def incref(self, obj):
         fnty = Type.function(Type.void(), [self.pyobj])
-        fn = self._get_function(fnty, name="Py_IncRef")
+        fn = self._get_function(fnty, name="PyPy_IncRef")
         self.builder.call(fn, [obj])
 
     def decref(self, obj):
@@ -255,7 +255,7 @@ class PythonAPI(object):
 
     def err_clear(self):
         fnty = Type.function(Type.void(), ())
-        fn = self._get_function(fnty, name="PyErr_Clear")
+        fn = self._get_function(fnty, name="PyPyErr_Clear")
         return self.builder.call(fn, ())
 
     def err_set_string(self, exctype, msg):
@@ -296,7 +296,7 @@ class PythonAPI(object):
 
     def err_set_none(self, exctype):
         fnty = Type.function(Type.void(), [self.pyobj])
-        fn = self._get_function(fnty, name="PyErr_SetNone")
+        fn = self._get_function(fnty, name="PyPyErr_SetNone")
         if isinstance(exctype, str):
             exctype = self.get_c_object(exctype)
         return self.builder.call(fn, (exctype,))
@@ -455,7 +455,7 @@ class PythonAPI(object):
 
     def long_as_ulonglong(self, numobj):
         fnty = Type.function(self.ulonglong, [self.pyobj])
-        fn = self._get_function(fnty, name="PyLong_AsUnsignedLongLong")
+        fn = self._get_function(fnty, name="PyPyLong_AsUnsignedLongLong")
         return self.builder.call(fn, [numobj])
 
     def long_as_longlong(self, numobj):
@@ -626,7 +626,7 @@ class PythonAPI(object):
 
     def number_float(self, val):
         fnty = Type.function(self.pyobj, [self.pyobj])
-        fn = self._get_function(fnty, name="PyNumber_Float")
+        fn = self._get_function(fnty, name="PyPyNumber_Float")
         return self.builder.call(fn, [val])
 
     def number_invert(self, obj):
@@ -636,7 +636,7 @@ class PythonAPI(object):
 
     def float_as_double(self, fobj):
         fnty = Type.function(self.double, [self.pyobj])
-        fn = self._get_function(fnty, name="PyFloat_AsDouble")
+        fn = self._get_function(fnty, name="PyPyFloat_AsDouble")
         return self.builder.call(fn, [fobj])
 
     def bool_from_bool(self, bval):
@@ -733,7 +733,7 @@ class PythonAPI(object):
         Returns a borrowed reference.
         """
         fnty = Type.function(self.pyobj, [self.pyobj, self.py_ssize_t])
-        fn = self._get_function(fnty, name="PyList_GetItem")
+        fn = self._get_function(fnty, name="PyPyList_GetItem")
         if isinstance(idx, int):
             idx = self.context.get_constant(types.intp, idx)
         return self.builder.call(fn, [lst, idx])
@@ -972,7 +972,7 @@ class PythonAPI(object):
 
     def object_istrue(self, obj):
         fnty = Type.function(Type.int(), [self.pyobj])
-        fn = self._get_function(fnty, name="PyObject_IsTrue")
+        fn = self._get_function(fnty, name="PyPyObject_IsTrue")
         return self.builder.call(fn, [obj])
 
     def object_not(self, obj):
