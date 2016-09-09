@@ -66,13 +66,15 @@ def use_ctype_wrapping(x):
 
 # A Python API function
 
-savethread = pythonapi.PyEval_SaveThread
-savethread.argtypes = []
-savethread.restype = c_void_p
+# PYPY FIXME
 
-restorethread = pythonapi.PyEval_RestoreThread
-restorethread.argtypes = [c_void_p]
-restorethread.restype = None
+#savethread = pythonapi.PyEval_SaveThread
+#savethread.argtypes = []
+#savethread.restype = c_void_p
+
+#restorethread = pythonapi.PyEval_RestoreThread
+#restorethread.argtypes = [c_void_p]
+#restorethread.restype = None
 
 if is_windows:
     # A function with the stdcall calling convention

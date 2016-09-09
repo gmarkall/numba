@@ -16,9 +16,10 @@ from .support import TestCase, tag
 
 
 # This CPython API function is a portable way to get the current thread id.
-PyThread_get_thread_ident = ctypes.pythonapi.PyThread_get_thread_ident
-PyThread_get_thread_ident.restype = ctypes.c_long
-PyThread_get_thread_ident.argtypes = []
+# PYPY FIXME
+#PyThread_get_thread_ident = ctypes.pythonapi.PyThread_get_thread_ident
+#PyThread_get_thread_ident.restype = ctypes.c_long
+#PyThread_get_thread_ident.argtypes = []
 
 # A way of sleeping from nopython code
 if os.name == 'nt':

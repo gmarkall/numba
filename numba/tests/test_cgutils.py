@@ -55,7 +55,8 @@ class StructureTestCase(TestCase):
 
     def get_bytearray_addr(self, ba):
         assert isinstance(ba, bytearray)
-        ba_as_string = ctypes.pythonapi.PyByteArray_AsString
+        # PYPY FIXME
+        #ba_as_string = ctypes.pythonapi.PyByteArray_AsString
         ba_as_string.argtypes = [ctypes.py_object]
         ba_as_string.restype = ctypes.c_void_p
         return ba_as_string(ba)
