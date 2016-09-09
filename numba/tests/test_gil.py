@@ -12,7 +12,7 @@ import numpy as np
 import numba.unittest_support as unittest
 from numba.compiler import compile_isolated, Flags
 from numba import config, jit
-from .support import TestCase, tag
+from numba.tests.support import TestCase, tag
 
 
 # This CPython API function is a portable way to get the current thread id.
@@ -67,6 +67,7 @@ def object_f(a, indices):
         a[idx] = PyThread_get_thread_ident()
 
 
+@unittest.skip # PYPY FIXME - new buffer interface not supported
 class TestGILRelease(TestCase):
 
     def make_test_array(self, n_members):
