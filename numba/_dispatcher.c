@@ -6,7 +6,7 @@
 
 #include "_dispatcher.h"
 #include "_typeof.h"
-#include "frameobject.h"
+// #include "frameobject.h"
 
 /*
  * The following call_trace and call_trace_protected functions
@@ -14,6 +14,7 @@
  *
  */
 
+/*
 static int
 call_trace(Py_tracefunc func, PyObject *obj,
            PyThreadState *tstate, PyFrameObject *frame,
@@ -53,6 +54,8 @@ call_trace_protected(Py_tracefunc func, PyObject *obj,
         return -1;
     }
 }
+
+*/
 
 /*
  * The original C_TRACE macro (from ceval.c) would call
@@ -288,55 +291,55 @@ call_cfunc(DispatcherObject *self, PyObject *cfunc, PyObject *args, PyObject *kw
     assert(PyCFunction_Check(cfunc));
     assert(PyCFunction_GET_FLAGS(cfunc) == METH_VARARGS | METH_KEYWORDS);
     fn = (PyCFunctionWithKeywords) PyCFunction_GET_FUNCTION(cfunc);
-    tstate = PyThreadState_GET();
-    if (tstate->use_tracing && tstate->c_profilefunc)
-    {
-        /*
-         * The following code requires some explaining:
-         *
-         * We want the jit-compiled function to be visible to the profiler, so we
-         * need to synthesize a frame for it. 
-         * The PyFrame_New() constructor doesn't do anything with the 'locals' value if the 'code's
-         * 'CO_NEWLOCALS' flag is set (which is always the case nowadays).
-         * So, to get local variables into the frame, we have to manually set the 'f_locals'
-         * member, then call `PyFrame_LocalsToFast`, where a subsequent call to the `frame.f_locals`
-         * property (by virtue of the `frame_getlocals` function in frameobject.c) will find them.
-         */
-        PyCodeObject *code = (PyCodeObject*)PyObject_GetAttrString((PyObject*)self, "__code__");
-        PyObject *globals = PyDict_New();
-        PyObject *builtins = PyEval_GetBuiltins();
-        PyFrameObject *frame = NULL;
-        PyObject *result = NULL;
-
-        if (!code) {
-            PyErr_Format(PyExc_RuntimeError, "No __code__ attribute found.");
-            goto error;
-        }
-        /* Populate builtins, which is required by some JITted functions */
-        if (PyDict_SetItemString(globals, "__builtins__", builtins)) {
-            goto error;
-        }
-        frame = PyFrame_New(tstate, code, globals, NULL);
-        if (frame == NULL) {
-            goto error;
-        }
-        /* Populate the 'fast locals' in `frame` */
-        Py_XDECREF(frame->f_locals);
-        frame->f_locals = locals;
-        Py_XINCREF(frame->f_locals);
-        PyFrame_LocalsToFast(frame, 0);
-        tstate->frame = frame;
-        C_TRACE(result, fn(PyCFunction_GET_SELF(cfunc), args, kws));
-        tstate->frame = frame->f_back;
-
-    error:
-        Py_XDECREF(frame);
-        Py_XDECREF(globals);
-        Py_XDECREF(code);
-        return result;
-    }
-    else
-        return fn(PyCFunction_GET_SELF(cfunc), args, kws);
+//    tstate = PyThreadState_GET();
+//    if (tstate->use_tracing && tstate->c_profilefunc)
+//    {
+//        /*
+//         * The following code requires some explaining:
+//         *
+//         * We want the jit-compiled function to be visible to the profiler, so we
+//         * need to synthesize a frame for it. 
+//         * The PyFrame_New() constructor doesn't do anything with the 'locals' value if the 'code's
+//         * 'CO_NEWLOCALS' flag is set (which is always the case nowadays).
+//         * So, to get local variables into the frame, we have to manually set the 'f_locals'
+//         * member, then call `PyFrame_LocalsToFast`, where a subsequent call to the `frame.f_locals`
+//         * property (by virtue of the `frame_getlocals` function in frameobject.c) will find them.
+//         */
+//        PyCodeObject *code = (PyCodeObject*)PyObject_GetAttrString((PyObject*)self, "__code__");
+//        PyObject *globals = PyDict_New();
+//        PyObject *builtins = PyEval_GetBuiltins();
+//        PyFrameObject *frame = NULL;
+//        PyObject *result = NULL;
+//
+//        if (!code) {
+//            PyErr_Format(PyExc_RuntimeError, "No __code__ attribute found.");
+//            goto error;
+//        }
+//        /* Populate builtins, which is required by some JITted functions */
+//        if (PyDict_SetItemString(globals, "__builtins__", builtins)) {
+//            goto error;
+//        }
+//        frame = PyFrame_New(tstate, code, globals, NULL);
+//        if (frame == NULL) {
+//            goto error;
+//        }
+//        /* Populate the 'fast locals' in `frame` */
+//        Py_XDECREF(frame->f_locals);
+//        frame->f_locals = locals;
+//        Py_XINCREF(frame->f_locals);
+//        PyFrame_LocalsToFast(frame, 0);
+//        tstate->frame = frame;
+//        //C_TRACE(result, fn(PyCFunction_GET_SELF(cfunc), args, kws));
+//        tstate->frame = frame->f_back;
+//
+//    error:
+//        Py_XDECREF(frame);
+//        Py_XDECREF(globals);
+//        Py_XDECREF(code);
+//        return result;
+//    }
+//    else
+    return fn(PyCFunction_GET_SELF(cfunc), args, kws);
 }
 
 static
@@ -495,8 +498,8 @@ Dispatcher_call(DispatcherObject *self, PyObject *args, PyObject *kws)
     PyObject *cfunc;
     PyThreadState *ts = PyThreadState_Get();
     PyObject *locals = NULL;
-    if (ts->use_tracing && ts->c_profilefunc)
-        locals = PyEval_GetLocals();
+    //if (ts->use_tracing && ts->c_profilefunc)
+    //    locals = PyEval_GetLocals();
     if (self->fold_args) {
         if (find_named_args(self, &args, &kws))
             return NULL;

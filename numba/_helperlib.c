@@ -22,6 +22,14 @@
 #include "_arraystruct.h"
 
 /*
+ * FIXME PYPY
+ */
+
+#define Py_IS_NAN(X) isnan(X)
+#define Py_IS_FINITE(X) isfinite(X)
+#define Py_IS_INFINITY(X) isinf(X)
+
+/*
  * Other helpers.
  */
 
@@ -89,13 +97,15 @@ numba_ldexpf(float x, int exp)
 /* provide complex power */
 NUMBA_EXPORT_FUNC(void)
 numba_cpow(Py_complex *a, Py_complex *b, Py_complex *out) {
-    errno = 0;
-    *out = _Py_c_pow(*a, *b);
-    if (errno == EDOM) {
-        /* _Py_c_pow() doesn't bother returning the right value
-           in this case, as Python raises ZeroDivisionError */
-        out->real = out->imag = Py_NAN;
-    }
+    // FIXME PYPY
+    out->real = out->imag = Py_NAN;
+//    errno = 0;
+//    *out = _Py_c_pow(*a, *b);
+//    if (errno == EDOM) {
+//        /* _Py_c_pow() doesn't bother returning the right value
+//           in this case, as Python raises ZeroDivisionError */
+//        out->real = out->imag = Py_NAN;
+//    }
 }
 
 NUMBA_EXPORT_FUNC(void)
@@ -664,16 +674,18 @@ numba_set_list_private_data(PyListObject *listobj, void *ptr)
      * number (obj->allocated is normally positive, except when sorting
      * where it's changed to -1).
      */
-    listobj->allocated = - (Py_ssize_t) ((size_t) ptr >> 1);
+    // FIXME PYPY
+    //listobj->allocated = - (Py_ssize_t) ((size_t) ptr >> 1);
 }
 
 NUMBA_EXPORT_FUNC(void *)
 numba_get_list_private_data(PyListObject *listobj)
 {
-    if (listobj->allocated < -1) {
-        /* A Numba pointer is stuffed in the list, return it */
-        return (void *) ((size_t) -listobj->allocated << 1);
-    }
+    // FIXME PYPY
+    //if (listobj->allocated < -1) {
+    //    /* A Numba pointer is stuffed in the list, return it */
+    //    return (void *) ((size_t) -listobj->allocated << 1);
+    //}
     return NULL;
 }
 
@@ -683,8 +695,9 @@ numba_reset_list_private_data(PyListObject *listobj)
     /* Pretend there is no over-allocation; this should be always correct,
      * if not optimal.
      */
-    if (listobj->allocated < -1)
-        listobj->allocated = PyList_GET_SIZE(listobj);
+    // FIXME PYPY
+    //if (listobj->allocated < -1)
+    //    listobj->allocated = PyList_GET_SIZE(listobj);
 }
 
 /*
@@ -826,9 +839,10 @@ numba_do_raise(PyObject *exc)
         PyThreadState *tstate = PyThreadState_GET();
         PyObject *tb;
         Py_DECREF(exc);
-        type = tstate->exc_type;
-        value = tstate->exc_value;
-        tb = tstate->exc_traceback;
+        // FIXME PYPY
+        type = Py_None; //tstate->exc_type;
+        value = Py_None; //tstate->exc_value;
+        tb = Py_None; //tstate->exc_traceback;
         if (type == Py_None) {
             PyErr_SetString(PyExc_RuntimeError,
                             "No active exception to reraise");
@@ -852,11 +866,12 @@ numba_do_raise(PyObject *exc)
         type = NULL;
         if (value == NULL)
             goto raise_error;
-        if (!PyExceptionInstance_Check(value)) {
-            PyErr_SetString(PyExc_TypeError,
-                            "exceptions must derive from BaseException");
-            goto raise_error;
-        }
+        // FIXME PYPY
+        //if (!PyExceptionInstance_Check(value)) {
+        //    PyErr_SetString(PyExc_TypeError,
+        //                    "exceptions must derive from BaseException");
+        //    goto raise_error;
+        //}
         type = PyExceptionInstance_Class(value);
         Py_INCREF(type);
     }
@@ -865,17 +880,19 @@ numba_do_raise(PyObject *exc)
         value = PyObject_CallObject(exc, NULL);
         if (value == NULL)
             goto raise_error;
-        if (!PyExceptionInstance_Check(value)) {
-            PyErr_SetString(PyExc_TypeError,
-                            "exceptions must derive from BaseException");
-            goto raise_error;
-        }
+        // FIXME PYPY
+        //if (!PyExceptionInstance_Check(value)) {
+        //    PyErr_SetString(PyExc_TypeError,
+        //                    "exceptions must derive from BaseException");
+        //    goto raise_error;
+        //}
     }
-    else if (PyExceptionInstance_Check(exc)) {
-        value = exc;
-        type = PyExceptionInstance_Class(exc);
-        Py_INCREF(type);
-    }
+    // FIXME PYPY
+    // else if (PyExceptionInstance_Check(exc)) {
+    //    value = exc;
+    //    type = PyExceptionInstance_Class(exc);
+    //    Py_INCREF(type);
+    // }
     else {
         /* Not something you can raise.  You get an exception
            anyway, just not what you specified :-) */

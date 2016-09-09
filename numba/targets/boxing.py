@@ -545,6 +545,8 @@ def _python_list_to_native(typ, obj, c, size, listptr, errorptr):
     """
     Construct a new native list from a Python list.
     """
+    # FIXME PYPY
+    raise NotImplementedError("Unsupported on PyPy")
     # Allocate a new native list
     ok, list = listobj.ListInstance.allocate_ex(c.context, c.builder, typ, size)
     with c.builder.if_else(ok, likely=True) as (if_ok, if_not_ok):
@@ -600,6 +602,8 @@ def unbox_list(typ, obj, c):
     If list was previously unboxed, we reuse the existing native list
     to ensure consistency.
     """
+    # FIXME PYPY
+    raise RuntimeError('Not supported on PyPy')
     size = c.pyapi.list_size(obj)
 
     errorptr = cgutils.alloca_once_value(c.builder, cgutils.false_bit)

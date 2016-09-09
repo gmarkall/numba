@@ -3,6 +3,11 @@
 #include "_math_c99.h"
 
 
+// FIXME PYPY
+#define Py_IS_NAN(X) isnan(X)
+#define Py_IS_FINITE(X) isfinite(X)
+#define Py_IS_INFINITY(X) isinf(X)
+
 /* Copied from Python Module/_math.c with modification to symbol name */
 
 
@@ -268,6 +273,9 @@ float m_roundf(float x) {
    Windows, FreeBSD and alpha Tru64 are amongst platforms that don't
    always follow C99.
 */
+
+// FIXME PYPY
+#define Py_MATH_PI 3.14159265358979323846
 
 double m_atan2(double y, double x)
 {
