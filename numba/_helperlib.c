@@ -859,6 +859,13 @@ numba_fatal_error(void)
     return 0; /* unreachable */
 }
 
+// FIXME PYPY
+// Derived from source in pyerrors.h in Python 2.7.12
+
+#define PyExceptionInstance_Check(x)                      \
+    (PyInstance_Check(x) ||                               \
+     PyObject_IsSubclass(x, PyExc_BaseException))
+
 /* Logic for raising an arbitrary object.  Adapted from CPython's ceval.c.
    This *consumes* a reference count to its argument. */
 NUMBA_EXPORT_FUNC(int)
@@ -903,12 +910,11 @@ numba_do_raise(PyObject *exc)
         type = NULL;
         if (value == NULL)
             goto raise_error;
-        // FIXME PYPY
-        //if (!PyExceptionInstance_Check(value)) {
-        //    PyErr_SetString(PyExc_TypeError,
-        //                    "exceptions must derive from BaseException");
-        //    goto raise_error;
-        //}
+        if (!PyExceptionInstance_Check(value)) {
+            PyErr_SetString(PyExc_TypeError,
+                            "exceptions must derive from BaseException");
+            goto raise_error;
+        }
         type = PyExceptionInstance_Class(value);
         Py_INCREF(type);
     }
@@ -917,19 +923,17 @@ numba_do_raise(PyObject *exc)
         value = PyObject_CallObject(exc, NULL);
         if (value == NULL)
             goto raise_error;
-        // FIXME PYPY
-        //if (!PyExceptionInstance_Check(value)) {
-        //    PyErr_SetString(PyExc_TypeError,
-        //                    "exceptions must derive from BaseException");
-        //    goto raise_error;
-        //}
+        if (!PyExceptionInstance_Check(value)) {
+            PyErr_SetString(PyExc_TypeError,
+                            "exceptions must derive from BaseException");
+            goto raise_error;
+        }
     }
-    // FIXME PYPY
-    // else if (PyExceptionInstance_Check(exc)) {
-    //    value = exc;
-    //    type = PyExceptionInstance_Class(exc);
-    //    Py_INCREF(type);
-    // }
+    else if (PyExceptionInstance_Check(exc)) {
+        value = exc;
+        type = PyExceptionInstance_Class(exc);
+        Py_INCREF(type);
+    }
     else {
         /* Not something you can raise.  You get an exception
            anyway, just not what you specified :-) */
