@@ -879,22 +879,24 @@ numba_do_raise(PyObject *exc)
        raise <type> */
 
     if (exc == Py_None) {
-        /* Reraise */
-        PyThreadState *tstate = PyThreadState_GET();
-        PyObject *tb;
         Py_DECREF(exc);
+        /* Reraise */
+        // PYPY FIXME
+        //PyThreadState *tstate = PyThreadState_GET();
+        PyObject *tb;
         // FIXME PYPY
-        type = Py_None; //tstate->exc_type;
-        value = Py_None; //tstate->exc_value;
-        tb = Py_None; //tstate->exc_traceback;
+        type = PyErr_Occurred(); //tstate->exc_type;
         if (type == Py_None) {
             PyErr_SetString(PyExc_RuntimeError,
                             "No active exception to reraise");
             return 0;
         }
-        Py_XINCREF(type);
-        Py_XINCREF(value);
-        Py_XINCREF(tb);
+        //value = Py_None; //tstate->exc_value;
+        //tb = Py_None; //tstate->exc_traceback;
+        PyErr_Fetch(&type, &value, &tb);
+        //Py_XINCREF(type);
+        //Py_XINCREF(value);
+        //Py_XINCREF(tb);
         PyErr_Restore(type, value, tb);
         return 1;
     }
