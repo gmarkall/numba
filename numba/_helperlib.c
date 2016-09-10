@@ -94,18 +94,55 @@ numba_ldexpf(float x, int exp)
     return x;
 }
 
+/*
+ * Copied from Objects/complexobject.c in Python 2.7.12 to provide
+ * complex power in PyPy
+ */
+static int _cpow_errno;
+
+Py_complex
+_Py_c_pow(Py_complex a, Py_complex b)
+{
+    Py_complex r;
+    double vabs,len,at,phase;
+    if (b.real == 0. && b.imag == 0.) {
+        r.real = 1.;
+        r.imag = 0.;
+    }
+    else if (a.real == 0. && a.imag == 0.) {
+        if (b.imag != 0. || b.real < 0.)
+            _cpow_errno = EDOM;
+        r.real = 0.;
+        r.imag = 0.;
+    }
+    else {
+        vabs = hypot(a.real,a.imag);
+        len = pow(vabs,b.real);
+        at = atan2(a.imag, a.real);
+        phase = at*b.real;
+        if (b.imag != 0.0) {
+            len /= exp(at*b.imag);
+            phase += b.imag*log(vabs);
+        }
+        r.real = len*cos(phase);
+        r.imag = len*sin(phase);
+    }
+    return r;
+}
+
+
 /* provide complex power */
 NUMBA_EXPORT_FUNC(void)
 numba_cpow(Py_complex *a, Py_complex *b, Py_complex *out) {
     // FIXME PYPY
-    out->real = out->imag = Py_NAN;
-//    errno = 0;
-//    *out = _Py_c_pow(*a, *b);
-//    if (errno == EDOM) {
-//        /* _Py_c_pow() doesn't bother returning the right value
-//           in this case, as Python raises ZeroDivisionError */
-//        out->real = out->imag = Py_NAN;
-//    }
+    // Requires implementation of _Py_c_pow in PyPy really.
+    _cpow_errno = 0;
+    *out = _Py_c_pow(*a, *b);
+    if (_cpow_errno == EDOM) {
+        /* _Py_c_pow() doesn't bother returning the right value
+           in this case, as Python raises ZeroDivisionError */
+        out->real = out->imag = Py_NAN;
+    }
 }
 
 NUMBA_EXPORT_FUNC(void)
