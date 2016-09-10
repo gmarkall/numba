@@ -87,7 +87,7 @@ class BaseLower(object):
         with cgutils.if_unlikely(self.builder,
                                  cgutils.is_null(self.builder, self.envarg)):
             self.pyapi.err_set_string(
-                "PyExc_SystemError",
+                "PyPyExc_SystemError",
                 "Numba internal error: object mode function called "
                 "without an environment")
             self.call_conv.return_exc(self.builder)

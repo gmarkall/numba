@@ -95,7 +95,7 @@ def unbox_complex(typ, obj, c):
     failed = cgutils.is_false(c.builder, ok)
 
     with cgutils.if_unlikely(c.builder, failed):
-        c.pyapi.err_set_string("PyExc_TypeError",
+        c.pyapi.err_set_string("PyPyExc_TypeError",
                                "conversion to %s failed" % (typ,))
 
     if typ == types.complex64:
@@ -477,7 +477,7 @@ def unbox_tuple(typ, obj, c):
                                             ir.Constant(actual_size.type, n))
     with c.builder.if_then(c.builder.not_(size_matches), likely=False):
         c.pyapi.err_format(
-            "PyExc_ValueError",
+            "PyPyExc_ValueError",
             "size mismatch for tuple, expected %d element(s) but got %%zd" % (n,),
             actual_size)
         c.builder.store(cgutils.true_bit, is_error_ptr)
@@ -566,7 +566,7 @@ def _python_list_to_native(typ, obj, c, size, listptr, errorptr):
                                                           expected_typobj)
                     with c.builder.if_then(type_mismatch, likely=False):
                         c.builder.store(cgutils.true_bit, errorptr)
-                        c.pyapi.err_set_string("PyExc_TypeError",
+                        c.pyapi.err_set_string("PyPyExc_TypeError",
                                                "can't unbox heterogenous list")
                         loop.do_break()
 
@@ -710,7 +710,7 @@ def _python_set_to_native(typ, obj, c, size, setptr, errorptr):
                                                               expected_typobj)
                         with c.builder.if_then(type_mismatch, likely=False):
                             c.builder.store(cgutils.true_bit, errorptr)
-                            c.pyapi.err_set_string("PyExc_TypeError",
+                            c.pyapi.err_set_string("PyPyExc_TypeError",
                                                    "can't unbox heterogenous set")
                             loop.do_break()
 

@@ -185,7 +185,7 @@ class PythonAPI(object):
             if return_pyobject:
                 fnty = self.builder.function.type.pointee
                 assert fnty.return_type == self.pyobj
-                self.err_set_string("PyExc_RuntimeError",
+                self.err_set_string("PyPyExc_RuntimeError",
                                     "missing Environment")
                 self.builder.ret(self.get_null_object())
             else:

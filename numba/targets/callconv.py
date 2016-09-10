@@ -126,14 +126,14 @@ class BaseCallConv(object):
             builder.branch(bbend)
 
         with builder.if_then(status.is_stop_iteration):
-            api.err_set_none("PyExc_StopIteration")
+            api.err_set_none("PyPyExc_StopIteration")
             builder.branch(bbend)
 
         with builder.if_then(status.is_python_exc):
             # Error already raised => nothing to do
             builder.branch(bbend)
 
-        api.err_set_string("PyExc_SystemError",
+        api.err_set_string("PyPyExc_SystemError",
                            "unknown error when calling native function")
         builder.branch(bbend)
 
