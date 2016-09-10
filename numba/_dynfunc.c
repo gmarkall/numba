@@ -51,8 +51,7 @@ env_clear(EnvironmentObject *env)
 static void
 env_dealloc(EnvironmentObject *env)
 {
-    // FIXME PYPY
-    // _PyObject_GC_UNTRACK((PyObject *) env);
+    PyObject_GC_UnTrack((PyObject *) env);
     env_clear(env);
     Py_TYPE(env)->tp_free((PyObject *) env);
 }
@@ -175,8 +174,7 @@ closure_traverse(ClosureObject *clo, visitproc visit, void *arg)
 static void
 closure_dealloc(ClosureObject *clo)
 {
-    // FIXME PYPY
-    // _PyObject_GC_UNTRACK((PyObject *) clo);
+    PyObject_GC_UnTrack((PyObject *) clo);
     if (clo->weakreflist != NULL)
         PyObject_ClearWeakRefs((PyObject *) clo);
     PyObject_Free((void *) clo->def.ml_name);
@@ -341,8 +339,7 @@ generator_clear(GeneratorObject *gen)
 static void
 generator_dealloc(GeneratorObject *gen)
 {
-    // FIXME PYPY
-    //_PyObject_GC_UNTRACK((PyObject *) gen);
+    PyObject_GC_UnTrack((PyObject *) gen);
     if (gen->weakreflist != NULL)
         PyObject_ClearWeakRefs((PyObject *) gen);
     /* XXX The finalizer may be called after the LLVM module has been
