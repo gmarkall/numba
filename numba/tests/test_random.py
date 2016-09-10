@@ -160,7 +160,7 @@ class BaseTest(TestCase):
         return r
 
 
-@unittest.skip # PYPY FIXME - new buffer interface not supported
+@unittest.skip('PYPY FIXME - new buffer interface not supported')
 class TestInternals(BaseTest):
     """
     Test low-level internals of the implementation.
@@ -229,7 +229,7 @@ class TestInternals(BaseTest):
         self._check_perturb(get_py_state_ptr())
 
 
-@unittest.skip # PYPY FIXME - new buffer interface not supported
+@unittest.skip('PYPY FIXME - new buffer interface not supported')
 class TestRandom(BaseTest):
 
     # NOTE: there may be cascading imprecision issues (e.g. between x87-using
@@ -900,7 +900,7 @@ class TestRandom(BaseTest):
         self._check_startup_randomness("numpy_normal", (1.0, 1.0))
 
 
-@unittest.skip # PYPY FIXME - new buffer interface not supported
+@unittest.skip('PYPY FIXME - new buffer interface not supported')
 class TestRandomArrays(BaseTest):
     """
     Test array-producing variants of np.random.* functions.
@@ -1031,7 +1031,7 @@ class TestRandomArrays(BaseTest):
         self._check_array_dist("zipf", (2.5,))
 
 
-@unittest.skip # PYPY FIXME - new buffer interface not supported
+@unittest.skip('PYPY FIXME - new buffer interface not supported')
 class TestRandomChoice(BaseTest):
     """
     Test np.random.choice.
@@ -1193,7 +1193,7 @@ class TestRandomChoice(BaseTest):
         self._check_choice_3(pop, pop)
 
 
-@unittest.skip # PYPY FIXME - new buffer interface not supported
+@unittest.skip('PYPY FIXME - new buffer interface not supported')
 class TestRandomMultinomial(BaseTest):
     """
     Test np.random.multinomial.
@@ -1332,7 +1332,7 @@ class ConcurrencyBaseTest(TestCase):
         self.assertEqual(len(sums), expected_distinct, sums)
 
 
-@unittest.skip # PYPY FIXME - new buffer interface not supported
+@unittest.skip('PYPY FIXME - new buffer interface not supported')
 class TestThreads(ConcurrencyBaseTest):
     """
     Check the PRNG behaves well with threads.
@@ -1399,7 +1399,7 @@ class TestThreads(ConcurrencyBaseTest):
         self.check_implicit_initialization(np_extract_randomness)
 
 
-@unittest.skip # PYPY FIXME - new buffer interface not supported
+@unittest.skip('PYPY FIXME - new buffer interface not supported')
 @unittest.skipIf(os.name == 'nt', "Windows is not affected by fork() issues")
 class TestProcesses(ConcurrencyBaseTest):
     """

@@ -141,7 +141,7 @@ class TestGeneratorDebugOutput(DebugTestBase):
             self.assertPreciseEqual(list(cres.entry_point(2, 5)), [2, 5])
         return out.getvalue()
 
-    @unittest.skip # PYPY FIXME - strange death
+    @unittest.skip('PYPY FIXME - strange death')
     def test_dump_ir_generator(self):
         with override_config('DUMP_IR', True):
             out = self.compile_simple_gen()

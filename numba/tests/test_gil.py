@@ -67,7 +67,7 @@ def object_f(a, indices):
         a[idx] = PyThread_get_thread_ident()
 
 
-@unittest.skip # PYPY FIXME - new buffer interface not supported
+@unittest.skip('PYPY FIXME - new buffer interface not supported')
 class TestGILRelease(TestCase):
 
     def make_test_array(self, n_members):

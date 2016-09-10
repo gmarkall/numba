@@ -191,7 +191,7 @@ class TestDynArray(NrtRefCtTest, TestCase):
         # y is no longer referenced by cfunc
         self.assertEqual(initrefct, sys.getrefcount(y))
 
-    @unittest.skip # PYPY FIXME - interpreter death
+    @unittest.skip('PYPY FIXME - interpreter death')
     @tag('important')
     def test_return_global_array_sliced(self):
         y = np.ones(4, dtype=np.float32)

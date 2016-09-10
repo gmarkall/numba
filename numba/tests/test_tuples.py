@@ -152,7 +152,7 @@ class TestTuplePassing(TestCase):
         self.assertPreciseEqual(cr_first.entry_point((2**61, 1.5)), 2**61)
         self.assertPreciseEqual(cr_second.entry_point((2**61, 1.5)), 1.5)
 
-    @unittest.skip # PYPY FIXME: Mysterious interpeter death. Whodunnit?
+    @unittest.skip('PYPY FIXME: Mysterious interpeter death. Whodunnit?')
     def test_size_mismatch(self):
         # Issue #1638: tuple size should be checked when unboxing
         tuple_type = types.UniTuple(types.int32, 2)

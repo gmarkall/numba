@@ -126,7 +126,7 @@ class TestGlobals(unittest.TestCase):
         np.testing.assert_equal(arr1, rec_X.a)
         np.testing.assert_equal(arr2, rec_X.b)
 
-    @unittest.skip # PYPY FIXME (error in cpy compat layer)
+    @unittest.skip('PYPY FIXME (error in cpy compat layer)')
     def test_global_rec_arr_extract(self):
         self.check_global_rec_arr_extract(forceobj=True)
 

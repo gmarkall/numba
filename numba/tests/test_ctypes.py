@@ -15,7 +15,7 @@ from .support import MemoryLeakMixin, tag, TestCase
 from .ctypes_usecases import *
 
 
-@unittest.skip # PYPY FIXME - slow..
+@unittest.skip('PYPY FIXME - slow')
 class TestCTypesTypes(TestCase):
 
     def _conversion_tests(self, check):
@@ -66,7 +66,7 @@ class TestCTypesTypes(TestCase):
                       str(raises.exception))
 
 
-@unittest.skip # PYPY FIXME - slow..
+@unittest.skip('PYPY FIXME - slow..')
 class TestCTypesUseCases(MemoryLeakMixin, TestCase):
 
     @tag('important')

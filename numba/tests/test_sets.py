@@ -332,7 +332,7 @@ class BaseTest(MemoryLeakMixin, TestCase):
             self._assert_equal_unordered(expected, got)
         return check
 
-@unittest.skip # PYPY FIXME - annoyingly slow
+@unittest.skip('PYPY FIXME - annoyingly slow')
 class TestSetLiterals(BaseTest):
 
     @needs_set_literals
@@ -362,7 +362,7 @@ class TestSetLiterals(BaseTest):
         self.assertPreciseEqual(sorted(expected), sorted(got))
 
 
-@unittest.skip # PYPY FIXME - annoyingly slow
+@unittest.skip('PYPY FIXME - annoyingly slow')
 class TestSets(BaseTest):
 
     def test_constructor(self):
@@ -634,7 +634,7 @@ class OtherTypesTest(object):
         check(a, b, c)
 
 
-@unittest.skip # PYPY FIXME - annoyingly slow
+@unittest.skip('PYPY FIXME - annoyingly slow')
 class TestFloatSets(OtherTypesTest, BaseTest):
     """
     Test sets with floating-point keys.
@@ -646,7 +646,7 @@ class TestFloatSets(OtherTypesTest, BaseTest):
         return np.arange(stop, dtype=np.float32) * np.float32(0.1)
 
 
-@unittest.skip # PYPY FIXME - annoyingly slow
+@unittest.skip('PYPY FIXME - annoyingly slow')
 class TestTupleSets(OtherTypesTest, BaseTest):
     """
     Test sets with tuple keys.
@@ -658,7 +658,7 @@ class TestTupleSets(OtherTypesTest, BaseTest):
         d = ((a >> 32) & 1).astype(np.bool_)
         return list(zip(b, c, d))
 
-@unittest.skip # PYPY FIXME - Mysterious interpreter death
+@unittest.skip('PYPY FIXME - Mysterious interpreter death')
 class TestUnboxing(BaseTest):
     """
     Test unboxing of Python sets into native Numba sets.
@@ -727,7 +727,7 @@ class TestUnboxing(BaseTest):
             cfunc(lst)
 
 
-@unittest.skip # PYPY FIXME - some set code disabled due to missing C API?
+@unittest.skip('PYPY FIXME - some set code disabled due to missing C API?')
 class TestSetReflection(BaseTest):
     """
     Test reflection of native Numba sets on Python set objects.
@@ -796,7 +796,7 @@ class TestSetReflection(BaseTest):
         self.assertEqual([id(x) for x in s], ids)
 
 
-@unittest.skip # PYPY FIXME - annoyingly slow
+@unittest.skip('PYPY FIXME - annoyingly slow')
 class TestExamples(BaseTest):
     """
     Examples of using sets.

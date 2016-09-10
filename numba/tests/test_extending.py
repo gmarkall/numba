@@ -461,7 +461,7 @@ class TestHighLevelExtending(TestCase):
 
 
 class TestIntrinsic(TestCase):
-    @unittest.skip # FIXME PYPY
+    @unittest.skip('FIXME PYPY')
     def test_ll_pointer_cast(self):
         """
         Usecase test: custom reinterpret cast to turn int values to pointers

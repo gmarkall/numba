@@ -129,12 +129,12 @@ class TestGenerators(MemoryLeakMixin, TestCase):
         cgen = cr.entry_point(8)
         self.check_generator(pygen, cgen)
 
-    @unittest.skip # PYPY FIXME - mysterious death
+    @unittest.skip('PYPY FIXME - mysterious death')
     @tag('important')
     def test_gen1(self):
         self.check_gen1()
 
-    @unittest.skip # PYPY FIXME - mysterious death
+    @unittest.skip('PYPY FIXME - mysterious death')
     def test_gen1_objmode(self):
         self.check_gen1(flags=forceobj_flags)
 
@@ -145,12 +145,12 @@ class TestGenerators(MemoryLeakMixin, TestCase):
         cgen = cr.entry_point(8)
         self.check_generator(pygen, cgen)
 
-    @unittest.skip # PYPY FIXME - mysterious death
+    @unittest.skip('PYPY FIXME - mysterious death')
     @tag('important')
     def test_gen2(self):
         self.check_gen2()
 
-    @unittest.skip # PYPY FIXME - mysterious death
+    @unittest.skip('PYPY FIXME - mysterious death')
     def test_gen2_objmode(self):
         self.check_gen2(flags=forceobj_flags)
 
@@ -161,12 +161,12 @@ class TestGenerators(MemoryLeakMixin, TestCase):
         cgen = cr.entry_point(8)
         self.check_generator(pygen, cgen)
 
-    @unittest.skip # PYPY FIXME - mysterious death
+    @unittest.skip('PYPY FIXME - mysterious death')
     @tag('important')
     def test_gen3(self):
         self.check_gen3()
 
-    @unittest.skip # PYPY FIXME - mysterious death
+    @unittest.skip('PYPY FIXME - mysterious death')
     def test_gen3_objmode(self):
         self.check_gen3(flags=forceobj_flags)
 
@@ -177,12 +177,12 @@ class TestGenerators(MemoryLeakMixin, TestCase):
         cgen = cr.entry_point(5, 6, 7)
         self.check_generator(pygen, cgen)
 
-    @unittest.skip # PYPY FIXME - mysterious death
+    @unittest.skip('PYPY FIXME - mysterious death')
     @tag('important')
     def test_gen4(self):
         self.check_gen4()
 
-    @unittest.skip # PYPY FIXME - mysterious death
+    @unittest.skip('PYPY FIXME - mysterious death')
     def test_gen4_objmode(self):
         self.check_gen4(flags=forceobj_flags)
 
@@ -192,7 +192,7 @@ class TestGenerators(MemoryLeakMixin, TestCase):
         self.assertIn("Cannot type generator: it does not yield any value",
                       str(cm.exception))
 
-    @unittest.skip # PYPY FIXME - mysterious death
+    @unittest.skip('PYPY FIXME - mysterious death')
     def test_gen5_objmode(self):
         cr = compile_isolated(gen5, (), flags=forceobj_flags)
         cgen = cr.entry_point()
@@ -225,12 +225,12 @@ class TestGenerators(MemoryLeakMixin, TestCase):
         cgen = cr.entry_point(arr)
         self.check_generator(pygen, cgen)
 
-    @unittest.skip # PYPY FIXME - mysterious death
+    @unittest.skip('PYPY FIXME - mysterious death')
     @tag('important')
     def test_gen7(self):
         self.check_gen7()
 
-    @unittest.skip # PYPY FIXME - mysterious death
+    @unittest.skip('PYPY FIXME - mysterious death')
     def test_gen7_objmode(self):
         self.check_gen7(flags=forceobj_flags)
 
@@ -247,12 +247,12 @@ class TestGenerators(MemoryLeakMixin, TestCase):
         check(y=5)
         check(x=6, b=True)
 
-    @unittest.skip # PYPY FIXME - mysterious death
+    @unittest.skip('PYPY FIXME - mysterious death')
     @tag('important')
     def test_gen8(self):
         self.check_gen8(nopython=True)
 
-    @unittest.skip('') # PYPY FIXME - mysterious death
+    @unittest.skip('PYPY FIXME - mysterious death')
     def test_gen8_objmode(self):
         self.check_gen8(forceobj=True)
 
@@ -549,7 +549,7 @@ class TestNrtNestedGen(TestCase):
 
 
 class TestGeneratorWithNRT(MemoryLeakMixin, TestCase):
-    @unittest.skip # PYPY FIXME - mysterious death
+    @unittest.skip('PYPY FIXME - mysterious death')
     def test_issue_1254(self):
         """
         Missing environment for returning array
@@ -570,7 +570,7 @@ class TestGeneratorWithNRT(MemoryLeakMixin, TestCase):
         for got in outputs:
             np.testing.assert_equal(expect, got)
 
-    @unittest.skip # PYPY FIXME - mysterious death
+    @unittest.skip('PYPY FIXME - mysterious death')
     def test_issue_1265(self):
         """
         Double-free for locally allocated, non escaping NRT objects

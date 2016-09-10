@@ -673,7 +673,7 @@ class TestCache(BaseCacheTest):
         self.assertPreciseEqual(f(2, 3), 6)
         self.check_pycache(0)
 
-    @unittest.skip # PYPY FIXME - error in cpyext
+    @unittest.skip('PYPY FIXME - error in cpyext')
     def test_looplifted(self):
         # Loop-lifted functions can't be cached and raise a warning
         mod = self.import_module()
@@ -690,7 +690,7 @@ class TestCache(BaseCacheTest):
                          'Cannot cache compiled function "looplifted" '
                          'as it uses lifted loops')
 
-    @unittest.skip # PYPY FIXME
+    @unittest.skip('PYPY FIXME')
     def test_ctypes(self):
         # Functions using a ctypes pointer can't be cached and raise
         # a warning.

@@ -483,7 +483,7 @@ class BaseTimsortTest(BaseSortingTest):
             # This checks sort stability
             self.assertSortedValues(orig_keys, orig_values, keys, values)
 
-@unittest.skip # PYPY FIXME... disabled as it seems to take a long time.
+@unittest.skip('PYPY FIXME... disabled as it seems to take a long time.')
 class TestTimsortPurePython(BaseTimsortTest, TestCase):
 
     timsort = py_list_timsort
@@ -492,7 +492,7 @@ class TestTimsortPurePython(BaseTimsortTest, TestCase):
     array_factory = list
 
 
-@unittest.skip # PYPY FIXME... disabled as it seems to take a long time.
+@unittest.skip('PYPY FIXME... disabled as it seems to take a long time.')
 class TestTimsortArraysPurePython(BaseTimsortTest, TestCase):
 
     timsort = py_array_timsort
