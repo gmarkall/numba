@@ -881,23 +881,9 @@ numba_do_raise(PyObject *exc)
     if (exc == Py_None) {
         Py_DECREF(exc);
         /* Reraise */
-        // PYPY FIXME
-        //PyThreadState *tstate = PyThreadState_GET();
-        PyObject *tb;
-        // FIXME PYPY
-        type = PyErr_Occurred(); //tstate->exc_type;
-        if (type == Py_None) {
-            PyErr_SetString(PyExc_RuntimeError,
-                            "No active exception to reraise");
-            return 0;
-        }
-        //value = Py_None; //tstate->exc_value;
-        //tb = Py_None; //tstate->exc_traceback;
-        PyErr_Fetch(&type, &value, &tb);
-        //Py_XINCREF(type);
-        //Py_XINCREF(value);
-        //Py_XINCREF(tb);
-        PyErr_Restore(type, value, tb);
+        // PYPY FIXME - PyErr_GetExcInfo and PyErr_Restore "works"
+        // but loses at least one frame
+        PyRun_SimpleString("raise");
         return 1;
     }
 
