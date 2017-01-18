@@ -545,8 +545,6 @@ def _python_list_to_native(typ, obj, c, size, listptr, errorptr):
     """
     Construct a new native list from a Python list.
     """
-    # FIXME PYPY
-    raise NotImplementedError("Unsupported on PyPy")
     # Allocate a new native list
     ok, list = listobj.ListInstance.allocate_ex(c.context, c.builder, typ, size)
     with c.builder.if_else(ok, likely=True) as (if_ok, if_not_ok):
@@ -582,7 +580,9 @@ def _python_list_to_native(typ, obj, c, size, listptr, errorptr):
                 list.parent = obj
             # Stuff meminfo pointer into the Python object for
             # later reuse.
-            c.pyapi.list_set_private_data(obj, list.meminfo)
+            with c.builder.if_then(c.builder.not_(c.builder.load(errorptr)),
+                                                  likely=False):
+                c.pyapi.object_set_private_data(obj, list.meminfo)
             list.set_dirty(False)
             c.builder.store(list.value, listptr)
 
@@ -602,8 +602,6 @@ def unbox_list(typ, obj, c):
     If list was previously unboxed, we reuse the existing native list
     to ensure consistency.
     """
-    # FIXME PYPY
-    raise RuntimeError('Not supported on PyPy')
     size = c.pyapi.list_size(obj)
 
     errorptr = cgutils.alloca_once_value(c.builder, cgutils.false_bit)
@@ -611,7 +609,7 @@ def unbox_list(typ, obj, c):
 
     # Use pointer-stuffing hack to see if the list was previously unboxed,
     # if so, re-use the meminfo.
-    ptr = c.pyapi.list_get_private_data(obj)
+    ptr = c.pyapi.object_get_private_data(obj)
 
     with c.builder.if_else(cgutils.is_not_null(c.builder, ptr)) \
         as (has_meminfo, otherwise):
@@ -629,7 +627,7 @@ def unbox_list(typ, obj, c):
 
     def cleanup():
         # Clean up the stuffed pointer, as the meminfo is now invalid.
-        c.pyapi.list_reset_private_data(obj)
+        c.pyapi.object_reset_private_data(obj)
 
     return NativeValue(c.builder.load(listptr),
                        is_error=c.builder.load(errorptr),
