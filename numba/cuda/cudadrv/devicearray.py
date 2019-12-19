@@ -17,6 +17,7 @@ import numpy as np
 
 import numba
 from . import driver as _driver
+from . import memory as _memory
 from . import devices
 from numba import dummyarray, types, numpy_support
 from numba.unsafe.ndarray import to_fixed_tuple
@@ -105,7 +106,7 @@ class DeviceNDArrayBase(object):
                 self.alloc_size = _driver.device_memory_size(gpu_data)
         else:
             # Make NULL pointer for empty allocation
-            gpu_data = _driver.MemoryPointer(context=devices.get_context(),
+            gpu_data = _memory.MemoryPointer(context=devices.get_context(),
                                              pointer=c_void_p(0), size=0)
             self.alloc_size = 0
 
