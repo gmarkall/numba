@@ -50,6 +50,9 @@ class BaseCUDAMemoryManager(object):
     def mempin(self, owner, pointer, size, mapped):
         raise NotImplementedError
 
+    def memunpin(self, pointer):
+        raise NotImplementedError
+
     def prepare_for_use(self, memory_info):
         raise NotImplementedError
 
