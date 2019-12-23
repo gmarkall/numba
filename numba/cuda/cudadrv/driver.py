@@ -76,6 +76,17 @@ class LinkerError(RuntimeError):
     pass
 
 
+_memory_manager = NumbaCUDAMemoryManager
+_memory_manager_locked = False
+
+
+def set_memory_manager(mm_plugin):
+    if _memory_manager_locked:
+        raise RuntimeError("Cannot set memory manager once CUDA has been used")
+    global _memory_manager
+    _memory_manager = mm_plugin
+
+
 def find_driver():
 
     envpath = get_numba_envvar('CUDA_DRIVER')
@@ -559,7 +570,9 @@ class Context(object):
     def __init__(self, device, handle):
         self.device = device
         self.handle = handle
-        self._memory_manager = NumbaCUDAMemoryManager()
+        self._memory_manager = _memory_manager()
+        global _memory_manager_locked
+        _memory_manager_locked = True
         self.modules = utils.UniqueDict()
         # For storing context specific data
         self.extras = {}
@@ -666,24 +679,6 @@ class Context(object):
         popped = driver.pop_active_context()
         assert popped.value == self.handle.value
 
-    def _attempt_allocation(self, allocator):
-        """
-        Attempt allocation by calling *allocator*.  If a out-of-memory error
-        is raised, the pending deallocations are flushed and the allocation
-        is retried.  If it fails in the second attempt, the error is reraised.
-        """
-        try:
-            allocator()
-        except CudaAPIError as e:
-            # is out-of-memory?
-            if e.code == enums.CUDA_ERROR_OUT_OF_MEMORY:
-                # clear pending deallocations
-                self.deallocations.clear()
-                # try again
-                allocator()
-            else:
-                raise
-
     def memalloc(self, bytesize):
         return self._memory_manager.memalloc(bytesize)
 
@@ -698,7 +693,6 @@ class Context(object):
 
     def memunpin(self, pointer):
         return self._memory_manager.memunpin(pointer)
-        raise NotImplementedError
 
     def get_ipc_handle(self, memory):
         """
