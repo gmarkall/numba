@@ -76,8 +76,14 @@ class LinkerError(RuntimeError):
     pass
 
 
-_memory_manager = NumbaCUDAMemoryManager
 _memory_manager_locked = False
+
+
+if config.CUDA_MEMORY_MANAGER == 'RMM':
+    from rmm import RMMNumbaManager
+    _memory_manager = RMMNumbaManager
+else:
+    _memory_manager = NumbaCUDAMemoryManager
 
 
 def set_memory_manager(mm_plugin):
