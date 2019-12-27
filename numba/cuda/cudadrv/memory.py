@@ -57,11 +57,7 @@ class BaseCUDAMemoryManager(object):
         raise NotImplementedError
 
 
-class NumbaCUDAMemoryManager(BaseCUDAMemoryManager):
-    def __init__(self):
-        self.allocations = utils.UniqueDict()
-        # *deallocations* is lazily initialized on context push
-        self.deallocations = None
+class HostOnlyCUDAMemoryManager(object):
 
     def _attempt_allocation(self, allocator):
         """
@@ -80,27 +76,6 @@ class NumbaCUDAMemoryManager(BaseCUDAMemoryManager):
                 allocator()
             else:
                 raise
-
-    def prepare_for_use(self, memory_info):
-        # setup *deallocations* as the memory manager becomes active for the
-        # first time
-        if self.deallocations is None:
-            self.deallocations = _PendingDeallocs(memory_info)
-
-    def memalloc(self, bytesize):
-        ptr = drvapi.cu_device_ptr()
-
-        def allocator():
-            driver_funcs.cuMemAlloc(byref(ptr), bytesize)
-
-        self._attempt_allocation(allocator)
-
-        finalizer = _alloc_finalizer(self, ptr, bytesize)
-        # XXX: Should the context be used here or the memory manager? Maybe the
-        # memory manager?
-        mem = AutoFreePointer(weakref.proxy(self), ptr, bytesize, finalizer)
-        self.allocations[ptr.value] = mem
-        return mem.own()
 
     def memhostalloc(self, bytesize, mapped=False, portable=False,
                      wc=False):
@@ -166,6 +141,34 @@ class NumbaCUDAMemoryManager(BaseCUDAMemoryManager):
             mem = PinnedMemory(weakref.proxy(self), owner, pointer, size,
                                finalizer=finalizer)
             return mem
+
+
+class NumbaCUDAMemoryManager(HostOnlyCUDAMemoryManager):
+    def __init__(self):
+        self.allocations = utils.UniqueDict()
+        # *deallocations* is lazily initialized on context push
+        self.deallocations = None
+
+    def prepare_for_use(self, memory_info):
+        # setup *deallocations* as the memory manager becomes active for the
+        # first time
+        if self.deallocations is None:
+            self.deallocations = _PendingDeallocs(memory_info)
+
+    def memalloc(self, bytesize):
+        ptr = drvapi.cu_device_ptr()
+
+        def allocator():
+            driver_funcs.cuMemAlloc(byref(ptr), bytesize)
+
+        self._attempt_allocation(allocator)
+
+        finalizer = _alloc_finalizer(self, ptr, bytesize)
+        # XXX: Should the context be used here or the memory manager? Maybe the
+        # memory manager?
+        mem = AutoFreePointer(weakref.proxy(self), ptr, bytesize, finalizer)
+        self.allocations[ptr.value] = mem
+        return mem.own()
 
 
 class DriverFuncs(object):
