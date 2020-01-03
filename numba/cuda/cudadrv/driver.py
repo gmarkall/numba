@@ -922,7 +922,11 @@ class _StagedIpcImpl(object):
         with cuda.gpus[srcdev.id]:
             impl.close()
 
-        return newmem.own()
+        # This used to be newmem.own() but the own() was removed - when the
+        # Numba CUDA memory manager is used, the pointer is already owned -
+        # when another memory manager is used, it is incorrect to take
+        # ownership of the pointer.
+        return newmem
 
     def close(self):
         # Nothing has to be done here
