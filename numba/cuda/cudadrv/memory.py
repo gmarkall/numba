@@ -66,6 +66,10 @@ class BaseCUDAMemoryManager(object, metaclass=ABCMeta):
     def get_memory_info(self):
         pass
 
+    @abstractmethod
+    def reset(self):
+        pass
+
 
 class HostOnlyCUDAMemoryManager(BaseCUDAMemoryManager):
 
@@ -202,6 +206,10 @@ class NumbaCUDAMemoryManager(HostOnlyCUDAMemoryManager):
         from numba.cuda.cudadrv.driver import IpcHandle
         return IpcHandle(memory, ipchandle, memory.size, source_info,
                          offset=offset)
+
+    def reset(self):
+        # Nothing to do - reset already performed by context.
+        pass
 
 
 class DriverFuncs(object):

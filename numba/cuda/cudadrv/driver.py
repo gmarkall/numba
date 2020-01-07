@@ -612,6 +612,7 @@ class Context(object):
         """
         # Free owned resources
         _logger.info('reset context of device %s', self.device.id)
+        self._memory_manager.reset()
         self.allocations.clear()
         self.modules.clear()
         # Clear trash
