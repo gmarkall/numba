@@ -4,8 +4,8 @@ import contextlib
 import logging
 import sys
 import weakref
-from ctypes import byref, c_void_p
-from collections import deque
+from ctypes import byref, c_size_t, c_void_p
+from collections import deque, namedtuple
 
 from numba import config, utils, mviewbuf
 from numba.utils import longint as long
@@ -53,11 +53,17 @@ class BaseCUDAMemoryManager(object):
     def memunpin(self, pointer):
         raise NotImplementedError
 
-    def prepare_for_use(self, memory_info):
+    def prepare_for_use(self):
+        raise NotImplementedError
+
+    def get_ipc_handle(self, ary, stream=0):
+        raise NotImplementedError
+
+    def get_memory_info(self):
         raise NotImplementedError
 
 
-class HostOnlyCUDAMemoryManager(object):
+class HostOnlyCUDAMemoryManager(BaseCUDAMemoryManager):
 
     def _attempt_allocation(self, allocator):
         """
@@ -143,17 +149,20 @@ class HostOnlyCUDAMemoryManager(object):
             return mem
 
 
+_MemoryInfo = namedtuple("_MemoryInfo", "free,total")
+
+
 class NumbaCUDAMemoryManager(HostOnlyCUDAMemoryManager):
     def __init__(self):
         self.allocations = utils.UniqueDict()
         # *deallocations* is lazily initialized on context push
         self.deallocations = None
 
-    def prepare_for_use(self, memory_info):
+    def prepare_for_use(self):
         # setup *deallocations* as the memory manager becomes active for the
         # first time
         if self.deallocations is None:
-            self.deallocations = _PendingDeallocs(memory_info)
+            self.deallocations = _PendingDeallocs(self.get_memory_info().total)
 
     def memalloc(self, bytesize):
         ptr = drvapi.cu_device_ptr()
@@ -169,6 +178,26 @@ class NumbaCUDAMemoryManager(HostOnlyCUDAMemoryManager):
         mem = AutoFreePointer(weakref.proxy(self), ptr, bytesize, finalizer)
         self.allocations[ptr.value] = mem
         return mem.own()
+
+    def get_memory_info(self):
+        free = c_size_t()
+        total = c_size_t()
+        driver_funcs.cuMemGetInfo(byref(free), byref(total))
+        return _MemoryInfo(free=free.value, total=total.value)
+
+    def get_ipc_handle(self, memory, stream=0):
+        ipchandle = drvapi.cu_ipc_mem_handle()
+        driver_funcs.cuIpcGetMemHandle(
+            byref(ipchandle),
+            memory.owner.handle,
+        )
+        from numba import cuda
+        source_info = cuda.current_context().device.get_device_identity()
+        offset = memory.handle.value - memory.owner.handle.value
+
+        from numba.cuda.cudadrv.driver import IpcHandle
+        return IpcHandle(memory, ipchandle, memory.size, source_info,
+                         offset=offset)
 
 
 class DriverFuncs(object):

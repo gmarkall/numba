@@ -563,7 +563,6 @@ def met_requirement_for_device(device):
 
 
 
-_MemoryInfo = namedtuple("_MemoryInfo", "free,total")
 
 
 class Context(object):
@@ -622,10 +621,7 @@ class Context(object):
     def get_memory_info(self):
         """Returns (free, total) memory in bytes in the context.
         """
-        free = c_size_t()
-        total = c_size_t()
-        driver.cuMemGetInfo(byref(free), byref(total))
-        return _MemoryInfo(free=free.value, total=total.value)
+        return self._memory_manager.get_memory_info()
 
     def get_active_blocks_per_multiprocessor(self, func, blocksize, memsize, flags=None):
         """Return occupancy of a function.
@@ -668,7 +664,7 @@ class Context(object):
         """Initialize the context for use.
         It's safe to be called multiple times.
         """
-        self._memory_manager.prepare_for_use(self.get_memory_info().total)
+        self._memory_manager.prepare_for_use()
 
     def push(self):
         """
@@ -706,15 +702,8 @@ class Context(object):
         """
         if not SUPPORTS_IPC:
             raise OSError('OS does not support CUDA IPC')
-        ipchandle = drvapi.cu_ipc_mem_handle()
-        driver.cuIpcGetMemHandle(
-            ctypes.byref(ipchandle),
-            memory.owner.handle,
-            )
-        source_info = self.device.get_device_identity()
-        offset = memory.handle.value - memory.owner.handle.value
-        return IpcHandle(memory, ipchandle, memory.size, source_info,
-                         offset=offset)
+        return self._memory_manager.get_ipc_handle(memory)
+
 
     def open_ipc_handle(self, handle, size):
         # open the IPC handle to get the device pointer
