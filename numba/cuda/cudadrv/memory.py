@@ -4,6 +4,7 @@ import contextlib
 import logging
 import sys
 import weakref
+from abc import ABCMeta, abstractmethod
 from ctypes import byref, c_size_t, c_void_p
 from collections import deque, namedtuple
 
@@ -40,27 +41,30 @@ def _make_logger():
 _logger = _make_logger()
 
 
-class BaseCUDAMemoryManager(object):
+class BaseCUDAMemoryManager(object, metaclass=ABCMeta):
+    @abstractmethod
     def memalloc(self, bytesize):
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def memhostalloc(self, bytesize, mapped, portable, wc):
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def mempin(self, owner, pointer, size, mapped):
-        raise NotImplementedError
+        pass
 
-    def memunpin(self, pointer):
-        raise NotImplementedError
-
+    @abstractmethod
     def prepare_for_use(self):
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def get_ipc_handle(self, ary, stream=0):
-        raise NotImplementedError
+        pass
 
+    @abstractmethod
     def get_memory_info(self):
-        raise NotImplementedError
+        pass
 
 
 class HostOnlyCUDAMemoryManager(BaseCUDAMemoryManager):

@@ -694,6 +694,7 @@ class Context(object):
         return self._memory_manager.mempin(owner, pointer, size, mapped)
 
     def memunpin(self, pointer):
+        raise NotImplementedError
         return self._memory_manager.memunpin(pointer)
 
     def get_ipc_handle(self, memory):
