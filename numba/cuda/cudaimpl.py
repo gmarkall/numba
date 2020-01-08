@@ -105,10 +105,16 @@ def ptx_cmem_arylike(context, builder, sig, args):
     [arr] = args
     aryty = sig.return_type
 
-    constvals = [
-        context.get_constant(types.byte, i)
-        for i in six.iterbytes(arr.tobytes(order='A'))
-    ]
+    print("List comp 1 start")
+    constvals = []
+    for n, i in enumerate(six.iterbytes(arr.tobytes(order='A'))):
+        print("Iteration", n)
+        constvals.append(context.get_constant(types.byte, i))
+    #constvals = [
+    #    context.get_constant(types.byte, i)
+    #    for i in six.iterbytes(arr.tobytes(order='A'))
+    #]
+    print("List comp 1 end")
     constary = lc.Constant.array(Type.int(8), constvals)
 
     addrspace = nvvm.ADDRSPACE_CONSTANT
@@ -126,12 +132,18 @@ def ptx_cmem_arylike(context, builder, sig, args):
     # Convert to generic address-space
     conv = nvvmutils.insert_addrspace_conv(lmod, Type.int(8), addrspace)
     addrspaceptr = gv.bitcast(Type.pointer(Type.int(8), addrspace))
+
+    print("List comp 2 start")
     genptr = builder.call(conv, [addrspaceptr])
+    print("List comp 2 end")
 
     # Create array object
     ary = context.make_array(aryty)(context, builder)
+    print("List comp 3 start")
     kshape = [context.get_constant(types.intp, s) for s in arr.shape]
+    print("List comp 3 end / 4 start")
     kstrides = [context.get_constant(types.intp, s) for s in arr.strides]
+    print("List comp 4 end")
     context.populate_array(ary,
                            data=builder.bitcast(genptr, ary.data.type),
                            shape=cgutils.pack_array(builder, kshape),

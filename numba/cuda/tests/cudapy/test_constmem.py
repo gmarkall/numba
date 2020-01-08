@@ -20,17 +20,22 @@ CONST_RECORD_EMPTY = np.array(
 CONST_RECORD = np.array(
     [(1.0, 2), (3.0, 4)],
     dtype=[('x', float), ('y', int)])
-CONST_RECORD_ALIGN = np.array(
-    [(1, 2, 3, 0xDEADBEEF, 8), (4, 5, 6, 0xBEEFDEAD, 10)],
-    dtype=np.dtype(
-        dtype=[
+
+const_record_align_dtype = np.dtype([
             ('a', np.uint8),
             ('b', np.uint8),
             ('x', np.uint8),
             ('y', np.uint32),
             ('z', np.uint8),
-        ],
-        align=True))
+        ], align=True)
+
+const_record_align_buf = b'\0' * (const_record_align_dtype.itemsize * 2)
+
+CONST_RECORD_ALIGN = np.frombuffer(const_record_align_buf,
+                                   dtype=const_record_align_dtype)
+CONST_RECORD_ALIGN.setflags(write=True)
+CONST_RECORD_ALIGN[0] = (1, 2, 3, 0xDEADBEEF, 8)
+CONST_RECORD_ALIGN[1] = (4, 5, 6, 0xBEEFDEAD, 10)
 
 
 def cuconstEmpty(A):
