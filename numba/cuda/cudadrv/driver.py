@@ -665,7 +665,7 @@ class Context(object):
         """Initialize the context for use.
         It's safe to be called multiple times.
         """
-        self._memory_manager.prepare_for_use()
+        self._memory_manager.initialize()
 
     def push(self):
         """

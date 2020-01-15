@@ -7,6 +7,7 @@ import weakref
 from abc import ABCMeta, abstractmethod
 from ctypes import byref, c_size_t, c_void_p
 from collections import deque, namedtuple
+from contextlib import contextmanager
 
 from numba import config, utils, mviewbuf
 from numba.utils import longint as long
@@ -43,11 +44,11 @@ _logger = _make_logger()
 
 class BaseCUDAMemoryManager(object, metaclass=ABCMeta):
     @abstractmethod
-    def memalloc(self, bytesize):
+    def memalloc(self, nbytes, stream=0):
         pass
 
     @abstractmethod
-    def memhostalloc(self, bytesize, mapped, portable, wc):
+    def memhostalloc(self, nbytes, mapped, portable, wc):
         pass
 
     @abstractmethod
@@ -55,7 +56,7 @@ class BaseCUDAMemoryManager(object, metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def prepare_for_use(self):
+    def initialize(self):
         pass
 
     @abstractmethod
@@ -68,6 +69,15 @@ class BaseCUDAMemoryManager(object, metaclass=ABCMeta):
 
     @abstractmethod
     def reset(self):
+        pass
+
+    @abstractmethod
+    def defer_cleanup(self):
+        pass
+
+    @property
+    @abstractmethod
+    def interface_version(self):
         pass
 
 
@@ -156,6 +166,20 @@ class HostOnlyCUDAMemoryManager(BaseCUDAMemoryManager):
                                finalizer=finalizer)
             return mem
 
+    def initialize(self):
+        # XXX: Need to have a pending deallocs list that doesn't need the size
+        # of device memory to be constructed.
+        pass
+
+    def reset(self):
+        # XXX: Needs implementation
+        pass
+
+    @contextmanager
+    def defer_cleanup(self):
+        # XXX: Needs implementation
+        yield
+
 
 _MemoryInfo = namedtuple("_MemoryInfo", "free,total")
 
@@ -166,7 +190,7 @@ class NumbaCUDAMemoryManager(HostOnlyCUDAMemoryManager):
         # *deallocations* is lazily initialized on context push
         self.deallocations = None
 
-    def prepare_for_use(self):
+    def initialize(self):
         # setup *deallocations* as the memory manager becomes active for the
         # first time
         if self.deallocations is None:
@@ -210,6 +234,10 @@ class NumbaCUDAMemoryManager(HostOnlyCUDAMemoryManager):
     def reset(self):
         # Nothing to do - reset already performed by context.
         pass
+
+    @property
+    def interface_version(self):
+        return 1
 
 
 class DriverFuncs(object):
