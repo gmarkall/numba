@@ -83,6 +83,10 @@ class BaseCUDAMemoryManager(object, metaclass=ABCMeta):
 
 class HostOnlyCUDAMemoryManager(BaseCUDAMemoryManager):
 
+    def __init__(self):
+        self.allocations = utils.UniqueDict()
+        self.deallocations = PendingDeallocs()
+
     def _attempt_allocation(self, allocator):
         """
         Attempt allocation by calling *allocator*.  If a out-of-memory error
@@ -172,8 +176,8 @@ class HostOnlyCUDAMemoryManager(BaseCUDAMemoryManager):
         pass
 
     def reset(self):
-        # XXX: Needs implementation
-        pass
+        self.allocations.clear()
+        self.deallocations.clear()
 
     @contextmanager
     def defer_cleanup(self):
@@ -185,16 +189,11 @@ _MemoryInfo = namedtuple("_MemoryInfo", "free,total")
 
 
 class NumbaCUDAMemoryManager(HostOnlyCUDAMemoryManager):
-    def __init__(self):
-        self.allocations = utils.UniqueDict()
-        # *deallocations* is lazily initialized on context push
-        self.deallocations = None
-
     def initialize(self):
         # setup *deallocations* as the memory manager becomes active for the
         # first time
-        if self.deallocations is None:
-            self.deallocations = PendingDeallocs(self.get_memory_info().total)
+        if self.deallocations.memory_capacity == _SizeNotSet:
+            self.deallocations.memory_capacity = self.get_memory_info().total
 
     def memalloc(self, bytesize):
         ptr = drvapi.cu_device_ptr()
@@ -205,8 +204,10 @@ class NumbaCUDAMemoryManager(HostOnlyCUDAMemoryManager):
         self._attempt_allocation(allocator)
 
         finalizer = _alloc_finalizer(self, ptr, bytesize)
-        # XXX: Should the context be used here or the memory manager? Maybe the
-        # memory manager?
+        # XXX: Should the context be used here or the memory manager?
+        #      - probably the context and not the memory manager, since its
+        #      just used for the memory pointer to store the context it was
+        #      allocated in.
         mem = AutoFreePointer(weakref.proxy(self), ptr, bytesize, finalizer)
         self.allocations[ptr.value] = mem
         return mem.own()
@@ -230,10 +231,6 @@ class NumbaCUDAMemoryManager(HostOnlyCUDAMemoryManager):
         from numba.cuda.cudadrv.driver import IpcHandle
         return IpcHandle(memory, ipchandle, memory.size, source_info,
                          offset=offset)
-
-    def reset(self):
-        # Nothing to do - reset already performed by context.
-        pass
 
     @property
     def interface_version(self):
@@ -487,15 +484,16 @@ class MappedOwnedPointer(OwnedPointer, mviewbuf.MemAlloc):
     pass
 
 
-class _SizeNotSet(object):
+class _SizeNotSet(int):
     """
     Dummy object for PendingDeallocs when *size* is not set.
     """
+
+    def __new__(cls, *args, **kwargs):
+        return super().__new__(cls, 0)
+
     def __str__(self):
         return '?'
-
-    def __int__(self):
-        return 0
 
 
 _SizeNotSet = _SizeNotSet()
@@ -506,15 +504,15 @@ class PendingDeallocs(object):
     Pending deallocations of a context (or device since we are using the primary
     context).
     """
-    def __init__(self, capacity=0):
+    def __init__(self, capacity=_SizeNotSet):
         self._cons = deque()
         self._disable_count = 0
         self._size = 0
-        self._memory_capacity = capacity
+        self.memory_capacity = capacity
 
     @property
     def _max_pending_bytes(self):
-        return int(self._memory_capacity * config.CUDA_DEALLOCS_RATIO)
+        return int(self.memory_capacity * config.CUDA_DEALLOCS_RATIO)
 
     def add_item(self, dtor, handle, size=_SizeNotSet):
         """
