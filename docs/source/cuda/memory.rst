@@ -80,6 +80,18 @@ manually-managed data cache.
 The memory is allocated once for the duration of the kernel, unlike
 traditional dynamic memory management.
 
+There are two allocation methods for shared memory:
+
+- Static allocation, where the size of the array is hardcoded into the kernel.
+  Static allocation is supported for integer and tuple shapes.
+
+- Dynamic allocation, where the size of the array is set at launch time, and is
+  part of the kernel configuration. Dynamic allocation is supported for integer
+  shapes only. Any shared arrays that are marked as dynamic all use the same
+  allocation of memory - if two dynamic shared arrays are created, modifications
+  to one will 
+
+
 .. function:: numba.cuda.shared.array(shape, type)
    :noindex:
 
@@ -89,6 +101,9 @@ traditional dynamic memory management.
    representing the array's dimensions and must be a simple constant
    expression. *type* is a :ref:`Numba type <numba-types>` of the elements
    needing to be stored in the array.
+
+   If the *shape* of the array is *0*, then the array is allocated as dynamic
+   shared memory.
 
    The returned array-like object can be read and written to like any normal
    device array (e.g. through indexing).
