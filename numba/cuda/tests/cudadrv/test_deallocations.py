@@ -15,7 +15,7 @@ from numba.tests.support import captured_stderr
 class TestDeallocation(SerialMixin, unittest.TestCase):
     def test_max_pending_count(self):
         # get deallocation manager and flush it
-        deallocs = cuda.current_context().deallocations
+        deallocs = cuda.current_context()._memory_manager.deallocations
         deallocs.clear()
         self.assertEqual(len(deallocs), 0)
         # deallocate to maximum count
@@ -29,7 +29,7 @@ class TestDeallocation(SerialMixin, unittest.TestCase):
     def test_max_pending_bytes(self):
         # get deallocation manager and flush it
         ctx = cuda.current_context()
-        deallocs = ctx.deallocations
+        deallocs = ctx._memory_manager.deallocations
         deallocs.clear()
         self.assertEqual(len(deallocs), 0)
 
@@ -68,7 +68,7 @@ class TestDeferCleanup(SerialMixin, unittest.TestCase):
     def test_basic(self):
         harr = np.arange(5)
         darr1 = cuda.to_device(harr)
-        deallocs = cuda.current_context().deallocations
+        deallocs = cuda.current_context()._memory_manager.deallocations
         deallocs.clear()
         self.assertEqual(len(deallocs), 0)
         with cuda.defer_cleanup():
@@ -86,7 +86,7 @@ class TestDeferCleanup(SerialMixin, unittest.TestCase):
     def test_nested(self):
         harr = np.arange(5)
         darr1 = cuda.to_device(harr)
-        deallocs = cuda.current_context().deallocations
+        deallocs = cuda.current_context()._memory_manager.deallocations
         deallocs.clear()
         self.assertEqual(len(deallocs), 0)
         with cuda.defer_cleanup():
@@ -107,7 +107,7 @@ class TestDeferCleanup(SerialMixin, unittest.TestCase):
     def test_exception(self):
         harr = np.arange(5)
         darr1 = cuda.to_device(harr)
-        deallocs = cuda.current_context().deallocations
+        deallocs = cuda.current_context()._memory_manager.deallocations
         deallocs.clear()
         self.assertEqual(len(deallocs), 0)
 

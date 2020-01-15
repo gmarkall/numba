@@ -33,7 +33,7 @@ from .error import CudaAPIError, CudaSupportError, CudaDriverError
 from .drvapi import API_PROTOTYPES
 from .drvapi import cu_occupancy_b2d_size
 from . import enums, drvapi, _extras
-from .memory import AutoFreePointer, MemoryPointer, OwnedPointer, NumbaCUDAMemoryManager
+from .memory import MemoryPointer, NumbaCUDAMemoryManager, PendingDeallocs
 from numba import config, serialize, errors
 from numba.utils import longint as long
 from numba.cuda.envvars import get_numba_envvar
@@ -562,9 +562,6 @@ def met_requirement_for_device(device):
                                (device, MIN_REQUIRED_CC))
 
 
-
-
-
 class Context(object):
     """
     This object wraps a CUDA Context resource.
@@ -575,36 +572,13 @@ class Context(object):
     def __init__(self, device, handle):
         self.device = device
         self.handle = handle
+        self.deallocations = PendingDeallocs()
         self._memory_manager = _memory_manager()
         global _memory_manager_locked
         _memory_manager_locked = True
         self.modules = utils.UniqueDict()
         # For storing context specific data
         self.extras = {}
-
-    @property
-    def allocations(self):
-        return self._memory_manager.allocations
-
-    @allocations.setter
-    def allocations(self, value):
-        self._memory_manager.allocations = value
-
-    @allocations.deleter
-    def allocations(self):
-        del self._memory_manager.allocations
-
-    @property
-    def deallocations(self):
-        return self._memory_manager.deallocations
-
-    @deallocations.setter
-    def deallocations(self, value):
-        self._memory_manager.deallocations = value
-
-    @deallocations.deleter
-    def deallocations(self):
-        del self._memory_manager.deallocations
 
     def reset(self):
         """
@@ -613,11 +587,9 @@ class Context(object):
         # Free owned resources
         _logger.info('reset context of device %s', self.device.id)
         self._memory_manager.reset()
-        self.allocations.clear()
         self.modules.clear()
         # Clear trash
-        if self.deallocations:
-            self.deallocations.clear()
+        self.deallocations.clear()
 
     def get_memory_info(self):
         """Returns (free, total) memory in bytes in the context.
@@ -765,6 +737,12 @@ class Context(object):
 
     def synchronize(self):
         driver.cuCtxSynchronize()
+
+    @contextlib.contextmanager
+    def defer_cleanup(self):
+        with self._memory_manager.defer_cleanup():
+            with self.deallocations.disable():
+                yield
 
     def __repr__(self):
         return "<CUDA context %s of device %d>" % (self.handle, self.device.id)

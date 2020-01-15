@@ -34,7 +34,7 @@ class TestCudaArrayInterface(CUDATestCase):
     def test_ownership(self):
         # Get the deallocation queue
         ctx = cuda.current_context()
-        deallocs = ctx.deallocations
+        deallocs = ctx._memory_manager.deallocations
         # Flush all deallocations
         deallocs.clear()
         self.assertEqual(len(deallocs), 0)

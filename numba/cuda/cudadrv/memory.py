@@ -177,8 +177,8 @@ class HostOnlyCUDAMemoryManager(BaseCUDAMemoryManager):
 
     @contextmanager
     def defer_cleanup(self):
-        # XXX: Needs implementation
-        yield
+        with self.deallocations.disable():
+            yield
 
 
 _MemoryInfo = namedtuple("_MemoryInfo", "free,total")
@@ -194,7 +194,7 @@ class NumbaCUDAMemoryManager(HostOnlyCUDAMemoryManager):
         # setup *deallocations* as the memory manager becomes active for the
         # first time
         if self.deallocations is None:
-            self.deallocations = _PendingDeallocs(self.get_memory_info().total)
+            self.deallocations = PendingDeallocs(self.get_memory_info().total)
 
     def memalloc(self, bytesize):
         ptr = drvapi.cu_device_ptr()
@@ -489,7 +489,7 @@ class MappedOwnedPointer(OwnedPointer, mviewbuf.MemAlloc):
 
 class _SizeNotSet(object):
     """
-    Dummy object for _PendingDeallocs when *size* is not set.
+    Dummy object for PendingDeallocs when *size* is not set.
     """
     def __str__(self):
         return '?'
@@ -501,12 +501,12 @@ class _SizeNotSet(object):
 _SizeNotSet = _SizeNotSet()
 
 
-class _PendingDeallocs(object):
+class PendingDeallocs(object):
     """
     Pending deallocations of a context (or device since we are using the primary
     context).
     """
-    def __init__(self, capacity):
+    def __init__(self, capacity=0):
         self._cons = deque()
         self._disable_count = 0
         self._size = 0
