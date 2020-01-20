@@ -82,6 +82,9 @@ _memory_manager_locked = False
 if config.CUDA_MEMORY_MANAGER == 'RMM':
     from rmm import RMMNumbaManager
     _memory_manager = RMMNumbaManager
+elif config.CUDA_MEMORY_MANAGER == 'CuPy':
+    from nbep7 import CuPyNumbaManager
+    _memory_manager = CuPyNumbaManager
 else:
     _memory_manager = NumbaCUDAMemoryManager
 
