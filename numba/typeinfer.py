@@ -982,6 +982,7 @@ class TypeInferer(object):
                 force_lit_args = [e for e in errors
                                   if isinstance(e, ForceLiteralArg)]
                 if not force_lit_args:
+                    #from pudb import set_trace; set_trace()
                     raise errors[0]
                 else:
                     raise reduce(operator.or_, force_lit_args)

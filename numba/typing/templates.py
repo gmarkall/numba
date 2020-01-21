@@ -533,7 +533,7 @@ class _OverloadFunctionTemplate(AbstractTemplate):
             On failure, returns `(None, None)`.
 
         """
-        from numba import jit
+        from numba.cuda import jit
 
         # Get the overload implementation for the given types
         ovf_result = self._overload_func(*args, **kws)
@@ -561,7 +561,7 @@ class _OverloadFunctionTemplate(AbstractTemplate):
         if self._strict:
             self._validate_sigs(self._overload_func, pyfunc)
         # Make dispatcher
-        jitdecor = jit(nopython=True, **self._jit_options)
+        jitdecor = jit(device=True, **self._jit_options)
         disp = jitdecor(pyfunc)
         if cache_key is not None:
             self._impl_cache[cache_key] = disp, args

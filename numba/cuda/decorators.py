@@ -6,9 +6,13 @@ from .compiler import (compile_kernel, compile_device, declare_device_function,
 from .simulator.kernel import FakeCUDAKernel
 
 
-def jitdevice(func, link=[], debug=None, inline=False):
+def jitdevice(func, link=[], debug=None, inline=False, **kws):
     """Wrapper for device-jit.
     """
+    for k in kws.keys():
+        if k != "no_cpython_wrapper":
+            raise ValueError("Unexpected kwarg %s to jitdevice" % k)
+
     debug = config.CUDA_DEBUGINFO_DEFAULT if debug is None else debug
     if link:
         raise ValueError("link keyword invalid for device function")

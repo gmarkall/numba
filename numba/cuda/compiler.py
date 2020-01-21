@@ -11,10 +11,12 @@ import warnings
 import numpy as np
 
 from numba import ctypes_support as ctypes
-from numba import config, compiler, types, sigutils
+from numba import config, compiler, types, sigutils, utils
 from numba.typing.templates import AbstractTemplate, ConcreteTemplate
 from numba import funcdesc, typing, utils, serialize
 from numba.compiler_lock import global_compiler_lock
+
+from numba.typing.templates import fold_arguments # Added during hacks
 
 from .cudadrv.autotune import AutoTuner
 from .cudadrv.devices import get_context
@@ -82,10 +84,14 @@ class DeviceFunctionTemplate(object):
     """Unmaterialized device function
     """
     def __init__(self, pyfunc, debug, inline):
+        # Would be good if this had a CUDACompiler object to hold things like
+        # fold_argument_types
         self.py_func = pyfunc
         self.debug = debug
         self.inline = inline
         self._compileinfos = {}
+        # Copied from _FunctionCompiler
+        self.pysig = utils.pysignature(self.py_func)
 
     def __reduce__(self):
         glbls = serialize._get_function_globals_for_reduction(self.py_func)
@@ -97,6 +103,38 @@ class DeviceFunctionTemplate(object):
     def _rebuild(cls, func_reduced, debug, inline):
         func = serialize._rebuild_function(*func_reduced)
         return compile_device_template(func, debug=debug, inline=inline)
+
+    def fold_argument_types(self, args, kws):
+        """
+        COPY PASTED from _FunctionCompiler.fold_argument_types
+
+        Given positional and named argument types, fold keyword arguments
+        and resolve defaults by inserting types.Omitted() instances.
+
+        A (pysig, argument types) tuple is returned.
+        """
+        def normal_handler(index, param, value):
+            return value
+        def default_handler(index, param, default):
+            return types.Omitted(default)
+        def stararg_handler(index, param, values):
+            return types.StarArgTuple(values)
+        # For now, we take argument values from the @jit function, even
+        # in the case of generated jit.
+        args = fold_arguments(self.pysig, args, kws,
+                              normal_handler,
+                              default_handler,
+                              stararg_handler)
+        return self.pysig, args
+
+    def get_overload(self, sig):
+        """
+        COPIED FROM _DispatcherBase.
+
+        Return the compiled function for the given signature.
+        """
+        args, return_type = sigutils.normalize_signature(sig)
+        return self._compileinfos[tuple(args)].entry_point
 
     def compile(self, args):
         """Compile the function for the given argument types.
@@ -124,6 +162,43 @@ class DeviceFunctionTemplate(object):
             cres = self._compileinfos[args]
 
         return cres
+
+    def get_call_template(self, args, kws):
+        """
+        COPY PASTED from _DispatcherBase.get_call_template
+
+        Get a typing.ConcreteTemplate for this dispatcher and the given
+        *args* and *kws* types.  This allows to resolve the return type.
+
+        A (template, pysig, args, kws) tuple is returned.
+        """
+        # XXX how about a dispatcher template class automating the
+        # following?
+
+        # Fold keyword arguments and resolve default values
+        # Was self._compiler...
+        pysig, args = self.fold_argument_types(args, kws)
+        kws = {}
+        # Ensure an overload is available
+        # if self._can_compile: GRM commented - this is for disabling compile,
+        #                       which we won't do for now
+        self.compile(tuple(args))
+
+        # Create function type for typing
+        func_name = self.py_func.__name__
+        name = "DeviceFunctionTemplate({0})".format(func_name) # Was CallTemplate{0}
+        # The `key` isn't really used except for diagnosis here,
+        # so avoid keeping a reference to `cfunc`.
+        call_template = typing.make_concrete_template(
+            name, key=func_name, signatures=self.nopython_signatures)
+        return call_template, pysig, args, kws
+
+    @property
+    def nopython_signatures(self):
+        # Copied from _DispatcherBase and modified. self._compileinfos may be
+        # called self.overloads in _DispatcherBase
+        return [cres.signature for cres in self._compileinfos.values()]
+    # Original: if not cres.objectmode and not cres.interpmode]
 
     def inspect_llvm(self, args):
         """Returns the LLVM-IR text compiled for *args*.
