@@ -1,7 +1,7 @@
 import math
 
 from numba import cuda, float32, float64, uint32, int64, uint64, from_dtype,\
-                  jit
+                  njit as jit
 
 import numpy as np
 
@@ -231,7 +231,7 @@ def init_xoroshiro128p_states_cpu(states, seed, subsequence_start):
 
 
 def init_xoroshiro128p_states(states, seed, subsequence_start=0, stream=0):
-    '''Initialize RNG states on the GPU for parallel generators.
+    '''Initialize RNG states on the CPU for parallel generators.
 
     This initializes the RNG states so that each state in the array corresponds
     subsequences in the separated by 2**64 steps from each other in the main

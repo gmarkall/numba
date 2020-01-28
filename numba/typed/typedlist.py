@@ -59,7 +59,7 @@ def _make_immutable(l):
     return l._make_immutable()
 
 
-@njit
+@njit(debug=True)
 def _append(l, item):
     l.append(item)
 

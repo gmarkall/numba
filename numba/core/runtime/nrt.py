@@ -23,6 +23,7 @@ class _Runtime(object):
         Must be called before any actual call to the NRT API.
         Safe to be called multiple times.
         """
+        print("Init NRT")
         if self._init:
             # Already initialized
             return

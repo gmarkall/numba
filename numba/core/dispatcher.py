@@ -722,6 +722,12 @@ class Dispatcher(_DispatcherBase):
                  self.locals, self.targetoptions, self._impl_kind,
                  self._can_compile, sigs))
 
+    #def __call__(self, *args, **kwargs):
+    #    if config.DISABLE_JIT:
+    #        return self.py_func(*args, **kwargs)
+    #    else:
+    #        _DispatcherBase.__call__(self, *args, **kwargs)
+
     @classmethod
     def _rebuild(cls, uuid, func_reduced, locals, targetoptions, impl_kind,
                  can_compile, sigs):

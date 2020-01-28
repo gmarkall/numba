@@ -41,7 +41,7 @@ GCCFLAGS = ["-std=c89", "-Wdeclaration-after-statement", "-Werror"]
 if os.environ.get("NUMBA_GCC_FLAGS"):
     CFLAGS = GCCFLAGS
 else:
-    CFLAGS = ['-g']
+    CFLAGS = ['-g3', '-O0']
 
 install_name_tool_fixer = []
 if sys.platform == 'darwin':
@@ -109,6 +109,7 @@ def get_ext_modules():
                                         'numba/_hashtable.c',
                                         'numba/_dispatcherimpl.cpp',
                                         'numba/core/typeconv/typeconv.cpp'],
+                               extra_compile_args=CFLAGS,
                                depends=["numba/_pymodule.h",
                                         "numba/_dispatcher.h",
                                         "numba/_typeof.h",
@@ -136,6 +137,7 @@ def get_ext_modules():
                              sources=["numba/core/typeconv/typeconv.cpp",
                                       "numba/core/typeconv/_typeconv.cpp"],
                              depends=["numba/_pymodule.h"],
+                             extra_compile_args=CFLAGS,
                              )
 
     ext_np_ufunc = Extension(name="numba.np.ufunc._internal",
@@ -143,6 +145,7 @@ def get_ext_modules():
                              depends=["numba/np/ufunc/_ufunc.c",
                                       "numba/np/ufunc/_internal.h",
                                       "numba/_pymodule.h"],
+                             extra_compile_args=CFLAGS,
                              **np_compile_args)
 
     ext_npyufunc_num_threads = Extension(name="numba.np.ufunc._num_threads",
@@ -206,7 +209,7 @@ def get_ext_modules():
         omppath = ['lib', 'clang', '*', 'include', 'omp.h']
         have_openmp = check_file_at_path(omppath)
     else:
-        cpp11flags = ['-std=c++11']
+        cpp11flags = ['-std=c++11', '-g3', '-O0']
         ompcompileflags = ['-fopenmp']
         if platform.machine() == 'ppc64le':
             omplinkflags = ['-fopenmp']
@@ -266,11 +269,13 @@ def get_ext_modules():
         name='numba.np.ufunc.workqueue',
         sources=['numba/np/ufunc/workqueue.c',
                  'numba/np/ufunc/gufunc_scheduler.cpp'],
-        depends=['numba/np/ufunc/workqueue.h'])
+        depends=['numba/np/ufunc/workqueue.h'],
+        extra_compile_args=CFLAGS)
     ext_np_ufunc_backends.append(ext_np_ufunc_workqueue_backend)
 
     ext_mviewbuf = Extension(name='numba.mviewbuf',
                              extra_link_args=install_name_tool_fixer,
+                             extra_compile_args=CFLAGS,
                              sources=['numba/mviewbuf.c'])
 
     ext_nrt_python = Extension(name='numba.core.runtime._nrt_python',
@@ -279,16 +284,19 @@ def get_ext_modules():
                                depends=['numba/core/runtime/nrt.h',
                                         'numba/_pymodule.h',
                                         'numba/core/runtime/_nrt_python.c'],
+                               extra_compile_args=CFLAGS,
                                **np_compile_args)
 
     ext_jitclass_box = Extension(name='numba.experimental.jitclass._box',
                                  sources=['numba/experimental/jitclass/_box.c'],
                                  depends=['numba/experimental/_pymodule.h'],
+                                 extra_compile_args=CFLAGS,
                                  )
 
     ext_cuda_extras = Extension(name='numba.cuda.cudadrv._extras',
                                 sources=['numba/cuda/cudadrv/_extras.c'],
                                 depends=['numba/_pymodule.h'],
+                                extra_compile_args=CFLAGS,
                                 include_dirs=["numba"])
 
     ext_modules = [ext_dynfunc, ext_dispatcher, ext_helperlib, ext_typeconv,

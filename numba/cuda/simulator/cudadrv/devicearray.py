@@ -168,6 +168,14 @@ class FakeCUDAArray(object):
     def shape(self):
         return FakeShape(self._ary.shape)
 
+    @property
+    def _numba_type_(self):
+        """
+        Magic attribute expected by Numba to get the numba type that
+        represents this object.
+        """
+        return numpy_support.from_dtype(self._ary.dtype)
+
     def ravel(self, *args, **kwargs):
         return FakeCUDAArray(self._ary.ravel(*args, **kwargs))
 

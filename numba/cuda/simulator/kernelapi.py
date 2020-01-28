@@ -10,6 +10,7 @@ import traceback
 
 import numpy as np
 
+from numba.core import config
 from numba.np import numpy_support
 
 
@@ -277,7 +278,10 @@ def swapped_cuda_module(fn, fake_cuda_module):
     # replace
     fn_globs.update(repl)
     try:
+        old_disable_jit = config.DISABLE_JIT
+        config.DISABLE_JIT = True
         yield
     finally:
         # revert
+        config.DISABLE_JIT = old_disable_jit
         fn_globs.update(orig)
