@@ -18,6 +18,7 @@ import weakref
 import functools
 import copy
 import warnings
+import importlib
 import logging
 import threading
 from itertools import product
@@ -76,18 +77,18 @@ class LinkerError(RuntimeError):
     pass
 
 
-_memory_manager_locked = False
-
-
-if config.CUDA_MEMORY_MANAGER == 'RMM':
-    from rmm import RMMNumbaManager
-    _memory_manager = RMMNumbaManager
-elif config.CUDA_MEMORY_MANAGER == 'CuPy':
-    from nbep7 import CuPyNumbaManager
-    _memory_manager = CuPyNumbaManager
+if config.CUDA_MEMORY_MANAGER:
+    try:
+        mgr_module = importlib.import_module(config.CUDA_MEMORY_MANAGER)
+        _memory_manager = mgr_module._numba_memory_manager
+    except Exception:
+        raise RuntimeError("Failed to use memory manager from %s" %
+                           config.CUDA_MEMORY_MANAGER)
 else:
     _memory_manager = NumbaCUDAMemoryManager
 
+
+_memory_manager_locked = False
 
 def set_memory_manager(mm_plugin):
     if _memory_manager_locked:
