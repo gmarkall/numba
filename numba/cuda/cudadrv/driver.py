@@ -791,7 +791,9 @@ _SizeNotSet = _SizeNotSet()
 class _PendingDeallocs(object):
     """
     Pending deallocations of a context (or device since we are using the primary
-    context).
+    context). The capacity defaults to being unset (_SizeNotSet) but can be
+    modified later once the driver is initialized and the total memory capacity
+    known.
     """
     def __init__(self, capacity=_SizeNotSet):
         self._cons = deque()
