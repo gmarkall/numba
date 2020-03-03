@@ -68,22 +68,6 @@ def _make_logger():
     return logger
 
 
-if config.CUDA_MEMORY_MANAGER:
-    try:
-        mgr_module = importlib.import_module(config.CUDA_MEMORY_MANAGER)
-        _memory_manager = mgr_module._numba_memory_manager
-    except Exception:
-        raise RuntimeError("Failed to use memory manager from %s" %
-                           config.CUDA_MEMORY_MANAGER)
-else:
-    _memory_manager = NumbaCUDAMemoryManager
-
-
-def set_memory_manager(mm_plugin):
-    global _memory_manager
-    _memory_manager = mm_plugin
-
-
 class DeadMemoryError(RuntimeError):
     pass
 
@@ -619,7 +603,7 @@ class HostOnlyCUDAMemoryManager(BaseCUDAMemoryManager):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.allocations = UniqueDict()
+        self.allocations = utils.UniqueDict()
         self.deallocations = _PendingDeallocs()
 
     def _attempt_allocation(self, allocator):
@@ -715,7 +699,7 @@ class HostOnlyCUDAMemoryManager(BaseCUDAMemoryManager):
         self.allocations.clear()
         self.deallocations.clear()
 
-    @contextmanager
+    @contextlib.contextmanager
     def defer_cleanup(self):
         with self.deallocations.disable():
             yield
@@ -764,6 +748,22 @@ class NumbaCUDAMemoryManager(HostOnlyCUDAMemoryManager):
     @property
     def interface_version(self):
         return 1
+
+
+if config.CUDA_MEMORY_MANAGER:
+    try:
+        mgr_module = importlib.import_module(config.CUDA_MEMORY_MANAGER)
+        _memory_manager = mgr_module._numba_memory_manager
+    except Exception:
+        raise RuntimeError("Failed to use memory manager from %s" %
+                           config.CUDA_MEMORY_MANAGER)
+else:
+    _memory_manager = NumbaCUDAMemoryManager
+
+
+def set_memory_manager(mm_plugin):
+    global _memory_manager
+    _memory_manager = mm_plugin
 
 
 class _SizeNotSet(int):
@@ -863,7 +863,7 @@ class Context(object):
         self.handle = handle
         self.allocations = utils.UniqueDict()
         self.deallocations = _PendingDeallocs()
-        self.memory_manager = _memory_manager()
+        self.memory_manager = _memory_manager(context=self)
         self.modules = utils.UniqueDict()
         # For storing context specific data
         self.extras = {}
@@ -1023,7 +1023,7 @@ class Context(object):
 
     @contextlib.contextmanager
     def defer_cleanup(self):
-        with self._memory_manager.defer_cleanup():
+        with self.memory_manager.defer_cleanup():
             with self.deallocations.disable():
                 yield
 
