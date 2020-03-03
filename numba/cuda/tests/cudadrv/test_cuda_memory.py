@@ -76,7 +76,7 @@ class TestCudaMemory(CUDATestCase):
 
         # Ensure finalizer is called when pointer is deleted
         ptr = memory.MemoryPointer(context=self.context, pointer=fake_ptr,
-                                           size=40, finalizer=dtor)
+                                   size=40, finalizer=dtor)
         self.assertEqual(dtor_invoked[0], 0)
         del ptr
         self.assertEqual(dtor_invoked[0], 1)

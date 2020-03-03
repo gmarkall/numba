@@ -640,10 +640,6 @@ class Context(object):
 
         return self._memory_manager.mempin(owner, pointer, size, mapped)
 
-    def memunpin(self, pointer):
-        raise NotImplementedError
-        return self._memory_manager.memunpin(pointer)
-
     def get_ipc_handle(self, memory):
         """
         Returns a *IpcHandle* from a GPU allocation.
@@ -868,10 +864,6 @@ class _StagedIpcImpl(object):
         with cuda.gpus[srcdev.id]:
             impl.close()
 
-        # This used to be newmem.own() but the own() was removed - when the
-        # Numba CUDA memory manager is used, the pointer is already owned -
-        # when another memory manager is used, it is incorrect to take
-        # ownership of the pointer.
         return newmem
 
     def close(self):
