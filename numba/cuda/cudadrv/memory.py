@@ -17,6 +17,11 @@ from numba.cuda.cudadrv.error import CudaAPIError
 
 
 class BaseCUDAMemoryManager(object, metaclass=ABCMeta):
+    def __init__(self, *args, **kwargs):
+        if 'context' not in kwargs:
+            raise RuntimeError("Memory manager requires a context")
+        self._context = kwargs.pop('context')
+
     @abstractmethod
     def memalloc(self, nbytes, stream=0):
         pass
@@ -57,7 +62,8 @@ class BaseCUDAMemoryManager(object, metaclass=ABCMeta):
 
 class HostOnlyCUDAMemoryManager(BaseCUDAMemoryManager):
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.allocations = UniqueDict()
         self.deallocations = PendingDeallocs()
 
@@ -101,14 +107,16 @@ class HostOnlyCUDAMemoryManager(BaseCUDAMemoryManager):
         owner = None
 
         finalizer = _hostalloc_finalizer(self, pointer, bytesize, mapped)
+        ctx = weakref.proxy(self._context)
 
         if mapped:
-            mem = MappedMemory(weakref.proxy(self), owner, pointer, bytesize,
+
+            mem = MappedMemory(ctx, owner, pointer, bytesize,
                                finalizer=finalizer)
             self.allocations[mem.handle.value] = mem
             return mem.own()
         else:
-            mem = PinnedMemory(weakref.proxy(self), owner, pointer, bytesize,
+            mem = PinnedMemory(ctx, owner, pointer, bytesize,
                                finalizer=finalizer)
             return mem
 
@@ -133,14 +141,15 @@ class HostOnlyCUDAMemoryManager(BaseCUDAMemoryManager):
             allocator()
 
         finalizer = _pin_finalizer(self, pointer, mapped)
+        ctx = weakref.proxy(self._context)
 
         if mapped:
-            mem = MappedMemory(weakref.proxy(self), owner, pointer, size,
+            mem = MappedMemory(ctx, owner, pointer, size,
                                finalizer=finalizer)
             self.allocations[mem.handle.value] = mem
             return mem.own()
         else:
-            mem = PinnedMemory(weakref.proxy(self), owner, pointer, size,
+            mem = PinnedMemory(ctx, owner, pointer, size,
                                finalizer=finalizer)
             return mem
 
@@ -176,11 +185,8 @@ class NumbaCUDAMemoryManager(HostOnlyCUDAMemoryManager):
         self._attempt_allocation(allocator)
 
         finalizer = _alloc_finalizer(self, ptr, bytesize)
-        # XXX: Should the context be used here or the memory manager?
-        #      - probably the context and not the memory manager, since its
-        #      just used for the memory pointer to store the context it was
-        #      allocated in.
-        mem = AutoFreePointer(weakref.proxy(self), ptr, bytesize, finalizer)
+        ctx = weakref.proxy(self._context)
+        mem = AutoFreePointer(ctx, ptr, bytesize, finalizer)
         self.allocations[ptr.value] = mem
         return mem.own()
 
@@ -196,8 +202,7 @@ class NumbaCUDAMemoryManager(HostOnlyCUDAMemoryManager):
             byref(ipchandle),
             memory.owner.handle,
         )
-        from numba import cuda
-        source_info = cuda.current_context().device.get_device_identity()
+        source_info = self._context.device.get_device_identity()
         offset = memory.handle.value - memory.owner.handle.value
 
         from numba.cuda.cudadrv.driver import IpcHandle

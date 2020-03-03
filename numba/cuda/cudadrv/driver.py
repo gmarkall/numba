@@ -64,11 +64,7 @@ else:
     _memory_manager = NumbaCUDAMemoryManager
 
 
-_memory_manager_locked = False
-
 def set_memory_manager(mm_plugin):
-    if _memory_manager_locked:
-        raise RuntimeError("Cannot set memory manager once CUDA has been used")
     global _memory_manager
     _memory_manager = mm_plugin
 
@@ -553,9 +549,7 @@ class Context(object):
         self.device = device
         self.handle = handle
         self.deallocations = PendingDeallocs()
-        self._memory_manager = _memory_manager()
-        global _memory_manager_locked
-        _memory_manager_locked = True
+        self._memory_manager = _memory_manager(context=self)
         self.modules = utils.UniqueDict()
         # For storing context specific data
         self.extras = {}
