@@ -750,16 +750,23 @@ class NumbaCUDAMemoryManager(HostOnlyCUDAMemoryManager):
         return 1
 
 
-if config.CUDA_MEMORY_MANAGER:
-    try:
-        mgr_module = importlib.import_module(config.CUDA_MEMORY_MANAGER)
-        _memory_manager = mgr_module._numba_memory_manager
-    except Exception:
-        raise RuntimeError("Failed to use memory manager from %s" %
-                           config.CUDA_MEMORY_MANAGER)
-else:
-    _memory_manager = NumbaCUDAMemoryManager
+_memory_manager = None
 
+def _ensure_memory_manager():
+    global _memory_manager
+
+    if _memory_manager:
+        return
+
+    if config.CUDA_MEMORY_MANAGER:
+        try:
+            mgr_module = importlib.import_module(config.CUDA_MEMORY_MANAGER)
+            _memory_manager = mgr_module._numba_memory_manager
+        except Exception:
+            raise RuntimeError("Failed to use memory manager from %s" %
+                               config.CUDA_MEMORY_MANAGER)
+    else:
+        _memory_manager = NumbaCUDAMemoryManager
 
 def set_memory_manager(mm_plugin):
     global _memory_manager
@@ -863,6 +870,7 @@ class Context(object):
         self.handle = handle
         self.allocations = utils.UniqueDict()
         self.deallocations = _PendingDeallocs()
+        _ensure_memory_manager()
         self.memory_manager = _memory_manager(context=self)
         self.modules = utils.UniqueDict()
         # For storing context specific data
