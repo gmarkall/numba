@@ -145,8 +145,6 @@ class HostOnlyCUDAMemoryManager(BaseCUDAMemoryManager):
             return mem
 
     def initialize(self):
-        # XXX: Need to have a pending deallocs list that doesn't need the size
-        # of device memory to be constructed.
         pass
 
     def reset(self):
@@ -164,8 +162,8 @@ _MemoryInfo = namedtuple("_MemoryInfo", "free,total")
 
 class NumbaCUDAMemoryManager(HostOnlyCUDAMemoryManager):
     def initialize(self):
-        # setup *deallocations* as the memory manager becomes active for the
-        # first time
+        # Set the memory capacity of *deallocations* as the memory manager
+        # becomes active for the first time
         if self.deallocations.memory_capacity == _SizeNotSet:
             self.deallocations.memory_capacity = self.get_memory_info().total
 
