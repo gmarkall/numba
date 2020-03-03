@@ -10,37 +10,10 @@ from collections import deque, namedtuple
 from contextlib import contextmanager
 
 from numba import mviewbuf
-from numba.core import config, utils
-from numba.core.utils import longint as long
+from numba.core import config
+from numba.core.utils import longint as long, UniqueDict
 from numba.cuda.cudadrv import drvapi, enums
 from numba.cuda.cudadrv.error import CudaAPIError
-
-
-def _make_logger():
-    logger = logging.getLogger(__name__)
-    # is logging configured?
-    if not utils.logger_hasHandlers(logger):
-        # read user config
-        lvl = str(config.CUDA_LOG_LEVEL).upper()
-        lvl = getattr(logging, lvl, None)
-        if not isinstance(lvl, int):
-            # default to critical level
-            lvl = logging.CRITICAL
-        logger.setLevel(lvl)
-        # did user specify a level?
-        if config.CUDA_LOG_LEVEL:
-            # create a simple handler that prints to stderr
-            handler = logging.StreamHandler(sys.stderr)
-            fmt = '== CUDA [%(relativeCreated)d] %(levelname)5s -- %(message)s'
-            handler.setFormatter(logging.Formatter(fmt=fmt))
-            logger.addHandler(handler)
-        else:
-            # otherwise, put a null handler
-            logger.addHandler(logging.NullHandler())
-    return logger
-
-
-_logger = _make_logger()
 
 
 class BaseCUDAMemoryManager(object, metaclass=ABCMeta):
@@ -85,7 +58,7 @@ class BaseCUDAMemoryManager(object, metaclass=ABCMeta):
 class HostOnlyCUDAMemoryManager(BaseCUDAMemoryManager):
 
     def __init__(self):
-        self.allocations = utils.UniqueDict()
+        self.allocations = UniqueDict()
         self.deallocations = PendingDeallocs()
 
     def _attempt_allocation(self, allocator):
@@ -500,6 +473,30 @@ class _SizeNotSet(int):
 _SizeNotSet = _SizeNotSet()
 
 
+def make_logger():
+    logger = logging.getLogger(__name__)
+    # is logging configured?
+    if not logger.hasHandlers():
+        # read user config
+        lvl = str(config.CUDA_LOG_LEVEL).upper()
+        lvl = getattr(logging, lvl, None)
+        if not isinstance(lvl, int):
+            # default to critical level
+            lvl = logging.CRITICAL
+        logger.setLevel(lvl)
+        # did user specify a level?
+        if config.CUDA_LOG_LEVEL:
+            # create a simple handler that prints to stderr
+            handler = logging.StreamHandler(sys.stderr)
+            fmt = '== CUDA [%(relativeCreated)d] %(levelname)5s -- %(message)s'
+            handler.setFormatter(logging.Formatter(fmt=fmt))
+            logger.addHandler(handler)
+        else:
+            # otherwise, put a null handler
+            logger.addHandler(logging.NullHandler())
+    return logger
+
+
 class PendingDeallocs(object):
     """
     Pending deallocations of a context (or device since we are using the primary
@@ -509,6 +506,7 @@ class PendingDeallocs(object):
         self._cons = deque()
         self._disable_count = 0
         self._size = 0
+        self._logger = make_logger()
         self.memory_capacity = capacity
 
     @property
@@ -524,7 +522,8 @@ class PendingDeallocs(object):
         byte size of the resource added.  It is an optional argument.  Some
         resources (e.g. CUModule) has an unknown memory footprint on the device.
         """
-        _logger.info('add pending dealloc: %s %s bytes', dtor.__name__, size)
+        self._logger.info('add pending dealloc: %s %s bytes', dtor.__name__,
+                          size)
         self._cons.append((dtor, handle, size))
         self._size += int(size)
         if (len(self._cons) > config.CUDA_DEALLOCS_COUNT or
@@ -539,7 +538,7 @@ class PendingDeallocs(object):
         if not self.is_disabled:
             while self._cons:
                 [dtor, handle, size] = self._cons.popleft()
-                _logger.info('dealloc: %s %s bytes', dtor.__name__, size)
+                self._logger.info('dealloc: %s %s bytes', dtor.__name__, size)
                 dtor(handle)
             self._size = 0
 

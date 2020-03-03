@@ -35,7 +35,7 @@ from .drvapi import API_PROTOTYPES
 from .drvapi import cu_occupancy_b2d_size
 from numba.cuda.cudadrv import enums, drvapi, _extras
 from numba.cuda.cudadrv.memory import (MemoryPointer, NumbaCUDAMemoryManager,
-                                       PendingDeallocs)
+                                       PendingDeallocs, make_logger)
 from numba.core.utils import longint as long
 from numba.cuda.envvars import get_numba_envvar
 
@@ -43,30 +43,6 @@ from numba.cuda.envvars import get_numba_envvar
 VERBOSE_JIT_LOG = int(get_numba_envvar('VERBOSE_CU_JIT_LOG', 1))
 MIN_REQUIRED_CC = (2, 0)
 SUPPORTS_IPC = sys.platform.startswith('linux')
-
-
-def _make_logger():
-    logger = logging.getLogger(__name__)
-    # is logging configured?
-    if not utils.logger_hasHandlers(logger):
-        # read user config
-        lvl = str(config.CUDA_LOG_LEVEL).upper()
-        lvl = getattr(logging, lvl, None)
-        if not isinstance(lvl, int):
-            # default to critical level
-            lvl = logging.CRITICAL
-        logger.setLevel(lvl)
-        # did user specify a level?
-        if config.CUDA_LOG_LEVEL:
-            # create a simple handler that prints to stderr
-            handler = logging.StreamHandler(sys.stderr)
-            fmt = '== CUDA [%(relativeCreated)d] %(levelname)5s -- %(message)s'
-            handler.setFormatter(logging.Formatter(fmt=fmt))
-            logger.addHandler(handler)
-        else:
-            # otherwise, put a null handler
-            logger.addHandler(logging.NullHandler())
-    return logger
 
 
 class DeadMemoryError(RuntimeError):
@@ -235,7 +211,7 @@ class Driver(object):
     def initialize(self):
         # lazily initialize logger
         global _logger
-        _logger = _make_logger()
+        _logger = make_logger()
 
         self.is_initialized = True
         try:
