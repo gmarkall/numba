@@ -565,14 +565,12 @@ class BaseCUDAMemoryManager(object, metaclass=ABCMeta):
         self.context = kwargs.pop('context')
 
     @abstractmethod
-    def memalloc(self, size, stream=0):
+    def memalloc(self, size):
         """
         Allocate on-device memory in the current context.
 
         :param size: Size of allocation in bytes
         :type size: int
-        :param stream: Stream to use for the allocation (if relevant)
-        :type stream: Stream
         :return: A memory pointer instance that owns the allocated memory
         :rtype: :class:`MemoryPointer`
         """
@@ -624,14 +622,12 @@ class BaseCUDAMemoryManager(object, metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def get_ipc_handle(self, memory, stream=0):
+    def get_ipc_handle(self, memory):
         """
         Return an IPC handle from a GPU allocation.
 
         :param memory: Memory for which the IPC handle should be created.
         :type memory: :class:`MemoryPointer`
-        :param stream: Optional stream to use for the creation of the handle.
-        :type stream: Stream
         :return: IPC handle for the allocation
         :rtype: :class:`IpcHandle`
         """
@@ -820,7 +816,7 @@ class NumbaCUDAMemoryManager(HostOnlyCUDAMemoryManager):
         driver.cuMemGetInfo(byref(free), byref(total))
         return MemoryInfo(free=free.value, total=total.value)
 
-    def get_ipc_handle(self, memory, stream=0):
+    def get_ipc_handle(self, memory):
         ipchandle = drvapi.cu_ipc_mem_handle()
         driver.cuIpcGetMemHandle(
             byref(ipchandle),
