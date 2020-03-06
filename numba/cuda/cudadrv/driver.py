@@ -617,6 +617,7 @@ class BaseCUDAMemoryManager(object, metaclass=ABCMeta):
         """
         Perform any initialization required for the EMM plugin instance to be
         ready to use.
+
         :return: None
         """
 
@@ -634,7 +635,7 @@ class BaseCUDAMemoryManager(object, metaclass=ABCMeta):
     @abstractmethod
     def get_memory_info(self):
         """
-        Returns (free, total) memory in bytes in the context. May raise
+        Returns ``(free, total)`` memory in bytes in the context. May raise
         :class:`NotImplementedError`, if returning such information is not
         practical (e.g. for a pool allocator).
 
@@ -678,8 +679,8 @@ class HostOnlyCUDAMemoryManager(BaseCUDAMemoryManager):
     :class:`numba.cuda.BaseCUDAMemoryManager`) for its own internal state
     management. If an EMM Plugin based on this class also implements these
     methods, then its implementations of these must also call the method from
-    ``super()`` to give ``HostOnlyCUDAMemoryManager`` to do the necessary work
-    for the host allocations it is managing.
+    ``super()`` to give ``HostOnlyCUDAMemoryManager`` an opportunity  to do the
+    necessary work for the host allocations it is managing.
 
     This class does not implement ``interface_version``, as it will always be
     consistent with the version of Numba in which it is implemented. An EMM
@@ -712,6 +713,11 @@ class HostOnlyCUDAMemoryManager(BaseCUDAMemoryManager):
 
     def memhostalloc(self, size, mapped=False, portable=False,
                      wc=False):
+        """Implements the allocation of pinned host memory.
+
+        It is recommended that this method is not overridden by EMM Plugin
+        implementations - instead, use the :class:`BaseCUDAMemoryManager`.
+        """
         pointer = c_void_p()
         flags = 0
         if mapped:
@@ -740,6 +746,11 @@ class HostOnlyCUDAMemoryManager(BaseCUDAMemoryManager):
             return PinnedMemory(ctx, pointer, size, finalizer=finalizer)
 
     def mempin(self, owner, pointer, size, mapped=False):
+        """Implements the pinning of host memory.
+
+        It is recommended that this method is not overridden by EMM Plugin
+        implementations - instead, use the :class:`BaseCUDAMemoryManager`.
+        """
         if isinstance(pointer, (int, long)):
             pointer = c_void_p(pointer)
 
@@ -773,14 +784,21 @@ class HostOnlyCUDAMemoryManager(BaseCUDAMemoryManager):
 
     def reset(self):
         """Clears up all host memory (mapped and/or pinned) in the current
-        context."""
+        context.
+
+        EMM Plugins that override this method must call ``super().reset()`` to
+        ensure that host allocations are also cleaned up."""
         self.allocations.clear()
         self.deallocations.clear()
 
     @contextlib.contextmanager
     def defer_cleanup(self):
         """Disables cleanup of mapped or pinned host memory in the current
-        context."""
+        context.
+
+        EMM Plugins that override this method must obtain the context manager
+        from this method before yielding to ensure that cleanup of host
+        allocations is also deferred."""
         with self.deallocations.disable():
             yield
 
@@ -824,7 +842,6 @@ class NumbaCUDAMemoryManager(HostOnlyCUDAMemoryManager):
         source_info = self.context.device.get_device_identity()
         offset = memory.handle.value - memory.owner.handle.value
 
-        from numba.cuda.cudadrv.driver import IpcHandle
         return IpcHandle(memory, ipchandle, memory.size, source_info,
                          offset=offset)
 
@@ -852,6 +869,14 @@ def _ensure_memory_manager():
         _memory_manager = NumbaCUDAMemoryManager
 
 def set_memory_manager(mm_plugin):
+    """Configure Numba to use an External Memory Management (EMM) Plugin. If
+    the EMM Plugin version does not match one supported by this version of
+    Numba, a RuntimeError will be raised.
+
+    :param mm_plugin: The class implementing the EMM Plugin.
+    :type mm_plugin: BaseCUDAMemoryManager
+    :return: None
+    """
     global _memory_manager
 
     dummy = mm_plugin(context=None)
@@ -1350,13 +1375,20 @@ class _StagedIpcImpl(object):
 
 class IpcHandle(object):
     """
-    Internal IPC handle.
+    CUDA IPC handle. Serialization of the CUDA IPC handle object is implemented
+    here.
 
-    Serialization of the CUDA IPC handle object is implemented here.
-
-    The *base* attribute is a reference to the original allocation to keep it
-    alive.  The *handle* is a ctypes object of the CUDA IPC handle. The *size*
-    is the allocation size.
+    :param base: A reference to the original allocation to keep it alive
+    :type base: MemoryPointer
+    :param handle: The CUDA IPC handle, as a ctypes array of bytes.
+    :param size: Size of the original allocation
+    :type size: int
+    :param source_info: The identity of the device on which the IPC handle was
+                        opened.
+    :type source_info: dict
+    :param offset: The offset into the underlying allocation of the memory
+                   referred to by this IPC handle.
+    :type offset: int
     """
     def __init__(self, base, handle, size, source_info=None, offset=0):
         self.base = base
@@ -1483,15 +1515,8 @@ class MemoryPointer(object):
                   within an EMM Plugin); the default of `None` should always
                   suffice.
     :type owner: NoneType
-    :param finalizer: A method that is called when the buffer is to be freed.
-                      Usually the finalizer will make a call to the memory
-                      management library (either internal to Numba, or external
-                      if allocated by an EMM Plugin) to inform it that the
-                      memory is no longer required, and that it could
-                      potentially be freed. The memory manager may choose to
-                      defer actually freeing the memory to any later time after
-                      the finalizer runs - it is not required to free the buffer
-                      immediately.
+    :param finalizer: A function that is called when the buffer is to be freed.
+    :type finalizer: function
     """
     __cuda_memory__ = True
 
@@ -1595,15 +1620,8 @@ class MappedMemory(AutoFreePointer):
                   within an EMM Plugin); the default of `None` should always
                   suffice.
     :type owner: NoneType
-    :param finalizer: A method that is called when the buffer is to be freed.
-                      Usually the finalizer will make a call to the memory
-                      management library (either internal to Numba, or external
-                      if allocated by an EMM Plugin) to inform it that the
-                      memory is no longer required, and that it could
-                      potentially be freed. The memory manager may choose to
-                      defer actually freeing the memory to any later time after
-                      the finalizer runs - it is not required to free the buffer
-                      immediately.
+    :param finalizer: A function that is called when the buffer is to be freed.
+    :type finalizer: function
     """
 
     __cuda_memory__ = True
@@ -1641,17 +1659,9 @@ class PinnedMemory(mviewbuf.MemAlloc):
                   plugin implementation, the default of ``None`` suffices for
                   memory allocated in ``memhostalloc`` - for ``mempin``, it
                   should be the owner passed in to the ``mempin`` method.
-    :param finalizer: A method that is called when the buffer is to be freed.
-                      Usually the finalizer will make a call to the memory
-                      management library (either internal to Numba, or external
-                      if allocated by an EMM Plugin) to inform it that the
-                      memory is no longer required, and that it could
-                      potentially be freed. The memory manager may choose to
-                      defer actually freeing the memory to any later time after
-                      the finalizer runs - it is not required to free the buffer
-                      immediately.
+    :param finalizer: A function that is called when the buffer is to be freed.
+    :type finalizer: function
     """
-
 
     def __init__(self, context, pointer, size, owner=None, finalizer=None):
         self.context = context
