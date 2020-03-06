@@ -810,7 +810,7 @@ class NumbaCUDAMemoryManager(HostOnlyCUDAMemoryManager):
 
         finalizer = _alloc_finalizer(self, ptr, size)
         ctx = weakref.proxy(self._context)
-        mem = AutoFreePointer(ctx, ptr, size, finalizer)
+        mem = AutoFreePointer(ctx, ptr, size, finalizer=finalizer)
         self.allocations[ptr.value] = mem
         return mem.own()
 
@@ -1608,9 +1608,9 @@ class MappedMemory(AutoFreePointer):
 
     def __init__(self, context, pointer, size, owner=None, finalizer=None):
         self.owned = owner
-        self.host_pointer = hostpointer
+        self.host_pointer = pointer
         devptr = drvapi.cu_device_ptr()
-        driver.cuMemHostGetDevicePointer(byref(devptr), hostpointer, 0)
+        driver.cuMemHostGetDevicePointer(byref(devptr), pointer, 0)
         self.device_pointer = devptr
         super(MappedMemory, self).__init__(context, devptr, size,
                                            finalizer=finalizer)
