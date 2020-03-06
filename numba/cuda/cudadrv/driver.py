@@ -844,7 +844,7 @@ def _ensure_memory_manager():
     if config.CUDA_MEMORY_MANAGER:
         try:
             mgr_module = importlib.import_module(config.CUDA_MEMORY_MANAGER)
-            _memory_manager = mgr_module._numba_memory_manager
+            set_memory_manager(mgr_module._numba_memory_manager)
         except Exception:
             raise RuntimeError("Failed to use memory manager from %s" %
                                config.CUDA_MEMORY_MANAGER)
@@ -853,6 +853,13 @@ def _ensure_memory_manager():
 
 def set_memory_manager(mm_plugin):
     global _memory_manager
+
+    dummy = mm_plugin(context=None)
+    iv = dummy.interface_version
+    if iv != 1:
+        err = "EMM Plugin interface has version %d - version 1 required" % iv
+        raise RuntimeError(err)
+
     _memory_manager = mm_plugin
 
 
