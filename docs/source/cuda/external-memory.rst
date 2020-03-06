@@ -9,8 +9,9 @@ driver API to call functions such as ``cuMemAlloc`` and ``cuMemFree``. This is
 suitable for many use cases. When Numba is used in conjunction with other
 CUDA-aware libraries that also allocate memory,
 
-Plugin interface
-================
+
+Plugin interfaces
+=================
 
 .. autoclass:: numba.cuda.BaseCUDAMemoryManager
    :members: __init__, memalloc, memhostalloc, mempin, initialize,
@@ -19,10 +20,18 @@ Plugin interface
 
 .. autoclass:: numba.cuda.cudadrv.driver.MemoryInfo
 
+.. autoclass:: numba.cuda.HostOnlyCUDAMemoryManager
+
+
 Memory pointers
 ===============
 
 .. autoclass:: numba.cuda.MemoryPointer
+
+The ``AutoFreePointer`` class need not be used directly, but is documented here
+as it is subclassed by :class:`numba.cuda.MappedMemory`:
+
+.. autoclass:: numba.cuda.cudadrv.driver.AutoFreePointer
 
 .. autoclass:: numba.cuda.MappedMemory
 

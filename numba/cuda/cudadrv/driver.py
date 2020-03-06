@@ -556,6 +556,8 @@ def met_requirement_for_device(device):
 
 
 class BaseCUDAMemoryManager(object, metaclass=ABCMeta):
+    """Abstract base class for External Memory Management (EMM) Plugins."""
+
     def __init__(self, *args, **kwargs):
         """The __init__ method sets the """
         if 'context' not in kwargs:
@@ -563,12 +565,12 @@ class BaseCUDAMemoryManager(object, metaclass=ABCMeta):
         self._context = kwargs.pop('context')
 
     @abstractmethod
-    def memalloc(self, nbytes, stream=0):
+    def memalloc(self, size, stream=0):
         """
         Allocate on-device memory in the current context.
 
-        :param nbytes: Size of allocation in bytes
-        :type nbytes: int
+        :param size: Size of allocation in bytes
+        :type size: int
         :param stream: Stream to use for the allocation (if relevant)
         :type stream: Stream
         :return: A memory pointer instance that owns the allocated memory
@@ -576,12 +578,12 @@ class BaseCUDAMemoryManager(object, metaclass=ABCMeta):
         """
 
     @abstractmethod
-    def memhostalloc(self, nbytes, mapped, portable, wc):
+    def memhostalloc(self, size, mapped, portable, wc):
         """
         Allocate pinned host memory.
 
-        :param nbytes: Size of the allocation in bytes
-        :type nbytes: int
+        :param size: Size of the allocation in bytes
+        :type size: int
         :param mapped: Whether the allocated memory should be mapped into the CUDA
                        address space.
         :type mapped: bool
@@ -601,10 +603,10 @@ class BaseCUDAMemoryManager(object, metaclass=ABCMeta):
         """
         Pin a region of host memory that is already allocated.
 
-        :param owner: An object that owns the memory.
+        :param owner: The object that owns the memory.
         :param pointer: The pointer to the beginning of the region to pin.
         :type pointer: int
-        :param size: The size of the region to pin.
+        :param size: The size of the region in bytes.
         :type size: int
         :param mapped: Whether the region should also be mapped into device memory.
         :type mapped: bool
@@ -673,6 +675,22 @@ class BaseCUDAMemoryManager(object, metaclass=ABCMeta):
 
 
 class HostOnlyCUDAMemoryManager(BaseCUDAMemoryManager):
+    """Base class for External Memory Management (EMM) Plugins that only
+    implement on-device allocation. A subclass need not implement the
+    ``memhostalloc`` and ``mempin`` methods.
+
+    This class also implements ``reset`` and ``defer_cleanup`` (see
+    :class:`numba.cuda.BaseCUDAMemoryManager`) for its own internal state
+    management. If an EMM Plugin based on this class also implements these
+    methods, then its implementations of these must also call the method from
+    ``super()`` to give ``HostOnlyCUDAMemoryManager`` to do the necessary work
+    for the host allocations it is managing.
+
+    This class does not implement ``interface_version``, as it will always be
+    consistent with the version of Numba in which it is implemented. An EMM
+    Plugin subclassing this class should implement ``interface_version``
+    instead.
+    """
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -697,7 +715,7 @@ class HostOnlyCUDAMemoryManager(BaseCUDAMemoryManager):
             else:
                 raise
 
-    def memhostalloc(self, bytesize, mapped=False, portable=False,
+    def memhostalloc(self, size, mapped=False, portable=False,
                      wc=False):
         pointer = c_void_p()
         flags = 0
@@ -709,28 +727,22 @@ class HostOnlyCUDAMemoryManager(BaseCUDAMemoryManager):
             flags |= enums.CU_MEMHOSTALLOC_WRITECOMBINED
 
         def allocator():
-            driver.cuMemHostAlloc(byref(pointer), bytesize, flags)
+            driver.cuMemHostAlloc(byref(pointer), size, flags)
 
         if mapped:
             self._attempt_allocation(allocator)
         else:
             allocator()
 
-        owner = None
-
-        finalizer = _hostalloc_finalizer(self, pointer, bytesize, mapped)
+        finalizer = _hostalloc_finalizer(self, pointer, size, mapped)
         ctx = weakref.proxy(self._context)
 
         if mapped:
-
-            mem = MappedMemory(ctx, owner, pointer, bytesize,
-                               finalizer=finalizer)
+            mem = MappedMemory(ctx, pointer, size, finalizer=finalizer)
             self.allocations[mem.handle.value] = mem
             return mem.own()
         else:
-            mem = PinnedMemory(ctx, owner, pointer, bytesize,
-                               finalizer=finalizer)
-            return mem
+            return PinnedMemory(ctx, pointer, size, finalizer=finalizer)
 
     def mempin(self, owner, pointer, size, mapped=False):
         if isinstance(pointer, (int, long)):
@@ -756,46 +768,49 @@ class HostOnlyCUDAMemoryManager(BaseCUDAMemoryManager):
         ctx = weakref.proxy(self._context)
 
         if mapped:
-            mem = MappedMemory(ctx, owner, pointer, size,
+            mem = MappedMemory(ctx, pointer, size, owner=owner,
                                finalizer=finalizer)
             self.allocations[mem.handle.value] = mem
             return mem.own()
         else:
-            mem = PinnedMemory(ctx, owner, pointer, size,
-                               finalizer=finalizer)
-            return mem
-
-    def initialize(self):
-        pass
+            return PinnedMemory(ctx, pointer, size, owner=owner,
+                                finalizer=finalizer)
 
     def reset(self):
+        """Clears up all host memory (mapped and/or pinned) in the current
+        context."""
         self.allocations.clear()
         self.deallocations.clear()
 
     @contextlib.contextmanager
     def defer_cleanup(self):
+        """Disables cleanup of mapped or pinned host memory in the current
+        context."""
         with self.deallocations.disable():
             yield
 
 
 class NumbaCUDAMemoryManager(HostOnlyCUDAMemoryManager):
+    """Internal on-device memory management for Numba. This is implemented using
+    the EMM Plugin interface, but is not part of the public API."""
+
     def initialize(self):
         # Set the memory capacity of *deallocations* as the memory manager
         # becomes active for the first time
         if self.deallocations.memory_capacity == _SizeNotSet:
             self.deallocations.memory_capacity = self.get_memory_info().total
 
-    def memalloc(self, bytesize):
+    def memalloc(self, size):
         ptr = drvapi.cu_device_ptr()
 
         def allocator():
-            driver.cuMemAlloc(byref(ptr), bytesize)
+            driver.cuMemAlloc(byref(ptr), size)
 
         self._attempt_allocation(allocator)
 
-        finalizer = _alloc_finalizer(self, ptr, bytesize)
+        finalizer = _alloc_finalizer(self, ptr, size)
         ctx = weakref.proxy(self._context)
-        mem = AutoFreePointer(ctx, ptr, bytesize, finalizer)
+        mem = AutoFreePointer(ctx, ptr, size, finalizer)
         self.allocations[ptr.value] = mem
         return mem.own()
 
@@ -1467,14 +1482,14 @@ class MemoryPointer(object):
                   suffice.
     :type owner: NoneType
     :param finalizer: A method that is called when the buffer is to be freed.
-                     Usually the finalizer will make
-                     a call to the memory management library (either internal
-                     to Numba, or external if allocated by an EMM Plugin) to inform
-                     it that the memory is no longer required, and that it
-                     could potentially be freed. The memory manager may choose
-                     to defer actually freeing the memory to any later time
-                     after the finalizer runs - it is not required to free the
-                     buffer immediately.
+                      Usually the finalizer will make a call to the memory
+                      management library (either internal to Numba, or external
+                      if allocated by an EMM Plugin) to inform it that the
+                      memory is no longer required, and that it could
+                      potentially be freed. The memory manager may choose to
+                      defer actually freeing the memory to any later time after
+                      the finalizer runs - it is not required to free the buffer
+                      immediately.
     """
     __cuda_memory__ = True
 
@@ -1551,7 +1566,9 @@ class AutoFreePointer(MemoryPointer):
     """Modifies the ownership semantic of the MemoryPointer so that the
     instance lifetime is directly tied to the number of references.
 
-    When `.refct` reaches zero, the finalizer is invoked.
+    When the reference count reaches zero, the finalizer is invoked.
+
+    Constructor arguments are the same as for :class:`MemoryPointer`.
     """
     def __init__(self, *args, **kwargs):
         super(AutoFreePointer, self).__init__(*args, **kwargs)
@@ -1561,10 +1578,35 @@ class AutoFreePointer(MemoryPointer):
 
 
 class MappedMemory(AutoFreePointer):
+    """A memory pointer that owns a buffer on the host that is mapped into
+    device memory.
+
+    :param context: The context in which the pointer was mapped.
+    :type context: Context
+    :param pointer: The address of the buffer.
+    :type pointer: ctypes.c_void_p
+    :param size: The size of the buffer in bytes.
+    :type size: int
+    :param owner: The owner is sometimes set by the internals of this class, or used for
+                  Numba's internal memory management. It should not be provided
+                  by an external user of the ``MappedMemory`` class (e.g. from
+                  within an EMM Plugin); the default of `None` should always
+                  suffice.
+    :type owner: NoneType
+    :param finalizer: A method that is called when the buffer is to be freed.
+                      Usually the finalizer will make a call to the memory
+                      management library (either internal to Numba, or external
+                      if allocated by an EMM Plugin) to inform it that the
+                      memory is no longer required, and that it could
+                      potentially be freed. The memory manager may choose to
+                      defer actually freeing the memory to any later time after
+                      the finalizer runs - it is not required to free the buffer
+                      immediately.
+    """
+
     __cuda_memory__ = True
 
-    def __init__(self, context, owner, hostpointer, size,
-                 finalizer=None):
+    def __init__(self, context, pointer, size, owner=None, finalizer=None):
         self.owned = owner
         self.host_pointer = hostpointer
         devptr = drvapi.cu_device_ptr()
@@ -1583,7 +1625,33 @@ class MappedMemory(AutoFreePointer):
 
 
 class PinnedMemory(mviewbuf.MemAlloc):
-    def __init__(self, context, owner, pointer, size, finalizer=None):
+    """A pointer to a pinned buffer on the host.
+
+    :param context: The context in which the pointer was mapped.
+    :type context: Context
+    :param owner: The object owning the memory. For EMM plugin implementation,
+                  this ca
+    :param pointer: The address of the buffer.
+    :type pointer: ctypes.c_void_p
+    :param size: The size of the buffer in bytes.
+    :type size: int
+    :param owner: An object owning the buffer that has been pinned. For EMM
+                  plugin implementation, the default of ``None`` suffices for
+                  memory allocated in ``memhostalloc`` - for ``mempin``, it
+                  should be the owner passed in to the ``mempin`` method.
+    :param finalizer: A method that is called when the buffer is to be freed.
+                      Usually the finalizer will make a call to the memory
+                      management library (either internal to Numba, or external
+                      if allocated by an EMM Plugin) to inform it that the
+                      memory is no longer required, and that it could
+                      potentially be freed. The memory manager may choose to
+                      defer actually freeing the memory to any later time after
+                      the finalizer runs - it is not required to free the buffer
+                      immediately.
+    """
+
+
+    def __init__(self, context, pointer, size, owner=None, finalizer=None):
         self.context = context
         self.owned = owner
         self.size = size
