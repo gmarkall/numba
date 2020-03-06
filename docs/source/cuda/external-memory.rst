@@ -63,16 +63,65 @@ which is generated for CUDA kernels). The management of streams, events, and
 modules is unchanged by the use of an EMM Plugin.
 
 
+Asynchronous allocation and deallocation
+----------------------------------------
 
-Plugin interfaces
-=================
+The present EMM Plugin interface does not provide support for asynchronous
+allocation and deallocation. This may be added to a future version of the
+interface.
+
+
+Implementing an EMM Plugin
+==========================
+
+An EMM Plugin is implemented by deriving from
+:class:`~numba.cuda.BaseCUDAMemoryManager`. A summary of considerations for the
+implementation follows:
+
+- Numba instantiates one instance of the EMM Plugin class per context. The
+  context that owns an EMM Plugin object is accessible through ``self.context``,
+  if required.
+- The EMM Plugin is transparent to any code that uses Numba - all its methods
+  are invoked by Numba, and never need to be called by code that uses Numba.
+- The allocation methods ``memalloc``, ``memhostalloc``, and ``mempin``, should
+  use the underlying library to allocate and/or pin device or host memory, and
+  construct an instance of a :ref:`memory pointer <memory-pointers>`
+  representing the memory to return back to Numba. These methods are always
+  called when the current CUDA context is the context that owns the EMM Plugin
+  instance.
+- The ``initialize`` method is called by Numba prior to the first use of the EMM
+  Plugin object for a constant. This method should do anything required to
+  prepare the underlying library for allocations in the current context. This
+  method may be called multiple times, and must not invalidate previous state
+  when it is called.
+- The ``reset`` method is called when all allocations in the context are to be
+  cleaned up. It may be called even prior to ``initialize``, and an EMM Plugin
+  implementation needs to guard against this.
+- To support inter-GPU communication, the ``get_ipc_handle`` method should
+  provide an :class:`~numba.cuda.cudadrv.driver.IpcHandle` for a given
+  :class:`~numba.cuda.MemoryPointer` instance. This method is part of the EMM
+  interface (rather than being handled within Numba) because the base address of
+  the allocation is only known by the underlying library. Closing an IPC handle
+  is handled internally within Numba.
+- It is optional to implement the ``get_memory_info`` method, which provides a
+  count of the total and free memory on the device for the context. It is
+  preferrable to implement the method, but this may not be practical for all
+  allocators.
+- The ``defer_cleanup`` method should return a context manager that ensures that
+  expensive cleanup operations are avoided whilst it is active. The nuances of
+  this will vary between plugins, so the plugin documentation should include an
+  explanation of how deferring cleanup affects deallocations, and performance in
+  general.
+- The ``interface_version`` property is used to ensure that the plugin version
+  matches the interface provided by the version of Numba. At present, this
+  should always be 1.
+
+Full documentation for the base class follows
 
 .. autoclass:: numba.cuda.BaseCUDAMemoryManager
-   :members: __init__, memalloc, memhostalloc, mempin, initialize,
-             get_ipc_handle, get_memory_info, reset, defer_cleanup,
-             interface_version
-
-.. autoclass:: numba.cuda.cudadrv.driver.MemoryInfo
+   :members: memalloc, memhostalloc, mempin, initialize, get_ipc_handle,
+             get_memory_info, reset, defer_cleanup, interface_version
+   :member-order: bysource
 
 
 .. _host-only-cuda-memory-manager:
@@ -83,8 +132,13 @@ The Host-Only CUDA Memory Manager
 .. autoclass:: numba.cuda.HostOnlyCUDAMemoryManager
 
 
-Memory pointers
-===============
+Associated classes and structures
+=================================
+
+.. _memory-pointers:
+
+Memory Pointers
+---------------
 
 .. autoclass:: numba.cuda.MemoryPointer
 
@@ -97,8 +151,11 @@ as it is subclassed by :class:`numba.cuda.MappedMemory`:
 
 .. autoclass:: numba.cuda.PinnedMemory
 
-IPC
-===
+
+Other structures
+----------------
+
+.. autoclass:: numba.cuda.cudadrv.driver.MemoryInfo
 
 .. autoclass:: numba.cuda.cudadrv.driver.IpcHandle
 

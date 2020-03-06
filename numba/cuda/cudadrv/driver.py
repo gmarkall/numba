@@ -559,7 +559,6 @@ class BaseCUDAMemoryManager(object, metaclass=ABCMeta):
     """Abstract base class for External Memory Management (EMM) Plugins."""
 
     def __init__(self, *args, **kwargs):
-        """The __init__ method sets the """
         if 'context' not in kwargs:
             raise RuntimeError("Memory manager requires a context")
         self.context = kwargs.pop('context')
@@ -616,7 +615,7 @@ class BaseCUDAMemoryManager(object, metaclass=ABCMeta):
     @abstractmethod
     def initialize(self):
         """
-        Perform any initialization required for the EMM plugin instanc eto be
+        Perform any initialization required for the EMM plugin instance to be
         ready to use.
         :return: None
         """
