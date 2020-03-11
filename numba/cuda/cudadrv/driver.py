@@ -39,6 +39,8 @@ from numba.core.utils import longint as long
 from numba.cuda.envvars import get_numba_envvar
 
 
+#logging.basicConfig(level=logging.DEBUG)
+
 VERBOSE_JIT_LOG = int(get_numba_envvar('VERBOSE_CU_JIT_LOG', 1))
 MIN_REQUIRED_CC = (2, 0)
 SUPPORTS_IPC = sys.platform.startswith('linux')
@@ -290,7 +292,8 @@ class Driver(object):
     def _wrap_api_call(self, fname, libfn):
         @functools.wraps(libfn)
         def safe_cuda_api_call(*args):
-            _logger.debug('call driver api: %s', libfn.__name__)
+            argstr = ", ".join([str(a) for a in args])
+            _logger.debug('call driver api: %s(%s)', libfn.__name__, argstr)
             retcode = libfn(*args)
             self._check_error(fname, retcode)
         return safe_cuda_api_call
@@ -820,6 +823,7 @@ class NumbaCUDAMemoryManager(HostOnlyCUDAMemoryManager):
             driver.cuMemAlloc(byref(ptr), size)
 
         self._attempt_allocation(allocator)
+        #print("Allocated at %x" % ptr.value)
 
         finalizer = _alloc_finalizer(self, ptr, size)
         ctx = weakref.proxy(self.context)

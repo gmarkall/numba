@@ -3,6 +3,8 @@ import re
 from numba import cuda, int32, float32
 from numba.cuda.testing import unittest, SerialMixin, skip_on_cudasim
 
+#import logging
+#logging.basicConfig(level=logging.DEBUG)
 
 def simple_threadidx(ary):
     i = cuda.threadIdx.x

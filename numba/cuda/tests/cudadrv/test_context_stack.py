@@ -6,6 +6,9 @@ from numba import cuda
 from numba.cuda.testing import unittest, SerialMixin, skip_on_cudasim
 from numba.cuda.cudadrv import driver
 
+#import logging
+#logging.basicConfig(level=logging.DEBUG)
+
 
 class TestContextStack(SerialMixin, unittest.TestCase):
     def setUp(self):
@@ -25,6 +28,7 @@ class TestContextStack(SerialMixin, unittest.TestCase):
         self.assertGreater(len(gpulist), 0)
 
 
+#@unittest.skip
 class TestContextAPI(SerialMixin, unittest.TestCase):
 
     def tearDown(self):
@@ -67,6 +71,7 @@ class TestContextAPI(SerialMixin, unittest.TestCase):
         self.assertEqual(devid, 1)
 
 
+#@unittest.skip
 @skip_on_cudasim('CUDA HW required')
 class Test3rdPartyContext(SerialMixin, unittest.TestCase):
     def tearDown(self):
@@ -85,10 +90,16 @@ class Test3rdPartyContext(SerialMixin, unittest.TestCase):
             my_ctx = cuda.current_context()
             self.assertEqual(my_ctx.handle.value, ctx.handle.value)
 
+            print("Start extra work")
             extra_work()
+            print("End extra work")
         finally:
+            print("Start finally")
+            ctx.reset()
+            ctx.deallocations.clear()
             ctx.pop()
             the_driver.cuDevicePrimaryCtxRelease(0)
+            print("End finally")
 
     def test_attached_non_primary(self):
         # Emulate non-primary context creation by 3rd party

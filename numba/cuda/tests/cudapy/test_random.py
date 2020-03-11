@@ -73,6 +73,7 @@ class TestCudaRandomXoroshiro128p(SerialMixin, unittest.TestCase):
         self.assertAlmostEqual(out.mean(), 0.5, delta=1.5e-2)
         self.assertAlmostEqual(out.std(), 1.0/(2*math.sqrt(3)), delta=6e-3)
 
+    @unittest.skip
     def test_uniform_float32(self):
         self.check_uniform(rng_kernel_float32, np.float32)
 
