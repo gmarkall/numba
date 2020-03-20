@@ -24,19 +24,7 @@ gpus = devices.gpus
 
 
 @require_context
-def from_cuda_array_interface(desc, owner=None):
-    """Create a DeviceNDArray from a cuda-array-interface description.
-    The *owner* is the owner of the underlying memory.
-    The resulting DeviceNDArray will acquire a reference from it.
-    """
-    version = desc.get('version')
-    # Mask introduced in version 1
-    if 1 <= version:
-        mask = desc.get('mask')
-        # Would ideally be better to detect if the mask is all valid
-        if mask is not None:
-            raise NotImplementedError('Masked arrays are not supported')
-
+def _from_cai_core(desc, owner=None):
     shape = desc['shape']
     strides = desc.get('strides')
     dtype = np.dtype(desc['typestr'])
@@ -51,6 +39,27 @@ def from_cuda_array_interface(desc, owner=None):
     da = devicearray.DeviceNDArray(shape=shape, strides=strides,
                                    dtype=dtype, gpu_data=data)
     return da
+
+
+def from_cuda_array_interface(desc, owner=None):
+    """Create a DeviceNDArray from a cuda-array-interface description.
+    The *owner* is the owner of the underlying memory.
+    The resulting DeviceNDArray will acquire a reference from it.
+    """
+    version = desc.get('version')
+    mask = None
+    # Mask introduced in version 1
+    if 1 <= version:
+        mask = desc.get('mask')
+
+    da = _from_cai_core(desc, owner)
+
+    if not mask:
+        return da
+
+    ma = _from_cai_core(mask, owner)
+
+    return devicearray.DeviceMaskedArray(da, ma)
 
 
 def as_cuda_array(obj):
