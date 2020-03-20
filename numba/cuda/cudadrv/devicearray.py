@@ -55,6 +55,32 @@ def require_cuda_ndarray(obj):
     if not is_cuda_ndarray(obj):
         raise ValueError('require an cuda ndarray object')
 
+class DeviceMaskedArray:
+    """An on-GPU masked array representation."""
+
+    __cuda_memory__ = True
+    __cuda_ndarray__ = True     # There must be gpu_data attribute
+
+    def __init__(self, data, mask=None, fill_value=None, shrink=True):
+        """
+        :param data: Input data. An object supporting the CUDA array interface.
+        :param mask: Mask. Must be the same shape as data. True indicates
+                     masked (i.e. invalid) data.
+        :param fill_value: Value used to fill in the masked values when
+                           necessary. If None, a default based on the data-type
+                           is used.
+        :param shrink: Whether to force compression of an empty mask. Default
+                      is true.
+        """
+
+        self.data = data
+        self.mask = mask
+        self.fill_value = fill_value
+        self.shrink = shrink # FIXME: need to actually shrink masks.
+
+    @property
+    def _numba_type_(self):
+        return types.Masked(self.data._numba_type_)
 
 class DeviceNDArrayBase(_devicearray.DeviceArray):
     """A on GPU NDArray representation

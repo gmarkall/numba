@@ -28,13 +28,22 @@ def from_cuda_array_interface(desc, owner=None, sync=True):
     synchronized.
     """
     version = desc.get('version')
+    mask = None
     # Mask introduced in version 1
     if 1 <= version:
         mask = desc.get('mask')
-        # Would ideally be better to detect if the mask is all valid
-        if mask is not None:
-            raise NotImplementedError('Masked arrays are not supported')
 
+    da = _from_cai_core(desc, owner, sync)
+
+    if not mask:
+        return da
+
+    ma = _from_cai_core(mask, owner)
+
+    return devicearray.DeviceMaskedArray(da, ma)
+
+
+def _from_cai_core(desc, owner, sync):
     shape = desc['shape']
     strides = desc.get('strides')
     dtype = np.dtype(desc['typestr'])

@@ -13,6 +13,34 @@ else:
 
 
 class TestCudaArray(CUDATestCase):
+
+    def test_masked_gpu_array(self):
+        h_arr = np.random.random(10)
+
+        h_mask_1 = np.random.randint(2, size=10, dtype='bool')
+        c_arr_1 = cuda.to_device(h_arr)
+        c_mask_1 = cuda.to_device(h_mask_1)
+        masked_array_1 = cuda.cudadrv.devicearray.DeviceMaskedArray(c_arr_1,
+                                                                    c_mask_1)
+        h_mask_2 = np.random.randint(2, size=10, dtype='bool')
+        c_arr_2 = cuda.to_device(h_arr)
+        c_mask_2 = cuda.to_device(h_mask_2)
+        masked_array_2 = cuda.cudadrv.devicearray.DeviceMaskedArray(c_arr_2,
+                                                                    c_mask_2)
+        h_mask_3 = np.random.randint(2, size=10, dtype='bool')
+        c_arr_3 = cuda.to_device(h_arr)
+        c_mask_3 = cuda.to_device(h_mask_3)
+        masked_array_3 = cuda.cudadrv.devicearray.DeviceMaskedArray(c_arr_3,
+                                                                    c_mask_3)
+
+        @cuda.jit
+        def add(x, y, z):
+            i = cuda.grid(1)
+            if i < len(x):
+                z[i] = x[i] + y[i]
+
+        add[1, 10](masked_array_1, masked_array_2, masked_array_3)
+
     def test_gpu_array_zero_length(self):
         x = np.arange(0)
         dx = cuda.to_device(x)

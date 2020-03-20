@@ -576,3 +576,7 @@ class NestedArray(Array):
     @property
     def key(self):
         return self.dtype, self.shape
+
+class MaskedArray(Array):
+
+    def __init__(self, dtype, shape) # was just here thinking about the typing
