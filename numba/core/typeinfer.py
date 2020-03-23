@@ -55,8 +55,12 @@ class TypeVar(object):
         assert isinstance(tp, types.Type), type(tp)
 
         if self.locked:
+            print("Locked")
             if tp != self.type:
-                if self.context.can_convert(tp, self.type) is None:
+                cc = self.context.can_convert(tp, self.type)
+                print("Convert %s -> %s: %s" % (tp, self.type, cc))
+                if cc is None:
+                    #from pudb import set_trace; set_trace()
                     msg = ("No conversion from %s to %s for '%s', "
                            "defined at %s")
                     raise TypingError(msg % (tp, self.type, self.var,

@@ -1029,6 +1029,7 @@ class TestArrayMethods(MemoryLeakMixin, TestCase):
                         continue
                     with self.subTest("Testing np.sum(axis) with {} "
                                       "input ".format(arr.dtype)):
+                        print(arr.shape, arr.dtype, axis)
                         npy_res = pyfunc(arr, axis=axis)
                         numba_res = cfunc(arr, axis=axis)
                         if isinstance(numba_res, np.ndarray):

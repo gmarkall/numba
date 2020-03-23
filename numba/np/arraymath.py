@@ -307,6 +307,8 @@ def array_sum_dtype(context, builder, sig, args):
 @lower_builtin("array.sum", types.Array, types.intp)
 @lower_builtin("array.sum", types.Array, types.IntegerLiteral)
 def array_sum_axis(context, builder, sig, args):
+    print("lowering with sig", str(sig))
+    from pudb import set_trace; set_trace()
     retty = sig.return_type
     zero = getattr(retty, 'dtype', retty)(0)
     # if the return is scalar in type then "take" the 0th element of the
