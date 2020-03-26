@@ -834,13 +834,16 @@ class NumbaCUDAMemoryManager(HostOnlyCUDAMemoryManager):
         return MemoryInfo(free=free.value, total=total.value)
 
     def get_ipc_handle(self, memory):
+        extents = device_extents(memory)
+        addr_range = device_pointer_address_range(memory)
+
         ipchandle = drvapi.cu_ipc_mem_handle()
         driver.cuIpcGetMemHandle(
             byref(ipchandle),
-            memory.owner.handle,
+            addr_range.base
         )
         source_info = self.context.device.get_device_identity()
-        offset = memory.handle.value - memory.owner.handle.value
+        offset = memory.handle.value - addr_range.base.value
 
         return IpcHandle(memory, ipchandle, memory.size, source_info,
                          offset=offset)
@@ -2048,27 +2051,16 @@ class Linker(object):
 # -----------------------------------------------------------------------------
 
 
-def _device_pointer_attr(devmem, attr, odata):
-    """Query attribute on the device pointer
-    """
-    error = driver.cuPointerGetAttribute(byref(odata), attr,
-                                         device_ctypes_pointer(devmem))
-    driver.check_error(error, "Failed to query pointer attribute")
+DevPtrAddressRange = namedtuple("DevPtrAddressRange", ["base", "size"])
 
-
-def device_pointer_type(devmem):
-    """Query the device pointer type: host, device, array, unified?
+def device_pointer_address_range(devmem):
+    """Get the start address for the allocation referenced by devmem.
     """
-    ptrtype = c_int(0)
-    _device_pointer_attr(devmem, enums.CU_POINTER_ATTRIBUTE_MEMORY_TYPE,
-                         ptrtype)
-    map = {
-        enums.CU_MEMORYTYPE_HOST: 'host',
-        enums.CU_MEMORYTYPE_DEVICE: 'device',
-        enums.CU_MEMORYTYPE_ARRAY: 'array',
-        enums.CU_MEMORYTYPE_UNIFIED: 'unified',
-    }
-    return map[ptrtype.value]
+    base = drvapi.cu_device_ptr(0)
+    size = c_size_t(0)
+    driver.cuMemGetAddressRange(byref(base), byref(size),
+                                device_ctypes_pointer(devmem))
+    return DevPtrAddressRange(base=base, size=size)
 
 
 def get_devptr_for_active_ctx(ptr):
@@ -2179,6 +2171,7 @@ def device_ctypes_pointer(obj):
         return c_void_p(0)
     require_device_memory(obj)
     return obj.device_ctypes_pointer
+    #return drvapi.cu_device_ptr(obj.device_ctypes_pointer.value)
 
 
 def is_device_memory(obj):
