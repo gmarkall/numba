@@ -137,6 +137,15 @@ class Cuda_syncwarp(ConcreteTemplate):
     key = cuda.syncwarp
     cases = [signature(types.none, types.i4)]
 
+class Cuda_cg_this_thread_block(MacroTemplate):
+    key = cuda.cg.this_thread_block
+
+@intrinsic_attr
+class CudaCgModuleTemplate(AttributeTemplate):
+    key = types.Module(cuda.cg)
+
+    def resolve_this_thread_block(self, mod):
+        return types.Macro(Cuda_cg_this_thread_block)
 
 @intrinsic
 class Cuda_shfl_sync_intrinsic(ConcreteTemplate):
@@ -448,6 +457,9 @@ class CudaModuleTemplate(AttributeTemplate):
 
     def resolve_blockDim(self, mod):
         return types.Module(cuda.blockDim)
+
+    def resolve_cg(self, mod):
+        return types.Module(cuda.cg)
 
     def resolve_gridDim(self, mod):
         return types.Module(cuda.gridDim)

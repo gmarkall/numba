@@ -1,3 +1,5 @@
+from . import cg_typing
+
 def init_jit():
     from numba.cuda.dispatcher import CUDADispatcher
     return CUDADispatcher

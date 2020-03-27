@@ -7,6 +7,7 @@ import llvmlite.llvmpy.core as lc
 from numba.core.rewrites.macros import Macro
 from numba.core import types, typing, ir
 from .cudadrv import nvvm
+from .cg_typing import thread_group_type
 
 
 class Stub(object):
@@ -480,3 +481,18 @@ class atomic(Stub):
 
         Returns the current value as if it is loaded atomically.
         """
+
+def cg_this_thread_block():
+    fname = "cg.this_thread_block"
+    restype = thread_group_type
+    sig = typing.signature(thread_group_type)
+    return ir.Intrinsic(fname, sig, args=())
+
+
+class cg(Stub):
+    """Namespace for cooperative groups"""
+    _description_ = '<cg>'
+
+    this_thread_block = Macro('cg.this_thread_block', cg_this_thread_block,
+                              callable=True)
+    """this_thread_block"""
