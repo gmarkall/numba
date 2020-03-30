@@ -4,6 +4,7 @@ from numba.core.typing.templates import (AttributeTemplate, ConcreteTemplate,
                                          AbstractTemplate, MacroTemplate,
                                          signature, Registry)
 from numba import cuda
+from numba.cuda.cg_typing import thread_group_type
 
 
 registry = Registry()
@@ -15,7 +16,8 @@ register_number_classes(intrinsic_global)
 
 
 class Cuda_grid(MacroTemplate):
-    key = cuda.grid
+    pass
+    #key = cuda.grid
 
 
 class Cuda_gridsize(MacroTemplate):
@@ -146,6 +148,16 @@ class CudaCgModuleTemplate(AttributeTemplate):
 
     def resolve_this_thread_block(self, mod):
         return types.Macro(Cuda_cg_this_thread_block)
+
+class ThreadGroup_ThreadRank(MacroTemplate):
+    key = thread_group_type
+
+@intrinsic_attr
+class ThreadGroupThreadRankTemplate(AttributeTemplate):
+    key = thread_group_type
+
+    def resolve_thread_rank(self, obj):
+        return types.Macro(ThreadGroup_ThreadRank)
 
 @intrinsic
 class Cuda_shfl_sync_intrinsic(ConcreteTemplate):

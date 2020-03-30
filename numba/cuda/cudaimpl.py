@@ -189,7 +189,6 @@ def ptx_lmem_alloc_array(context, builder, sig, args):
 
 @lower('cg.this_thread_block')
 def cg_this_thread_block(context, builder, sig, args):
-    from pudb import set_trace; set_trace()
     typ = sig.return_type
     tg = cgutils.create_struct_proxy(typ)(context, builder)
     tb = context.get_constant(types.u1, cg_typing.GroupType.ThreadBlock.value)
