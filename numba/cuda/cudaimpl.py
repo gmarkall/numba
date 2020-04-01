@@ -7,6 +7,7 @@ import llvmlite.llvmpy.core as lc
 import llvmlite.binding as ll
 
 from numba.core.imputils import Registry
+from numba.core.typing.npydecl import parse_dtype
 from numba.core import types, cgutils
 from .cudadrv import nvvm
 from numba import cuda
@@ -132,17 +133,10 @@ def _get_unique_smem_id(name):
     return "{0}_{1}".format(name, _unique_smem_id)
 
 
-def _parse_dtype(dtype):
-    if isinstance(dtype, types.DTypeSpec):
-        return dtype.dtype
-    elif isinstance(dtype, types.TypeRef):
-        return dtype.instance_type
-
-
 @lower(cuda.shared.array, types.Integer, types.Any)
 def cuda_shared_array_integer(context, builder, sig, args):
     length = sig.args[0].literal_value
-    dtype = _parse_dtype(sig.args[1])
+    dtype = parse_dtype(sig.args[1])
     return _generic_array(context, builder, shape=(length,), dtype=dtype,
                           symbol_name=_get_unique_smem_id('_cudapy_smem'),
                           addrspace=nvvm.ADDRSPACE_SHARED,
@@ -153,7 +147,7 @@ def cuda_shared_array_integer(context, builder, sig, args):
 @lower(cuda.shared.array, types.UniTuple, types.Any)
 def cuda_shared_array_tuple(context, builder, sig, args):
     shape = [ s.literal_value for s in sig.args[0] ]
-    dtype = _parse_dtype(sig.args[1])
+    dtype = parse_dtype(sig.args[1])
     return _generic_array(context, builder, shape=shape, dtype=dtype,
                           symbol_name=_get_unique_smem_id('_cudapy_smem'),
                           addrspace=nvvm.ADDRSPACE_SHARED,
@@ -163,7 +157,7 @@ def cuda_shared_array_tuple(context, builder, sig, args):
 @lower(cuda.local.array, types.Integer, types.Any)
 def cuda_local_array_integer(context, builder, sig, args):
     length = sig.args[0].literal_value
-    dtype = _parse_dtype(sig.args[1])
+    dtype = parse_dtype(sig.args[1])
     return _generic_array(context, builder, shape=(length,), dtype=dtype,
                           symbol_name='_cudapy_lmem',
                           addrspace=nvvm.ADDRSPACE_LOCAL,
@@ -174,7 +168,7 @@ def cuda_local_array_integer(context, builder, sig, args):
 @lower(cuda.local.array, types.UniTuple, types.Any)
 def ptx_lmem_alloc_array(context, builder, sig, args):
     shape = [ s.literal_value for s in sig.args[0] ]
-    dtype = _parse_dtype(sig.args[1])
+    dtype = parse_dtype(sig.args[1])
     return _generic_array(context, builder, shape=shape, dtype=dtype,
                           symbol_name='_cudapy_lmem',
                           addrspace=nvvm.ADDRSPACE_LOCAL,

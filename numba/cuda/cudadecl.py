@@ -1,5 +1,6 @@
 from numba.core import types
-from numba.core.typing.npydecl import register_number_classes
+from numba.core.typing.npydecl import (parse_dtype, parse_shape,
+                                       register_number_classes)
 from numba.core.typing.templates import (AttributeTemplate, ConcreteTemplate,
                                          AbstractTemplate, CallableTemplate,
                                          signature, Registry)
@@ -39,27 +40,11 @@ class Cuda_gridsize(GridFunction):
     key = cuda.gridsize
 
 
-def _parse_shape(shape):
-    ndim = None
-    if isinstance(shape, types.Integer):
-        ndim = 1
-    elif isinstance(shape, (types.Tuple, types.UniTuple)):
-        if all(isinstance(s, types.Integer) for s in shape):
-            ndim = len(shape)
-    return ndim
-
-def _parse_dtype(dtype):
-    if isinstance(dtype, types.DTypeSpec):
-        return dtype.dtype
-    elif isinstance(dtype, types.TypeRef):
-        return dtype.instance_type
-
-
 class Cuda_array_decl(CallableTemplate):
     def generic(self):
         def typer(shape, dtype):
-            ndim = _parse_shape(shape)
-            nb_dtype = _parse_dtype(dtype)
+            ndim = parse_shape(shape)
+            nb_dtype = parse_dtype(dtype)
             if nb_dtype is not None and ndim is not None:
                 return types.Array(dtype=nb_dtype, ndim=ndim, layout='C')
 
