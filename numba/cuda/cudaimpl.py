@@ -19,36 +19,31 @@ lower = registry.lower
 lower_attr = registry.lower_getattr
 
 
+def initialize_dim3(builder, prefix):
+    x = nvvmutils.call_sreg(builder, "%s.x" % prefix)
+    y = nvvmutils.call_sreg(builder, "%s.y" % prefix)
+    z = nvvmutils.call_sreg(builder, "%s.z" % prefix)
+    return cgutils.pack_struct(builder, (x, y, z))
+
+
 @lower_attr(types.Module(cuda), 'threadIdx')
 def cuda_threadIdx(context, builder, sig, args):
-    tidx = nvvmutils.call_sreg(builder, "tid.x")
-    tidy = nvvmutils.call_sreg(builder, "tid.y")
-    tidz = nvvmutils.call_sreg(builder, "tid.z")
-    return cgutils.pack_struct(builder, (tidx, tidy, tidz))
+    return initialize_dim3(builder, 'tid')
 
 
 @lower_attr(types.Module(cuda), 'blockDim')
 def cuda_blockDim(context, builder, sig, args):
-    ntidx = nvvmutils.call_sreg(builder, "ntid.x")
-    ntidy = nvvmutils.call_sreg(builder, "ntid.y")
-    ntidz = nvvmutils.call_sreg(builder, "ntid.z")
-    return cgutils.pack_struct(builder, (ntidx, ntidy, ntidz))
+    return initialize_dim3(builder, 'ntid')
 
 
 @lower_attr(types.Module(cuda), 'blockIdx')
 def cuda_blockIdx(context, builder, sig, args):
-    ctaidx = nvvmutils.call_sreg(builder, "ctaid.x")
-    ctaidy = nvvmutils.call_sreg(builder, "ctaid.y")
-    ctaidz = nvvmutils.call_sreg(builder, "ctaid.z")
-    return cgutils.pack_struct(builder, (ctaidx, ctaidy, ctaidz))
+    return initialize_dim3(builder, 'ctaid')
 
 
 @lower_attr(types.Module(cuda), 'gridDim')
 def cuda_gridDim(context, builder, sig, args):
-    nctaidx = nvvmutils.call_sreg(builder, "nctaid.x")
-    nctaidy = nvvmutils.call_sreg(builder, "nctaid.y")
-    nctaidz = nvvmutils.call_sreg(builder, "nctaid.z")
-    return cgutils.pack_struct(builder, (nctaidx, nctaidy, nctaidz))
+    return initialize_dim3(builder, 'nctaid')
 
 
 @lower_attr(types.Module(cuda), 'laneid')
@@ -113,21 +108,6 @@ def cuda_gridsize(context, builder, sig, args):
 
     # Fallthrough to here indicates unexpected return type or tuple length
     raise ValueError('Unexpected return type %s of cuda.gridsize' % restype)
-
-
-# -----------------------------------------------------------------------------
-
-def ptx_sreg_template(sreg):
-    def ptx_sreg_impl(context, builder, sig, args):
-        assert not args
-        return nvvmutils.call_sreg(builder, sreg)
-
-    return ptx_sreg_impl
-
-
-# Dynamic create all special register
-for sreg in nvvmutils.SREG_MAPPING.keys():
-    lower(sreg)(ptx_sreg_template(sreg))
 
 
 # -----------------------------------------------------------------------------
