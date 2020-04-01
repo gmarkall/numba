@@ -11,7 +11,8 @@ from numba.core import types, cgutils
 from .cudadrv import nvvm
 from numba import cuda
 from numba.cuda import nvvmutils, stubs
-from numba.cuda.cudadecl import dim3_type
+from numba.cuda.types import dim3
+
 
 registry = Registry()
 lower = registry.lower
@@ -60,17 +61,17 @@ def cuda_warpsize(context, builder, sig, args):
     return nvvmutils.call_sreg(builder, 'warpsize')
 
 
-@lower_attr(dim3_type, 'x')
+@lower_attr(dim3, 'x')
 def threadIdx_x(context, builder, sig, args):
     return builder.extract_value(args, 0)
 
 
-@lower_attr(dim3_type, 'y')
+@lower_attr(dim3, 'y')
 def threadIdx_y(context, builder, sig, args):
     return builder.extract_value(args, 1)
 
 
-@lower_attr(dim3_type, 'z')
+@lower_attr(dim3, 'z')
 def threadIdx_z(context, builder, sig, args):
     return builder.extract_value(args, 2)
 

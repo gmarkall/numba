@@ -1,11 +1,9 @@
 from numba.core import types
 from numba.core.typing.npydecl import register_number_classes
 from numba.core.typing.templates import (AttributeTemplate, ConcreteTemplate,
-                                         AbstractTemplate,
-                                         CallableTemplate,
+                                         AbstractTemplate, CallableTemplate,
                                          signature, Registry)
-from numba.core.extending import (typeof_impl, register_model, models,
-                                  overload_attribute)
+from numba.cuda.types import dim3
 from numba import cuda
 
 
@@ -331,30 +329,9 @@ class Cuda_atomic_compare_and_swap(AbstractTemplate):
             return signature(dty, ary, dty, dty)
 
 
-class Dim3Type(types.Type):
-    def __init__(self):
-        super().__init__(name='Dim3')
-
-dim3_type = Dim3Type()
-
-@typeof_impl.register(cuda.Dim3)
-def typeof_dim3(val, c):
-    return dim3_type
-
-
-@register_model(Dim3Type)
-class Dim3Model(models.StructModel):
-    def __init__(self, dmm, fe_type):
-        members = [
-            ('x', types.int32),
-            ('y', types.int32),
-            ('z', types.int32)
-        ]
-        super().__init__(dmm, fe_type, members)
-
 @intrinsic_attr
 class Dim3_attrs(AttributeTemplate):
-    key = dim3_type
+    key = dim3
 
     def resolve_x(self, mod):
         return types.int32
@@ -418,16 +395,16 @@ class CudaModuleTemplate(AttributeTemplate):
         return types.Function(Cuda_gridsize)
 
     def resolve_threadIdx(self, mod):
-        return dim3_type
+        return dim3
 
     def resolve_blockIdx(self, mod):
-        return dim3_type
+        return dim3
 
     def resolve_blockDim(self, mod):
-        return dim3_type
+        return dim3
 
     def resolve_gridDim(self, mod):
-        return dim3_type
+        return dim3
 
     def resolve_warpsize(self, mod):
         return types.int32
