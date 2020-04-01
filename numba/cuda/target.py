@@ -86,6 +86,15 @@ class CUDATargetContext(BaseContext):
         return self._target_data
 
     @cached_property
+    def nonconst_module_attrs(self):
+        from numba import cuda
+        nonconsts = ('threadIdx', 'blockDim', 'blockIdx', 'gridDim', 'laneid',
+                     'warpsize')
+        nonconsts_with_mod = tuple([ (types.Module(cuda), nc)
+                                    for nc in nonconsts ])
+        return nonconsts_with_mod
+
+    @cached_property
     def call_conv(self):
         return CUDACallConv(self)
 
