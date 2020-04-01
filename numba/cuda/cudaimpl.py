@@ -58,17 +58,17 @@ def cuda_warpsize(context, builder, sig, args):
 
 
 @lower_attr(dim3, 'x')
-def threadIdx_x(context, builder, sig, args):
+def dim3_x(context, builder, sig, args):
     return builder.extract_value(args, 0)
 
 
 @lower_attr(dim3, 'y')
-def threadIdx_y(context, builder, sig, args):
+def dim3_y(context, builder, sig, args):
     return builder.extract_value(args, 1)
 
 
 @lower_attr(dim3, 'z')
-def threadIdx_z(context, builder, sig, args):
+def dim3_z(context, builder, sig, args):
     return builder.extract_value(args, 2)
 
 
