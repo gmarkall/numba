@@ -4,7 +4,7 @@ from numba.core.typing.npydecl import (parse_dtype, parse_shape,
 from numba.core.typing.templates import (AttributeTemplate, ConcreteTemplate,
                                          AbstractTemplate, CallableTemplate,
                                          signature, Registry)
-from numba.cuda.types import dim3
+from numba.cuda.types import dim3, thread_block
 from numba import cuda
 
 
@@ -38,6 +38,24 @@ class Cuda_grid(GridFunction):
 @register
 class Cuda_gridsize(GridFunction):
     key = cuda.gridsize
+
+
+@register
+class Cuda_cg_this_thread_block(CallableTemplate):
+    key = cuda.cg.this_thread_block
+
+    def generic(self):
+        def typer():
+            return thread_block
+        return typer
+
+
+@register_attr
+class CudaCgModuleTemplate(AttributeTemplate):
+    key = types.Module(cuda.cg)
+
+    def resolve_this_thread_block(self, mod):
+        return types.Function(Cuda_cg_this_thread_block)
 
 
 class Cuda_array_decl(CallableTemplate):
@@ -396,6 +414,9 @@ class CudaModuleTemplate(AttributeTemplate):
 
     def resolve_laneid(self, mod):
         return types.int32
+
+    def resolve_cg(self, mod):
+        return types.Module(cuda.cg)
 
     def resolve_shared(self, mod):
         return types.Module(cuda.shared)

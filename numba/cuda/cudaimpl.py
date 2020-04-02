@@ -12,6 +12,7 @@ from numba.core import types, cgutils
 from .cudadrv import nvvm
 from numba import cuda
 from numba.cuda import nvvmutils, stubs
+from numba.cuda.models import GroupType
 from numba.cuda.types import dim3
 
 
@@ -109,6 +110,15 @@ def cuda_gridsize(context, builder, sig, args):
 
     # Fallthrough to here indicates unexpected return type or tuple length
     raise ValueError('Unexpected return type %s of cuda.gridsize' % restype)
+
+
+#-----------------------------------------------------------------------------
+
+@lower(cuda.cg.this_thread_block)
+def cg_this_thread_block(context, builder, sig, args):
+    ttb = cgutils.create_struct_proxy(sig.return_type)(context, builder)
+    ttb.type = context.get_constant(types.uint8, GroupType.ThreadBlock.value)
+    return ttb._getvalue()
 
 
 # -----------------------------------------------------------------------------

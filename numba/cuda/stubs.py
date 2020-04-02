@@ -196,6 +196,21 @@ class const(Stub):
 
 
 #-------------------------------------------------------------------------------
+# Cooperative groups
+
+class cg(Stub):
+    '''
+    Cooperative groups
+    '''
+
+    @stub_function
+    def this_thread_block():
+        '''
+        Return the current thread block.
+        '''
+
+
+#-------------------------------------------------------------------------------
 # syncthreads
 
 class syncthreads(Stub):
