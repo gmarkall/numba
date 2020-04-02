@@ -151,6 +151,11 @@ def thread_block_size(context, builder, sig, args):
     return builder.mul(ntidx, builder.mul(ntidy, ntidz))
 
 
+@lower('ThreadBlock.sync')
+def cuda_thread_block_sync(context, builder, sig, args):
+    return ptx_syncthreads(context, builder, sig, args)
+
+
 # -----------------------------------------------------------------------------
 
 @lower(cuda.const.array_like, types.Array)

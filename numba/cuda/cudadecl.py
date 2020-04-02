@@ -41,7 +41,7 @@ class Cuda_gridsize(GridFunction):
 
 
 @register
-class Cuda_cg_this_thread_block(CallableTemplate):
+class Cuda_cg_this_thread_block(CallableTemplate): # Could be concrete?
     key = cuda.cg.this_thread_block
 
     def generic(self):
@@ -58,14 +58,12 @@ class CudaCgModuleTemplate(AttributeTemplate):
         return types.Function(Cuda_cg_this_thread_block)
 
 
-class Cuda_array_decl(CallableTemplate):
-    def generic(self):
-        def typer(shape, dtype):
-            ndim = parse_shape(shape)
-            nb_dtype = parse_dtype(dtype)
-            if nb_dtype is not None and ndim is not None:
-                return types.Array(dtype=nb_dtype, ndim=ndim, layout='C')
+class Cuda_thread_block_sync(CallableTemplate):
+    key = "ThreadBlock.sync"
 
+    def generic(self):
+        def typer():
+            return types.none
         return typer
 
 
@@ -78,6 +76,21 @@ class ThreadBlock_attrs(AttributeTemplate):
 
     def resolve_size(self, mod):
         return types.uint32
+
+    def resolve_sync(self, mod):
+        return types.BoundFunction(Cuda_thread_block_sync, thread_block)
+
+
+
+class Cuda_array_decl(CallableTemplate):
+    def generic(self):
+        def typer(shape, dtype):
+            ndim = parse_shape(shape)
+            nb_dtype = parse_dtype(dtype)
+            if nb_dtype is not None and ndim is not None:
+                return types.Array(dtype=nb_dtype, ndim=ndim, layout='C')
+
+        return typer
 
 
 @register
@@ -428,6 +441,9 @@ class CudaModuleTemplate(AttributeTemplate):
 
     def resolve_cg(self, mod):
         return types.Module(cuda.cg)
+
+    def resolve_ThreadBlock(self, mod):
+        return thread_block
 
     def resolve_shared(self, mod):
         return types.Module(cuda.shared)
