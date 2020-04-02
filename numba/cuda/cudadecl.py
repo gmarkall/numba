@@ -4,7 +4,7 @@ from numba.core.typing.npydecl import (parse_dtype, parse_shape,
 from numba.core.typing.templates import (AttributeTemplate, ConcreteTemplate,
                                          AbstractTemplate, CallableTemplate,
                                          signature, Registry)
-from numba.cuda.types import dim3
+from numba.cuda.types import dim3, thread_block, thread_group
 from numba import cuda
 
 
@@ -39,6 +39,79 @@ class Cuda_grid(GridFunction):
 class Cuda_gridsize(GridFunction):
     key = cuda.gridsize
 
+
+@register
+class Cuda_cg_this_thread_block(ConcreteTemplate):
+    key = cuda.cg.this_thread_block
+    cases = [signature(thread_block)]
+
+
+@register_attr
+class CudaCgModuleTemplate(AttributeTemplate):
+    key = types.Module(cuda.cg)
+
+    def resolve_this_thread_block(self, mod):
+        return types.Function(Cuda_cg_this_thread_block)
+
+
+class Cuda_thread_block_sync(AbstractTemplate):
+    key = "ThreadBlock.sync"
+
+    def generic(self, args, kws):
+        return signature(types.none, recvr=self.this)
+
+
+class Cuda_thread_group_sync(AbstractTemplate):
+    key = "ThreadGroup.sync"
+
+    def generic(self, args, kws):
+        return signature(types.none, recvr=self.this)
+
+
+class Cuda_thread_block_tiled_partition(AbstractTemplate):
+    key = "ThreadBlock.tiled_partition"
+
+    def generic(self, args, kws):
+        # FIXME: Supporting more than just literal types would require moving
+        # the tile size check into the lowered code. Not difficult but not done
+        # now to keep things simple.
+        if not isinstance(args[0], types.Literal):
+            return None
+        if args[0].literal_value not in (1, 2, 4, 8, 16, 32):
+            return None
+        return signature(thread_group, args[0].literal_type, recvr=self.this)
+
+
+@register_attr
+class ThreadBlock_attrs(AttributeTemplate):
+    key = thread_block
+
+    def resolve_thread_rank(self, mod):
+        return types.uint32
+
+    def resolve_size(self, mod):
+        return types.uint32
+
+    def resolve_sync(self, mod):
+        return types.BoundFunction(Cuda_thread_block_sync, thread_block)
+
+    def resolve_tiled_partition(self, mod):
+        return types.BoundFunction(Cuda_thread_block_tiled_partition,
+                                   thread_block)
+
+
+@register_attr
+class ThreadGroup_attrs(AttributeTemplate):
+    key = thread_group
+
+    def resolve_size(self, mod):
+        return types.uint32
+
+    def resolve_sync(self, mod):
+        return types.BoundFunction(Cuda_thread_group_sync, thread_group)
+
+    def resolve_thread_rank(self, mod):
+        return types.uint32
 
 class Cuda_array_decl(CallableTemplate):
     def generic(self):
@@ -396,6 +469,9 @@ class CudaModuleTemplate(AttributeTemplate):
 
     def resolve_laneid(self, mod):
         return types.int32
+
+    def resolve_cg(self, mod):
+        return types.Module(cuda.cg)
 
     def resolve_shared(self, mod):
         return types.Module(cuda.shared)

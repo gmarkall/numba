@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from functools import reduce
 import operator
 import math
@@ -8,11 +9,13 @@ import llvmlite.binding as ll
 
 from numba.core.imputils import Registry
 from numba.core.typing.npydecl import parse_dtype
+from numba.core.typing.templates import signature
 from numba.core import types, cgutils
 from .cudadrv import nvvm
 from numba import cuda
 from numba.cuda import nvvmutils, stubs
-from numba.cuda.types import dim3
+from numba.cuda.models import GroupType
+from numba.cuda.types import dim3, thread_block, thread_group, uint24
 
 
 registry = Registry()
@@ -109,6 +112,178 @@ def cuda_gridsize(context, builder, sig, args):
 
     # Fallthrough to here indicates unexpected return type or tuple length
     raise ValueError('Unexpected return type %s of cuda.gridsize' % restype)
+
+
+#-----------------------------------------------------------------------------
+
+@lower(cuda.cg.this_thread_block)
+def cg_this_thread_block(context, builder, sig, args):
+    ttb = cgutils.create_struct_proxy(sig.return_type)(context, builder)
+    ttb.type = context.get_constant(types.uint8, GroupType.ThreadBlock.value)
+    return ttb._getvalue()
+
+
+@lower_attr(thread_block, 'thread_rank')
+def thread_block_thread_rank(context, builder, sig, args):
+    # Implements:
+    #
+    # ((threadIdx.z * blockDim.y * blockDim.x) +
+    #  (threadIdx.y * blockDim.x) +
+    #  threadIdx.x)
+    tidz = nvvmutils.call_sreg(builder, "tid.z")
+    ntidy = nvvmutils.call_sreg(builder, "ntid.y")
+    ntidx = nvvmutils.call_sreg(builder, "ntid.x")
+    t1 = builder.mul(tidz, builder.mul(ntidy, ntidx))
+
+    tidy = nvvmutils.call_sreg(builder, "tid.y")
+    t2 = builder.mul(tidy, ntidx)
+
+    tidx = nvvmutils.call_sreg(builder, "tid.x")
+    return builder.add(tidx, builder.add(t1, t2))
+
+
+@contextmanager
+def if_coalesced_group(context, builder, arg):
+    group_type = builder.extract_value(arg, 0)
+    coalesced = context.get_constant(types.uint8, GroupType.Coalesced.value)
+    coalesced_tile = context.get_constant(types.uint8,
+                                          GroupType.CoalescedTile.value)
+    is_coalesced = builder.icmp_unsigned('==', group_type, coalesced)
+    is_coalesced_tile = builder.icmp_unsigned('==', group_type, coalesced_tile)
+    is_coalesced_group = builder.or_(is_coalesced, is_coalesced_tile)
+
+    with builder.if_else(is_coalesced_group) as cm:
+        yield cm
+
+
+@lower_attr(thread_group, 'thread_rank')
+def thread_group_thread_rank(context, builder, sig, arg):
+    # If type is coalesced then use coalesced thread rank impl
+    # otherwise, use thread block size impl
+    rank = cgutils.alloca_once_value(builder,
+                                     context.get_constant(types.uint32, 0))
+    with if_coalesced_group(context, builder, arg) as (then, otherwise):
+        with then:
+            # Quick hack - use coalesced group size impl in here, but should
+            # probably have coalesced group type.
+            lanemask32_lt = InlineAsm.get(Type.function(Type.int(), []),
+                                           "mov.u32 $0, %lanemask_lt;",
+                                           '=r', side_effect=True)
+            mask_and_lanemask = builder.and_(builder.call(lanemask32_lt, []),
+                                             builder.extract_value(arg, 2))
+            builder.store(ptx_popc(context, builder, signature(types.uint32,
+                                                               types.uint32),
+                                   [mask_and_lanemask]), rank)
+        with otherwise:
+            r = thread_block_thread_rank(context, builder, sig, arg)
+            builder.store(r, rank)
+
+    return builder.load(rank)
+
+
+@lower_attr(thread_group, 'size')
+def thread_group_size(context, builder, sig, arg):
+    # If type is coalesced then use coalesced thread rank impl
+    # otherwise, use thread block size impl
+    size = cgutils.alloca_once_value(builder,
+                                     context.get_constant(types.uint32, 0))
+    with if_coalesced_group(context, builder, arg) as (then, otherwise):
+        with then:
+            # Quick hack - use coalesced group size impl in here, but should
+            # probably have coalesced group type.
+            s = context.cast(builder, builder.extract_value(arg, 1), uint24,
+                             types.uint32)
+            builder.store(s, size)
+        with otherwise:
+            s = thread_block_size(context, builder, sig, arg)
+            builder.store(s, size)
+
+    return builder.load(size)
+
+
+@lower('ThreadGroup.sync', thread_group)
+def thread_group_sync(context, builder, sig, args):
+    # If type is coalesced then use coalesced thread rank impl
+    # otherwise, use thread block size impl
+    with if_coalesced_group(context, builder, args[0]) as (then, otherwise):
+        with then:
+            # Not implemented yet
+            arg = builder.extract_value(args[0], 2)
+            ptx_warp_sync(context, builder, signature(types.none(types.int32)),
+                          (arg,))
+        with otherwise:
+            r = thread_block_sync(context, builder, sig, args)
+    return r
+
+
+@lower_attr(thread_block, 'size')
+def thread_block_size(context, builder, sig, args):
+    # Implements:
+    #
+    # (blockDim.x * blockDim.y * blockDim.z)
+    ntidx = nvvmutils.call_sreg(builder, "ntid.x")
+    ntidy = nvvmutils.call_sreg(builder, "ntid.y")
+    ntidz = nvvmutils.call_sreg(builder, "ntid.z")
+    return builder.mul(ntidx, builder.mul(ntidy, ntidz))
+
+
+@lower('ThreadBlock.sync', thread_block)
+def thread_block_sync(context, builder, sig, args):
+    # syncthreads takes no arguments - strip off the receiver
+    return ptx_syncthreads(context, builder, sig, args[1:])
+
+
+#def get_zero(context, builder, ty):
+#    return cgutils.alloca_once_value(builder, context.get_constant(ty, 0))
+
+@lower('ThreadBlock.tiled_partition', thread_block, types.int64)
+def thread_block_tiled_partition(context, builder, sig, args):
+
+    # from pudb import set_trace; set_trace()
+
+    # Arguments
+    # The receiver
+    this = args[0]
+    # Tile size - requires cast because of Numba typing the literal as int64,
+    # but the arithmetic is all int32.
+    tilesz = context.cast(builder, args[1], types.int64, types.int32)
+    tileszm1 = builder.sub(tilesz, context.get_constant(types.int32, 1))
+
+    # base_offset = thread_block.rank & ~(tilesz - 1)
+    tb_prop_sig = signature(types.uint32, recvr=thread_block)
+    rank = thread_block_thread_rank(context, builder, tb_prop_sig, this)
+    base_offset = builder.and_(rank, builder.not_(tileszm1))
+
+    # masklength = min(thread_block.size - base_offset, tilesz)
+    size = thread_block_size(context, builder, tb_prop_sig, this)
+    size_m_base_offset = builder.sub(size, base_offset)
+    masklength = cgutils.alloca_once(builder, Type.int(32))
+    size_m_base_offset_smaller = builder.icmp_unsigned('<', size_m_base_offset,
+                                                       tilesz)
+    with builder.if_else(size_m_base_offset_smaller) as (then, other):
+        with then:
+            builder.store(size_m_base_offset, masklength)
+        with other:
+            builder.store(tilesz, masklength)
+
+    # mask = 0xFFFFFFFF >> (32 - masklength)
+    mask = builder.lshr(context.get_constant(types.uint32, 0xFFFFFFFF),
+                        builder.sub(context.get_constant(types.uint32, 32),
+                                    builder.load(masklength)))
+
+    # mask <<= laneid & ~(tilesz - 1)
+    laneid = cuda_laneid(context, builder, sig, args)
+    mask = builder.shl(mask, builder.and_(laneid, builder.not_(tileszm1)))
+
+    # Create a new structure for the returned thread group
+    tg = cgutils.create_struct_proxy(sig.return_type)(context, builder)
+    tg.type = context.get_constant(types.uint8, GroupType.CoalescedTile.value)
+    tg.mask = mask
+    mask_popcount = ptx_popc(context, builder, signature(types.uint32,
+                                                         types.uint32), [mask])
+    tg.size = context.cast(builder, mask_popcount, types.uint32, uint24)
+
+    return tg._getvalue()
 
 
 # -----------------------------------------------------------------------------
