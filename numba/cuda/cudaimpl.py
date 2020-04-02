@@ -13,7 +13,7 @@ from .cudadrv import nvvm
 from numba import cuda
 from numba.cuda import nvvmutils, stubs
 from numba.cuda.models import GroupType
-from numba.cuda.types import dim3
+from numba.cuda.types import dim3, thread_block
 
 
 registry = Registry()
@@ -119,6 +119,25 @@ def cg_this_thread_block(context, builder, sig, args):
     ttb = cgutils.create_struct_proxy(sig.return_type)(context, builder)
     ttb.type = context.get_constant(types.uint8, GroupType.ThreadBlock.value)
     return ttb._getvalue()
+
+
+@lower_attr(thread_block, 'thread_rank')
+def thread_block_thread_rank(context, builder, sig, args):
+    # Implements:
+    #
+    # ((threadIdx.z * blockDim.y * blockDim.x) +
+    #  (threadIdx.y * blockDim.x) +
+    #  threadIdx.x)
+    tidz = nvvmutils.call_sreg(builder, "tid.z")
+    ntidy = nvvmutils.call_sreg(builder, "ntid.y")
+    ntidx = nvvmutils.call_sreg(builder, "ntid.x")
+    t1 = builder.mul(tidz, builder.mul(ntidy, ntidx))
+
+    tidy = nvvmutils.call_sreg(builder, "tid.y")
+    t2 = builder.mul(tidy, ntidx)
+
+    tidx = nvvmutils.call_sreg(builder, "tid.x")
+    return builder.add(tidx, builder.add(t1, t2))
 
 
 # -----------------------------------------------------------------------------

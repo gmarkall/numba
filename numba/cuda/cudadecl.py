@@ -69,6 +69,14 @@ class Cuda_array_decl(CallableTemplate):
         return typer
 
 
+@register_attr
+class ThreadBlock_attrs(AttributeTemplate):
+    key = thread_block
+
+    def resolve_thread_rank(self, mod):
+        return types.uint32
+
+
 @register
 class Cuda_shared_array(Cuda_array_decl):
     key = cuda.shared.array
