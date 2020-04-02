@@ -76,6 +76,9 @@ class ThreadBlock_attrs(AttributeTemplate):
     def resolve_thread_rank(self, mod):
         return types.uint32
 
+    def resolve_size(self, mod):
+        return types.uint32
+
 
 @register
 class Cuda_shared_array(Cuda_array_decl):

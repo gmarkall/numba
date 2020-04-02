@@ -140,6 +140,17 @@ def thread_block_thread_rank(context, builder, sig, args):
     return builder.add(tidx, builder.add(t1, t2))
 
 
+@lower_attr(thread_block, 'size')
+def thread_block_size(context, builder, sig, args):
+    # Implements:
+    #
+    # (blockDim.x * blockDim.y * blockDim.z)
+    ntidx = nvvmutils.call_sreg(builder, "ntid.x")
+    ntidy = nvvmutils.call_sreg(builder, "ntid.y")
+    ntidz = nvvmutils.call_sreg(builder, "ntid.z")
+    return builder.mul(ntidx, builder.mul(ntidy, ntidz))
+
+
 # -----------------------------------------------------------------------------
 
 @lower(cuda.const.array_like, types.Array)
