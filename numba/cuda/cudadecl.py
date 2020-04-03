@@ -41,13 +41,9 @@ class Cuda_gridsize(GridFunction):
 
 
 @register
-class Cuda_cg_this_thread_block(CallableTemplate): # Could be concrete?
+class Cuda_cg_this_thread_block(ConcreteTemplate):
     key = cuda.cg.this_thread_block
-
-    def generic(self):
-        def typer():
-            return thread_block
-        return typer
+    cases = [signature(thread_block)]
 
 
 @register_attr
@@ -77,7 +73,6 @@ class ThreadBlock_attrs(AttributeTemplate):
 
     def resolve_sync(self, mod):
         return types.BoundFunction(Cuda_thread_block_sync, thread_block)
-
 
 
 class Cuda_array_decl(CallableTemplate):
@@ -439,9 +434,6 @@ class CudaModuleTemplate(AttributeTemplate):
 
     def resolve_cg(self, mod):
         return types.Module(cuda.cg)
-
-    def resolve_ThreadBlock(self, mod):
-        return thread_block
 
     def resolve_shared(self, mod):
         return types.Module(cuda.shared)

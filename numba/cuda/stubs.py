@@ -210,18 +210,6 @@ class cg(Stub):
         '''
 
 
-class ThreadBlock(Stub):
-    '''
-    A collaborative thread array (CTA)
-    '''
-
-    @stub_function
-    def sync():
-        '''
-        Sync
-        '''
-
-
 #-------------------------------------------------------------------------------
 # syncthreads
 
