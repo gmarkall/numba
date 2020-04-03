@@ -72,7 +72,14 @@ class Cuda_thread_block_tiled_partition(AbstractTemplate):
     key = "ThreadBlock.tiled_partition"
 
     def generic(self, args, kws):
-        return signature(thread_group, recvr=self.this)
+        # FIXME: Supporting more than just literal types would require moving
+        # the tile size check into the lowered code. Not difficult but not done
+        # now to keep things simple.
+        if not isinstance(args[0], types.Literal):
+            return None
+        if args[0].literal_value not in (1, 2, 4, 8, 16, 32):
+            return None
+        return signature(thread_group, args[0].literal_type, recvr=self.this)
 
 
 @register_attr

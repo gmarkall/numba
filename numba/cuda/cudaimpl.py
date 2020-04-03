@@ -9,12 +9,13 @@ import llvmlite.binding as ll
 
 from numba.core.imputils import Registry
 from numba.core.typing.npydecl import parse_dtype
+from numba.core.typing.templates import signature
 from numba.core import types, cgutils
 from .cudadrv import nvvm
 from numba import cuda
 from numba.cuda import nvvmutils, stubs
 from numba.cuda.models import GroupType
-from numba.cuda.types import dim3, thread_block, thread_group
+from numba.cuda.types import dim3, thread_block, thread_group, uint24
 
 
 registry = Registry()
@@ -221,6 +222,59 @@ def thread_block_size(context, builder, sig, args):
 def thread_block_sync(context, builder, sig, args):
     # syncthreads takes no arguments - strip off the receiver
     return ptx_syncthreads(context, builder, sig, args[1:])
+
+
+#def get_zero(context, builder, ty):
+#    return cgutils.alloca_once_value(builder, context.get_constant(ty, 0))
+
+@lower('ThreadBlock.tiled_partition', thread_block, types.int64)
+def thread_block_tiled_partition(context, builder, sig, args):
+
+    # from pudb import set_trace; set_trace()
+
+    # Arguments
+    # The receiver
+    this = args[0]
+    # Tile size - requires cast because of Numba typing the literal as int64,
+    # but the arithmetic is all int32.
+    tilesz = context.cast(builder, args[1], types.int64, types.int32)
+    tileszm1 = builder.sub(tilesz, context.get_constant(types.int32, 1))
+
+    # base_offset = thread_block.rank & ~(tilesz - 1)
+    tb_prop_sig = signature(types.uint32, recvr=thread_block)
+    rank = thread_block_thread_rank(context, builder, tb_prop_sig, this)
+    base_offset = builder.and_(rank, builder.not_(tileszm1))
+
+    # masklength = min(thread_block.size - base_offset, tilesz)
+    size = thread_block_size(context, builder, tb_prop_sig, this)
+    size_m_base_offset = builder.sub(size, base_offset)
+    masklength = cgutils.alloca_once(builder, Type.int(32))
+    size_m_base_offset_smaller = builder.icmp_unsigned('<', size_m_base_offset,
+                                                       tilesz)
+    with builder.if_else(size_m_base_offset_smaller) as (then, other):
+        with then:
+            builder.store(size_m_base_offset, masklength)
+        with other:
+            builder.store(tilesz, masklength)
+
+    # mask = 0xFFFFFFFF >> (32 - masklength)
+    mask = builder.lshr(context.get_constant(types.uint32, 0xFFFFFFFF),
+                        builder.sub(context.get_constant(types.uint32, 32),
+                                    builder.load(masklength)))
+
+    # mask <<= laneid & ~(tilesz - 1)
+    laneid = cuda_laneid(context, builder, sig, args)
+    mask = builder.shl(mask, builder.and_(laneid, builder.not_(tileszm1)))
+
+    # Create a new structure for the returned thread group
+    tg = cgutils.create_struct_proxy(sig.return_type)(context, builder)
+    tg.type = context.get_constant(types.uint8, GroupType.CoalescedTile.value)
+    tg.mask = mask
+    mask_popcount = ptx_popc(context, builder, signature(types.uint32,
+                                                         types.uint32), [mask])
+    tg.size = context.cast(builder, mask_popcount, types.uint32, uint24)
+
+    return tg._getvalue()
 
 
 # -----------------------------------------------------------------------------
