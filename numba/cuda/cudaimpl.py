@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from functools import reduce
 import operator
 import math
@@ -13,7 +14,7 @@ from .cudadrv import nvvm
 from numba import cuda
 from numba.cuda import nvvmutils, stubs
 from numba.cuda.models import GroupType
-from numba.cuda.types import dim3, thread_block
+from numba.cuda.types import dim3, thread_block, thread_group
 
 
 registry = Registry()
@@ -140,6 +141,71 @@ def thread_block_thread_rank(context, builder, sig, args):
     return builder.add(tidx, builder.add(t1, t2))
 
 
+@contextmanager
+def if_coalesced_group(context, builder, arg):
+    group_type = builder.extract_value(arg, 0)
+    coalesced = context.get_constant(types.uint8, GroupType.Coalesced.value)
+    coalesced_tile = context.get_constant(types.uint8,
+                                          GroupType.CoalescedTile.value)
+    is_coalesced = builder.icmp_unsigned('==', group_type, coalesced)
+    is_coalesced_tile = builder.icmp_unsigned('==', group_type, coalesced_tile)
+    is_coalesced_group = builder.or_(is_coalesced, is_coalesced_tile)
+
+    with builder.if_else(is_coalesced_group) as cm:
+        yield cm
+
+
+@lower_attr(thread_group, 'thread_rank')
+def thread_group_thread_rank(context, builder, sig, arg):
+    # If type is coalesced then use coalesced thread rank impl
+    # otherwise, use thread block size impl
+    rank = cgutils.alloca_once_value(builder,
+                                     context.get_constant(types.uint32, 0))
+    with if_coalesced_group(context, builder, arg) as (then, otherwise):
+        with then:
+            # Not implemented yet
+            r = context.get_constant(types.uint32, 0xDEADBEEF)
+            builder.store(r, rank)
+        with otherwise:
+            r = thread_block_thread_rank(context, builder, sig, arg)
+            builder.store(r, rank)
+
+    return builder.load(rank)
+
+
+@lower_attr(thread_group, 'size')
+def thread_group_size(context, builder, sig, arg):
+    # If type is coalesced then use coalesced thread rank impl
+    # otherwise, use thread block size impl
+    size = cgutils.alloca_once_value(builder,
+                                     context.get_constant(types.uint32, 0))
+    with if_coalesced_group(context, builder, arg) as (then, otherwise):
+        with then:
+            # Not implemented yet
+            s = context.get_constant(types.uint32, 0xDEADBEEF)
+            builder.store(s, size)
+        with otherwise:
+            s = thread_block_size(context, builder, sig, arg)
+            builder.store(s, size)
+
+    return builder.load(size)
+
+
+@lower('ThreadGroup.sync', thread_group)
+def thread_group_sync(context, builder, sig, args):
+    # If type is coalesced then use coalesced thread rank impl
+    # otherwise, use thread block size impl
+    with if_coalesced_group(context, builder, args[0]) as (then, otherwise):
+        with then:
+            # Not implemented yet
+            r = cgutils.alloca_once_value(builder,
+                                          context.get_constant(types.uint8, 0))
+            #return builder.store(context.get_dummy_value()._getvalue(), dummy)
+        with otherwise:
+            r = thread_block_sync(context, builder, sig, args)
+    return r
+
+
 @lower_attr(thread_block, 'size')
 def thread_block_size(context, builder, sig, args):
     # Implements:
@@ -152,7 +218,7 @@ def thread_block_size(context, builder, sig, args):
 
 
 @lower('ThreadBlock.sync', thread_block)
-def cuda_thread_block_sync(context, builder, sig, args):
+def thread_block_sync(context, builder, sig, args):
     # syncthreads takes no arguments - strip off the receiver
     return ptx_syncthreads(context, builder, sig, args[1:])
 

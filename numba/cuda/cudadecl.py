@@ -4,7 +4,7 @@ from numba.core.typing.npydecl import (parse_dtype, parse_shape,
 from numba.core.typing.templates import (AttributeTemplate, ConcreteTemplate,
                                          AbstractTemplate, CallableTemplate,
                                          signature, Registry)
-from numba.cuda.types import dim3, thread_block
+from numba.cuda.types import dim3, thread_block, thread_group
 from numba import cuda
 
 
@@ -61,6 +61,20 @@ class Cuda_thread_block_sync(AbstractTemplate):
         return signature(types.none, recvr=self.this)
 
 
+class Cuda_thread_group_sync(AbstractTemplate):
+    key = "ThreadGroup.sync"
+
+    def generic(self, args, kws):
+        return signature(types.none, recvr=self.this)
+
+
+class Cuda_thread_block_tiled_partition(AbstractTemplate):
+    key = "ThreadBlock.tiled_partition"
+
+    def generic(self, args, kws):
+        return signature(thread_group, recvr=self.this)
+
+
 @register_attr
 class ThreadBlock_attrs(AttributeTemplate):
     key = thread_block
@@ -74,6 +88,23 @@ class ThreadBlock_attrs(AttributeTemplate):
     def resolve_sync(self, mod):
         return types.BoundFunction(Cuda_thread_block_sync, thread_block)
 
+    def resolve_tiled_partition(self, mod):
+        return types.BoundFunction(Cuda_thread_block_tiled_partition,
+                                   thread_block)
+
+
+@register_attr
+class ThreadGroup_attrs(AttributeTemplate):
+    key = thread_group
+
+    def resolve_size(self, mod):
+        return types.uint32
+
+    def resolve_sync(self, mod):
+        return types.BoundFunction(Cuda_thread_group_sync, thread_group)
+
+    def resolve_thread_rank(self, mod):
+        return types.uint32
 
 class Cuda_array_decl(CallableTemplate):
     def generic(self):
