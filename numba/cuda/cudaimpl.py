@@ -164,9 +164,16 @@ def thread_group_thread_rank(context, builder, sig, arg):
                                      context.get_constant(types.uint32, 0))
     with if_coalesced_group(context, builder, arg) as (then, otherwise):
         with then:
-            # Not implemented yet
-            r = context.get_constant(types.uint32, 0xDEADBEEF)
-            builder.store(r, rank)
+            # Quick hack - use coalesced group size impl in here, but should
+            # probably have coalesced group type.
+            lanemask32_lt = InlineAsm.get(Type.function(Type.int(), []),
+                                           "mov.u32 $0, %lanemask_lt;",
+                                           '=r', side_effect=True)
+            mask_and_lanemask = builder.and_(builder.call(lanemask32_lt, []),
+                                             builder.extract_value(arg, 2))
+            builder.store(ptx_popc(context, builder, signature(types.uint32,
+                                                               types.uint32),
+                                   [mask_and_lanemask]), rank)
         with otherwise:
             r = thread_block_thread_rank(context, builder, sig, arg)
             builder.store(r, rank)
@@ -182,8 +189,10 @@ def thread_group_size(context, builder, sig, arg):
                                      context.get_constant(types.uint32, 0))
     with if_coalesced_group(context, builder, arg) as (then, otherwise):
         with then:
-            # Not implemented yet
-            s = context.get_constant(types.uint32, 0xDEADBEEF)
+            # Quick hack - use coalesced group size impl in here, but should
+            # probably have coalesced group type.
+            s = context.cast(builder, builder.extract_value(arg, 1), uint24,
+                             types.uint32)
             builder.store(s, size)
         with otherwise:
             s = thread_block_size(context, builder, sig, arg)
