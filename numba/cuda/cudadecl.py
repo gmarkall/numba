@@ -58,13 +58,11 @@ class CudaCgModuleTemplate(AttributeTemplate):
         return types.Function(Cuda_cg_this_thread_block)
 
 
-class Cuda_thread_block_sync(CallableTemplate):
+class Cuda_thread_block_sync(AbstractTemplate):
     key = "ThreadBlock.sync"
 
-    def generic(self):
-        def typer():
-            return types.none
-        return typer
+    def generic(self, args, kws):
+        return signature(types.none, recvr=self.this)
 
 
 @register_attr
