@@ -208,9 +208,9 @@ def thread_group_sync(context, builder, sig, args):
     with if_coalesced_group(context, builder, args[0]) as (then, otherwise):
         with then:
             # Not implemented yet
-            r = cgutils.alloca_once_value(builder,
-                                          context.get_constant(types.uint8, 0))
-            #return builder.store(context.get_dummy_value()._getvalue(), dummy)
+            arg = builder.extract_value(args[0], 2)
+            ptx_warp_sync(context, builder, signature(types.none(types.int32)),
+                          (arg,))
         with otherwise:
             r = thread_block_sync(context, builder, sig, args)
     return r
