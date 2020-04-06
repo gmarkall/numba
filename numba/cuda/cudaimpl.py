@@ -123,6 +123,23 @@ def cg_this_thread_block(context, builder, sig, args):
     return ttb._getvalue()
 
 
+@lower(cuda.cg.coalesced_threads)
+def cg_coalesced_threads(context, builder, sig, args):
+    tg = cgutils.create_struct_proxy(sig.return_type)(context, builder)
+
+    # FIXME: Implement as cuda.activemask as well
+    activemask = InlineAsm.get(Type.function(Type.int(), []),
+                               "activemask.b32 $0;", '=r', side_effect=True)
+    mask = builder.call(activemask, [])
+    size = ptx_popc(context, builder, signature(types.uint32, types.uint32),
+                    (mask,))
+
+    tg.type = context.get_constant(types.uint8, GroupType.Coalesced.value)
+    tg.mask = mask
+    tg.size = context.cast(builder, size, types.uint32, uint24)
+    return tg._getvalue()
+
+
 @lower_attr(thread_block, 'thread_rank')
 def thread_block_thread_rank(context, builder, sig, args):
     # Implements:
@@ -166,9 +183,10 @@ def thread_group_thread_rank(context, builder, sig, arg):
         with then:
             # Quick hack - use coalesced group size impl in here, but should
             # probably have coalesced group type.
+            # Note 2: should implement cuda.lanemask_lt
             lanemask32_lt = InlineAsm.get(Type.function(Type.int(), []),
-                                           "mov.u32 $0, %lanemask_lt;",
-                                           '=r', side_effect=True)
+                                          "mov.u32 $0, %lanemask_lt;",
+                                          '=r', side_effect=True)
             mask_and_lanemask = builder.and_(builder.call(lanemask32_lt, []),
                                              builder.extract_value(arg, 2))
             builder.store(ptx_popc(context, builder, signature(types.uint32,
