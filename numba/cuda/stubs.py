@@ -209,6 +209,12 @@ class cg(Stub):
         Return the current thread block.
         '''
 
+    @stub_function
+    def coalesced_threads():
+        '''
+        Return the group of active threads on the current control flow path.
+        '''
+
 
 #-------------------------------------------------------------------------------
 # syncthreads

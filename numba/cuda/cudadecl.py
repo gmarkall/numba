@@ -46,12 +46,21 @@ class Cuda_cg_this_thread_block(ConcreteTemplate):
     cases = [signature(thread_block)]
 
 
+@register
+class Cuda_cg_coalesced_threads(ConcreteTemplate):
+    key = cuda.cg.coalesced_threads
+    cases = [signature(thread_group)]
+
+
 @register_attr
 class CudaCgModuleTemplate(AttributeTemplate):
     key = types.Module(cuda.cg)
 
     def resolve_this_thread_block(self, mod):
         return types.Function(Cuda_cg_this_thread_block)
+
+    def resolve_coalesced_threads(self, mod):
+        return types.Function(Cuda_cg_coalesced_threads)
 
 
 class Cuda_thread_block_sync(AbstractTemplate):
@@ -66,6 +75,20 @@ class Cuda_thread_group_sync(AbstractTemplate):
 
     def generic(self, args, kws):
         return signature(types.none, recvr=self.this)
+
+
+class Cuda_thread_group_ballot(AbstractTemplate):
+    key = "ThreadGroup.ballot"
+
+    def generic(self, args, kws):
+        return signature(types.uint32, args[0], recvr=self.this)
+
+
+class Cuda_thread_group_shfl(AbstractTemplate):
+    key = "ThreadGroup.shfl"
+
+    def generic(self, args, kws):
+        return signature(types.uint32, args[0], recvr=self.this)
 
 
 class Cuda_thread_block_tiled_partition(AbstractTemplate):
@@ -112,6 +135,13 @@ class ThreadGroup_attrs(AttributeTemplate):
 
     def resolve_thread_rank(self, mod):
         return types.uint32
+
+    def resolve_ballot(self, mod):
+        return types.BoundFunction(Cuda_thread_group_ballot, thread_group)
+
+    def resolve_shfl(self, mod):
+        return types.BoundFunction(Cuda_thread_group_shfl, thread_group)
+
 
 class Cuda_array_decl(CallableTemplate):
     def generic(self):
