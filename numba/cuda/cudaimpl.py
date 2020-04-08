@@ -22,6 +22,7 @@ from numba.cuda.types import (dim3, thread_block, thread_group,
 registry = Registry()
 lower = registry.lower
 lower_attr = registry.lower_getattr
+lower_cast = registry.lower_cast
 
 
 def initialize_dim3(builder, prefix):
@@ -363,6 +364,42 @@ def thread_group_ballot(context, builder, sig, args):
     return builder.load(res)
 
 
+#@lower('CoalescedGroup.shfl', coalesced_group, types.Integer, types.uint32)
+#@lower('CoalescedGroup.shfl', coalesced_group, types.Float, types.uint32)
+#def thread_group_shfl(context, builder, sig, args):
+#    from pudb import set_trace; set_trace()
+#    this, var, src_rank = args
+#    zero = context.get_constant(Type.int(32), 0)
+#    _32 = context.get_constant(Type.int(32), 32)
+#    lane = cgutils.alloca_once(builder, Type.int(32))
+#    mask = builder.extract_value(this, 2)
+#    with builder.if_else(builder.icmp_unsigned('==', src_rank, zero)) as (then,
+#                                                                        other):
+#        with then:
+#            ffs_sig = signature(types.uint32, types.uint32)
+#            builder.store(builder.add(ptx_ffs(context, builder, ffs_sig, mask),
+#                                      context.get_constant(Type.int(32), 1)),
+#                          lane)
+#        with other:
+#            size_sig = signature(types.uint32, recvr=thread_group)
+#            size = thread_group_size(context, builder, size_sig, this)
+#            with builder.if_else(builder.icmp_unsigned('==', size, _32)) \
+#                    as (then2, other2):
+#                with then2:
+#                    builder.store(src_rank, lane)
+#                with other2:
+#                    ptx_fns
+#                    builder.store()
+#
+
+
+#@lower_cast(coalesced_group, thread_group)
+#def cast_coaleseced_group_to_thread_group(context, builder, fromty, toty, val):
+#    # Coalesced groups and thread groups share the same data model, so no
+#    # modification needed.
+#    return val
+
+
 # -----------------------------------------------------------------------------
 
 @lower(cuda.const.array_like, types.Array)
@@ -645,6 +682,14 @@ def ptx_clz(context, builder, sig, args):
 
 @lower(stubs.ffs, types.Any)
 def ptx_ffs(context, builder, sig, args):
+    return builder.cttz(
+        args[0],
+        context.get_constant(types.boolean, 0))
+
+
+# Need stub implementation to register lowering for
+#@lower(stubs.fns, types.Any)
+def ptx_fns(context, builder, sig, args):
     return builder.cttz(
         args[0],
         context.get_constant(types.boolean, 0))

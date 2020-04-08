@@ -86,11 +86,11 @@ class Cuda_coalesced_group_ballot(AbstractTemplate):
         return signature(types.uint32, args[0], recvr=self.this)
 
 
-class Cuda_thread_group_shfl(AbstractTemplate):
-    key = "ThreadGroup.shfl"
+class Cuda_coalesced_group_shfl(AbstractTemplate):
+    key = "CoalescedGroup.shfl"
 
     def generic(self, args, kws):
-        return signature(types.uint32, args[0], recvr=self.this)
+        return signature(args[0], args[0], types.uint32, recvr=self.this)
 
 
 class Cuda_thread_block_tiled_partition(AbstractTemplate):
@@ -138,9 +138,6 @@ class ThreadGroup_attrs(AttributeTemplate):
     def resolve_thread_rank(self, mod):
         return types.uint32
 
-    def resolve_shfl(self, mod):
-        return types.BoundFunction(Cuda_thread_group_shfl, thread_group)
-
 
 @register_attr
 class CoalescedGroup_attrs(ThreadGroup_attrs):
@@ -148,6 +145,9 @@ class CoalescedGroup_attrs(ThreadGroup_attrs):
 
     def resolve_ballot(self, mod):
         return types.BoundFunction(Cuda_coalesced_group_ballot, coalesced_group)
+
+    def resolve_shfl(self, mod):
+        return types.BoundFunction(Cuda_coalesced_group_shfl, coalesced_group)
 
 
 class Cuda_array_decl(CallableTemplate):
