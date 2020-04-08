@@ -1,7 +1,8 @@
 from enum import Enum
 from numba.core.extending import register_model, models
 from numba.core import types
-from numba.cuda.types import Dim3, ThreadGroup, ThreadBlock, uint24
+from numba.cuda.types import (Dim3, ThreadGroup, ThreadBlock, CoalescedGroup,
+                              CoalescedTile, uint24)
 
 
 @register_model(Dim3)
@@ -17,6 +18,8 @@ class Dim3Model(models.StructModel):
 
 @register_model(ThreadGroup)
 @register_model(ThreadBlock)
+@register_model(CoalescedGroup)
+@register_model(CoalescedTile)
 class ThreadGroupModel(models.StructModel):
     # A simplification of the type in CUDA C/C++. We don't use a union, simply
     # a representation the same as thread_group.coalesced. (need some more

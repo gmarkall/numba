@@ -15,7 +15,8 @@ from .cudadrv import nvvm
 from numba import cuda
 from numba.cuda import nvvmutils, stubs
 from numba.cuda.models import GroupType
-from numba.cuda.types import dim3, thread_block, thread_group, uint24
+from numba.cuda.types import (dim3, thread_block, thread_group,
+                              coalesced_group, uint24)
 
 
 registry = Registry()
@@ -173,6 +174,9 @@ def if_coalesced_group(context, builder, arg):
         yield cm
 
 
+# Do we need one implementation comparing at runtime? Could we make this work
+# with one implementation per type and no branch?
+@lower_attr(coalesced_group, 'thread_rank')
 @lower_attr(thread_group, 'thread_rank')
 def thread_group_thread_rank(context, builder, sig, arg):
     # If type is coalesced then use coalesced thread rank impl
@@ -302,6 +306,61 @@ def thread_block_tiled_partition(context, builder, sig, args):
     tg.size = context.cast(builder, mask_popcount, types.uint32, uint24)
 
     return tg._getvalue()
+
+
+def _pack_lanes(context, builder, this, lane_mask):
+    member_pack = cgutils.alloca_once(builder, Type.int(32))
+    member_rank = cgutils.alloca_once(builder, Type.int(32))
+    one = context.get_constant(types.uint32, 1)
+    zero = context.get_constant(types.uint32, 0)
+
+    builder.store(zero, member_pack)
+    builder.store(zero, member_rank)
+
+    with cgutils.for_range(builder, 32, intp=Type.int(32)) as bit:
+        lane_bit = builder.and_(builder.extract_value(this, 2),
+                                builder.shl(one, bit.index))
+        with builder.if_then(builder.icmp_unsigned('!=', lane_bit, zero)):
+            mask_and_bit = builder.and_(lane_mask, lane_bit)
+            with builder.if_then(builder.icmp_unsigned('!=', mask_and_bit,
+                                                       zero)):
+                orred = builder.or_(builder.load(member_pack),
+                                    builder.shl(one, builder.load(member_rank)))
+                builder.store(orred, member_pack)
+            builder.store(builder.add(builder.load(member_rank), one),
+                          member_rank)
+
+    return builder.load(member_pack)
+
+
+@lower('CoalescedGroup.ballot', coalesced_group, types.boolean)
+def thread_group_ballot(context, builder, sig, args):
+    res = cgutils.alloca_once(builder, Type.int(32))
+
+    size_sig = signature(types.uint32, recvr=thread_group),
+    size = thread_group_size(context, builder, size_sig, args[0])
+    _32 = context.get_constant(types.uint32, 32)
+
+    vote_sig = signature(types.i4, types.i4, types.boolean)
+
+    with builder.if_else(builder.icmp_unsigned('==', size, _32)) as (then,
+                                                                     other):
+        with then:
+            vote_args = (context.get_constant(types.int32, 3),
+                         context.get_constant(types.uint32, 0xFFFFFFFF),
+                         args[1])
+            lane_ballot = ptx_vote_sync(context, builder, vote_sig, vote_args)
+            builder.store(builder.extract_value(lane_ballot, 0), res)
+        with other:
+            vote_args = (context.get_constant(types.int32, 3),
+                         builder.extract_value(args[0], 2), # mask
+                         args[1])
+            lane_ballot = ptx_vote_sync(context, builder, vote_sig, vote_args)
+            builder.store(_pack_lanes(context, builder, args[0],
+                                      builder.extract_value(lane_ballot, 0)),
+                          res)
+
+    return builder.load(res)
 
 
 # -----------------------------------------------------------------------------

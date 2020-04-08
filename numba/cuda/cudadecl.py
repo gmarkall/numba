@@ -4,7 +4,7 @@ from numba.core.typing.npydecl import (parse_dtype, parse_shape,
 from numba.core.typing.templates import (AttributeTemplate, ConcreteTemplate,
                                          AbstractTemplate, CallableTemplate,
                                          signature, Registry)
-from numba.cuda.types import dim3, thread_block, thread_group
+from numba.cuda.types import dim3, thread_block, thread_group, coalesced_group
 from numba import cuda
 
 
@@ -49,7 +49,7 @@ class Cuda_cg_this_thread_block(ConcreteTemplate):
 @register
 class Cuda_cg_coalesced_threads(ConcreteTemplate):
     key = cuda.cg.coalesced_threads
-    cases = [signature(thread_group)]
+    cases = [signature(coalesced_group)]
 
 
 @register_attr
@@ -77,10 +77,12 @@ class Cuda_thread_group_sync(AbstractTemplate):
         return signature(types.none, recvr=self.this)
 
 
-class Cuda_thread_group_ballot(AbstractTemplate):
-    key = "ThreadGroup.ballot"
+class Cuda_coalesced_group_ballot(AbstractTemplate):
+    key = "CoalescedGroup.ballot"
 
     def generic(self, args, kws):
+        if not isinstance(args[0], types.Boolean):
+            return None
         return signature(types.uint32, args[0], recvr=self.this)
 
 
@@ -136,11 +138,16 @@ class ThreadGroup_attrs(AttributeTemplate):
     def resolve_thread_rank(self, mod):
         return types.uint32
 
-    def resolve_ballot(self, mod):
-        return types.BoundFunction(Cuda_thread_group_ballot, thread_group)
-
     def resolve_shfl(self, mod):
         return types.BoundFunction(Cuda_thread_group_shfl, thread_group)
+
+
+@register_attr
+class CoalescedGroup_attrs(ThreadGroup_attrs):
+    key = coalesced_group
+
+    def resolve_ballot(self, mod):
+        return types.BoundFunction(Cuda_coalesced_group_ballot, coalesced_group)
 
 
 class Cuda_array_decl(CallableTemplate):
