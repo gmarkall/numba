@@ -200,7 +200,7 @@ class const(Stub):
 
 class cg(Stub):
     '''
-    Cooperative groups
+    Namespace for Cooperative Groups functions.
     '''
 
     @stub_function
@@ -208,6 +208,32 @@ class cg(Stub):
         '''
         Return the current thread block.
         '''
+
+
+class ThreadGroup(Stub):
+    """A handle to a group of threads."""
+
+    @property
+    def size(self):
+        """The total number of threads in the group."""
+
+    @property
+    def thread_rank(self):
+        """The index of the current thread (between `0` and `self.size - 1`)
+        within the group."""
+
+    def sync(self):
+        """Perform a barrier synchronization amongst all threads in the
+        group."""
+
+
+class ThreadBlock(ThreadGroup):
+    """A handle to the group of all threads in the thread block."""
+
+    def tiled_partition(self, size):
+        """Creates new thread groups by partitioning threads within this block
+        into multiple "tiles" of size `size`. Size must be a power of two
+        between 2 and 32."""
 
 
 #-------------------------------------------------------------------------------
