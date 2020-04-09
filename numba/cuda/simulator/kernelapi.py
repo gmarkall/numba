@@ -105,29 +105,35 @@ caslock = threading.Lock()
 class FakeCUDAAtomic(object):
     def add(self, array, index, val):
         with addlock:
+            old = array[index]
             array[index] += val
+        return old
 
     def max(self, array, index, val):
         with maxlock:
+            old = array[index]
             # CUDA Python's semantics for max differ from Numpy's Python's,
             # so we have special handling here (CUDA Python treats NaN as
             # missing data).
-            if np.isnan(array[index]):
+            if np.isnan(old):
                 array[index] = val
             elif np.isnan(val):
-                return
-            array[index] = max(array[index], val)
+                return old
+            array[index] = max(old, val)
+        return old
 
     def min(self, array, index, val):
         with minlock:
+            old = array[index]
             # CUDA Python's semantics for min differ from Numpy's Python's,
             # so we have special handling here (CUDA Python treats NaN as
             # missing data).
             if np.isnan(array[index]):
                 array[index] = val
             elif np.isnan(val):
-                return
+                return old
             array[index] = min(array[index], val)
+        return old
 
     def compare_and_swap(self, array, old, val):
         with caslock:
