@@ -598,9 +598,7 @@ class GUFuncEngine(object):
             oshapes.append(tuple(oshape))
 
         # find the biggest outershape as looping dimension
-        sizes = [reduce(operator.mul, s, 1) for s in outer_shapes]
-        largest_i = np.argmax(sizes)
-        loopdims = outer_shapes[largest_i]
+        loopdims = [reduce(operator.mul, s, 1) for s in outer_shapes]
 
         pinned = [False] * self.nin  # same argument for each iteration
         for i, d in enumerate(outer_shapes):
@@ -608,8 +606,9 @@ class GUFuncEngine(object):
                 if d == (1,) or d == ():
                     pinned[i] = True
                 else:
-                    fmt = "arg #%d: outer dimension mismatch"
-                    raise ValueError(fmt % (i + 1,))
+                    fmt = "Warning: arg #%d: outer dimension mismatch"
+                    #raise ValueError(fmt % (i + 1,))
+                    print(fmt % (i + 1,))
 
         return GUFuncSchedule(self, inner_shapes, oshapes, loopdims, pinned)
 
@@ -626,7 +625,7 @@ class GUFuncSchedule(object):
         # flags
         self.pinned = pinned
 
-        self.output_shapes = [loopdims + s for s in oshapes]
+        self.output_shapes = [loopdims + list(s) for s in oshapes]
 
     def __str__(self):
         import pprint
@@ -697,7 +696,7 @@ class GenerializedUFunc(object):
     def _broadcast(self, schedule, params, retval):
         assert schedule.loopn > 0, "zero looping dimension"
 
-        odim = 1 if not schedule.loopdims else schedule.loopn
+        odim = schedule.loopdims or (1,)
         newparams = []
         for p, cs in zip(params, schedule.ishapes):
             if not cs and p.size == 1:
@@ -707,11 +706,12 @@ class GenerializedUFunc(object):
             else:
                 # Broadcast vector input
                 newparams.append(self._broadcast_array(p, odim, cs))
-        newretval = retval.reshape(odim, *schedule.oshapes[0])
+        newretshape = odim + list(schedule.oshapes[0])
+        newretval = retval.reshape(*newretshape)
         return newparams, newretval
 
     def _broadcast_array(self, ary, newdim, innerdim):
-        newshape = (newdim,) + innerdim
+        newshape = newdim + list(innerdim)
         # No change in shape
         if ary.shape == newshape:
             return ary
@@ -722,12 +722,19 @@ class GenerializedUFunc(object):
                "cannot add dim and reshape at the same time"
             return self._broadcast_add_axis(ary, newshape)
 
+        # Stretching dimensions
+        elif len(ary.shape) == len(newshape):
+            return self._broadcast_stretch_axis(ary, newshape)
+
         # Collapsing dimension
         else:
             return ary.reshape(*newshape)
 
     def _broadcast_add_axis(self, ary, newshape):
         raise NotImplementedError("cannot add new axis")
+
+    def _broadcast_stretch_axis(self, ary, newshape):
+        raise NotImplemented("cannot stretch axis")
 
     def _broadcast_scalar_input(self, ary, shape):
         raise NotImplementedError

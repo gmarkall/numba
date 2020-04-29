@@ -186,6 +186,21 @@ class CUDAGenerializedUFunc(GenerializedUFunc):
                                          dtype=ary.dtype,
                                          gpu_data=ary.gpu_data)
 
+    def _broadcast_stretch_axis(self, ary, newshape):
+        newstrides = []
+        for i, (old, new) in enumerate(zip(ary.shape, newshape)):
+            if old == new:
+                newstrides.append(ary.strides[i])
+            else:
+                if old != 1:
+                    raise ValueError('Cannot broadcast axis != 1')
+                newstrides.append(0)
+
+        return devicearray.DeviceNDArray(shape=newshape,
+                                         strides=newstrides,
+                                         dtype=ary.dtype,
+                                         gpu_data=ary.gpu_data)
+
 
 class CUDAUFuncMechanism(UFuncMechanism):
     """
