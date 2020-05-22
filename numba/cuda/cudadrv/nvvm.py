@@ -67,6 +67,11 @@ class NVVM(object):
         # nvvmResult nvvmVersion(int *major, int *minor)
         'nvvmVersion': (nvvm_result, POINTER(c_int), POINTER(c_int)),
 
+        # nvvmResult nvvmIRVersion(int *majorIR, int *minorIR, int *majorDbg,
+        #                          int *minorDbg)
+        'nvvmIRVersion': (nvvm_result, POINTER(c_int), POINTER(c_int),
+                          POINTER(c_int), POINTER(c_int)),
+
         # nvvmResult nvvmCreateProgram(nvvmProgram *cu)
         'nvvmCreateProgram': (nvvm_result, POINTER(nvvm_program)),
 
@@ -129,6 +134,18 @@ class NVVM(object):
         err = self.nvvmVersion(byref(major), byref(minor))
         self.check_error(err, 'Failed to get version.')
         return major.value, minor.value
+
+    def get_ir_version(self):
+        majorIR = c_int()
+        minorIR = c_int()
+        majorDbg = c_int()
+        minorDbg = c_int()
+        err = self.nvvmIRVersion(byref(majorIR), byref(minorIR), (majorDbg),
+                                 byref(minorDbg))
+        self.check_error(err, 'Failed to get version.')
+        return ((majorIR.value, minorIR.value),
+                (majorDbg.value, minorDbg.value))
+
 
     def check_error(self, error, msg, exit=False):
         if error:
