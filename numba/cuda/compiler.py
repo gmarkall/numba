@@ -1,6 +1,8 @@
 import ctypes
 import os
+import subprocess
 import sys
+import tempfile
 
 import numpy as np
 
@@ -188,6 +190,7 @@ class DeviceFunctionTemplate(object):
         -------
         llvmir : str
         """
+        self.compile(args)
         cres = self._compileinfos[args]
         mod = cres.library._final_module
         return str(mod)
@@ -206,6 +209,7 @@ class DeviceFunctionTemplate(object):
         -------
         ptx : bytes
         """
+        self.compile(args)
         llvmir = self.inspect_llvm(args)
         # Make PTX
         cuctx = get_context()
@@ -214,6 +218,46 @@ class DeviceFunctionTemplate(object):
         arch = nvvm.get_arch_option(*cc)
         ptx = nvvm.llvm_to_ptx(llvmir, opt=3, arch=arch, **nvvm_options)
         return ptx
+
+    def inspect_sass(self, args, nvvm_options={}):
+        """Returns the SASS compiled for *args* for the currently active GPU
+
+        Parameters
+        ----------
+        args: tuple[Type]
+            Argument types.
+        nvvm_options : dict; optional
+            See `CompilationUnit.compile` in `numba/cuda/cudadrv/nvvm.py`.
+
+        Returns
+        -------
+        ptx : bytes
+        """
+        self.compile(args)
+        ptx = self.inspect_ptx(args, nvvm_options)
+        linker = driver.Linker()
+        linker.add_ptx(ptx)
+        cubin, size = linker.complete()
+        cubin_ptr = ctypes.cast(cubin, ctypes.POINTER(ctypes.c_char))
+        data = np.ctypeslib.as_array(cubin_ptr, shape=(size,))
+
+        # nvdisasm only accepts input from a file, so we need to write out to a
+        # temp file and clean up afterwards.
+        fd = None
+        fname = None
+        try:
+            fd, fname = tempfile.mkstemp()
+            with open(fname, 'wb') as f:
+                f.write(data)
+
+            cp = subprocess.run(['nvdisasm', fname], check=True,
+                                capture_output=True)
+            return cp.stdout.decode('utf-8')
+        finally:
+            if fd is not None:
+                os.close(fd)
+            if fname is not None:
+                os.unlink(fname)
 
 
 def compile_device_template(pyfunc, debug=False, inline=False):
@@ -452,6 +496,7 @@ class CachedCUFunction(object):
         self.linking = linking
         self.cache = {}
         self.ccinfos = {}
+        self.cubins = {}
         self.max_registers = max_registers
 
     def get(self):
@@ -466,15 +511,45 @@ class CachedCUFunction(object):
             linker.add_ptx(ptx)
             for path in self.linking:
                 linker.add_file_guess_ext(path)
-            cubin, _size = linker.complete()
+            cubin, size = linker.complete()
             compile_info = linker.info_log
             module = cuctx.create_module_image(cubin)
 
             # Load
             cufunc = module.get_function(self.entry_name)
+
+            # Populate caches
             self.cache[device.id] = cufunc
             self.ccinfos[device.id] = compile_info
+            # We take a copy of the cubin because it's owned by the linker
+            cubin_ptr = ctypes.cast(cubin, ctypes.POINTER(ctypes.c_char))
+            cubin_data = np.ctypeslib.as_array(cubin_ptr, shape=(size,)).copy()
+            self.cubins[device.id] = cubin_data
         return cufunc
+
+    def get_sass(self):
+        self.get()  # trigger compilation
+        cuctx = get_context()
+        device = cuctx.device
+        data = self.cubins[device.id]
+
+        # nvdisasm only accepts input from a file, so we need to write out to a
+        # temp file and clean up afterwards.
+        fd = None
+        fname = None
+        try:
+            fd, fname = tempfile.mkstemp()
+            with open(fname, 'wb') as f:
+                f.write(data)
+
+            cp = subprocess.run(['nvdisasm', fname], check=True,
+                                capture_output=True)
+            return cp.stdout.decode('utf-8')
+        finally:
+            if fd is not None:
+                os.close(fd)
+            if fname is not None:
+                os.unlink(fname)
 
     def get_info(self):
         self.get()   # trigger compilation
@@ -610,6 +685,15 @@ class CUDAKernel(CUDAKernelBase):
         Returns the PTX code for this kernel.
         '''
         return self._func.ptx.get().decode('ascii')
+
+    def inspect_sass(self):
+        '''
+        Returns the SASS code for this kernel.
+
+        SASS is produced by writing a cubin to a tempfile and invoking nvdisasm
+        on it.
+        '''
+        return self._func.get_sass()
 
     def inspect_types(self, file=None):
         '''
@@ -859,15 +943,28 @@ class AutoJitCUDAKernel(CUDAKernelBase):
 
     def inspect_asm(self, signature=None, compute_capability=None):
         '''
-        Return the generated assembly code for all signatures encountered thus
-        far, or the LLVM IR for a specific signature and compute_capability
-        if given.
+        Return the generated PTX assembly code for all signatures encountered
+        thus far, or the PTX assembly code for a specific signature and
+        compute_capability if given.
         '''
         cc = compute_capability or get_current_device().compute_capability
         if signature is not None:
             return self.definitions[(cc, signature)].inspect_asm()
         else:
             return dict((sig, defn.inspect_asm())
+                        for sig, defn in self.definitions.items())
+
+    def inspect_sass(self, signature=None, compute_capability=None):
+        '''
+        Return the generated SASS code for all signatures encountered thus
+        far, or the SASS code for a specific signature and compute_capability
+        if given.
+        '''
+        cc = compute_capability or get_current_device().compute_capability
+        if signature is not None:
+            return self.definitions[(cc, signature)].inspect_sass()
+        else:
+            return dict((sig, defn.inspect_sass())
                         for sig, defn in self.definitions.items())
 
     def inspect_types(self, file=None):
