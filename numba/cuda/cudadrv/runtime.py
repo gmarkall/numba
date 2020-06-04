@@ -41,6 +41,7 @@ class Runtime:
         # lazily initialize logger
         global _logger
         _logger = make_logger()
+        self.is_initialized = True
 
     def __getattr__(self, fname):
         # First request of a runtime API function
