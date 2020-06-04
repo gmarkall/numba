@@ -293,7 +293,6 @@ class Driver(object):
         def safe_cuda_api_call(*args):
             _logger.debug('call driver api: %s', libfn.__name__)
             retcode = libfn(*args)
-            from pudb import set_trace; set_trace()
             self._check_error(fname, retcode)
         return safe_cuda_api_call
 

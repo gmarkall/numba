@@ -221,5 +221,16 @@ class Runtime:
         setattr(self, fname, absent_function)
         return absent_function
 
+    def get_version(self):
+        """
+        Returns the CUDA Runtime version as a tuple (major, minor).
+        """
+        rtver = ctypes.c_int()
+        self.cudaRuntimeGetVersion(ctypes.byref(rtver))
+        # The version is encoded as (1000 * major) + (10 * minor)
+        major = rtver.value // 1000
+        minor = (rtver.value - (major * 1000)) // 10
+        return (major, minor)
+
 
 runtime = Runtime()
