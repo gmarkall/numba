@@ -275,8 +275,7 @@ default_data_layout = data_layout[tuple.__itemsize__ * 8]
 
 try:
     from numba.cuda.cudart.runtime import runtime
-    cudart_version = runtime.get_version()
-    cudart_version_major = cudart_version[0]
+    cudart_version_major = runtime.get_version()[0]
 except:
     # The CUDA Runtime may not be present
     cudart_version_major = 0
@@ -290,7 +289,7 @@ elif cudart_version_major < 9:
 elif cudart_version_major < 10:
     # CUDA 9.x
     SUPPORTED_CC = (3, 0), (3, 5), (5, 0), (5, 2), (5, 3), (6, 0), (6, 1), (6, 2), (7, 0)
-elif cudart_version_major < 10:
+elif cudart_version_major < 11:
     # CUDA 10.x
     SUPPORTED_CC = (3, 0), (3, 5), (5, 0), (5, 2), (5, 3), (6, 0), (6, 1), (6, 2), (7, 0), (7, 2), (7, 5)
 else:
