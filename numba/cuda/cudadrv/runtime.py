@@ -3,10 +3,10 @@ import functools
 
 from numba.core import config
 from numba.cuda.cudadrv.driver import ERROR_MAP, make_logger
+from numba.cuda.cudadrv.error import CudaSupportError, CudaRuntimeError
 from numba.cuda.cudadrv.libs import open_cudalib
 from numba.cuda.cudadrv.rtapi import API_PROTOTYPES
 from numba.cuda.cudadrv import enums
-from numba.cuda.errors import CudaSupportError, CudaRuntimeError
 
 
 class CudaRuntimeAPIError(CudaRuntimeError):

@@ -31,13 +31,12 @@ from collections import namedtuple, deque
 
 from numba import mviewbuf
 from numba.core import utils, errors, serialize, config
-from .error import CudaDriverError
+from .error import CudaSupportError, CudaDriverError
 from .drvapi import API_PROTOTYPES
 from .drvapi import cu_occupancy_b2d_size
 from numba.cuda.cudadrv import enums, drvapi, _extras
 from numba.core.utils import longint as long
 from numba.cuda.envvars import get_numba_envvar
-from numba.cuda.errors import CudaSupportError
 
 
 VERBOSE_JIT_LOG = int(get_numba_envvar('VERBOSE_CU_JIT_LOG', 1))
