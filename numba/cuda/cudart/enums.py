@@ -1,1 +1,0 @@
-cudaSuccess = 0
