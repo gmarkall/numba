@@ -1,53 +1,12 @@
 import ctypes
 import functools
-import logging
-import sys
 
-from numba.core import config, utils
+from numba.core import config
+from numba.cuda.cudadrv.driver import ERROR_MAP, make_logger
 from numba.cuda.cudadrv.libs import open_cudalib
-from numba.cuda.cudart.rtapi import API_PROTOTYPES
+from numba.cuda.cudadrv.rtapi import API_PROTOTYPES
 from numba.cuda.cudadrv import enums
 from numba.cuda.errors import CudaSupportError, CudaRuntimeError
-
-
-def _make_logger():
-    logger = logging.getLogger(__name__)
-    # is logging configured?
-    if not logger.hasHandlers():
-        # read user config
-        lvl = str(config.CUDA_LOG_LEVEL).upper()
-        lvl = getattr(logging, lvl, None)
-        if not isinstance(lvl, int):
-            # default to critical level
-            lvl = logging.CRITICAL
-        logger.setLevel(lvl)
-        # did user specify a level?
-        if config.CUDA_LOG_LEVEL:
-            # create a simple handler that prints to stderr
-            handler = logging.StreamHandler(sys.stderr)
-            fmt = '== CUDA [%(relativeCreated)d] %(levelname)5s -- %(message)s'
-            handler.setFormatter(logging.Formatter(fmt=fmt))
-            logger.addHandler(handler)
-        else:
-            # otherwise, put a null handler
-            logger.addHandler(logging.NullHandler())
-    return logger
-
-
-MISSING_FUNCTION_ERRMSG = "runtime missing function: %s."
-
-
-def _build_reverse_error_map():
-    prefix = 'CUDA_ERROR'
-    map = utils.UniqueDict()
-    for name in dir(enums):
-        if name.startswith(prefix):
-            code = getattr(enums, name)
-            map[code] = name
-    return map
-
-
-ERROR_MAP = _build_reverse_error_map()
 
 
 class CudaRuntimeAPIError(CudaRuntimeError):
@@ -81,7 +40,7 @@ class Runtime:
     def initialize(self):
         # lazily initialize logger
         global _logger
-        _logger = _make_logger()
+        _logger = make_logger()
 
     def __getattr__(self, fname):
         # First request of a runtime API function
@@ -132,7 +91,8 @@ class Runtime:
         # Not found.
         # Delay missing function error to use
         def absent_function(*args, **kws):
-            raise CudaRuntimeError(MISSING_FUNCTION_ERRMSG % fname)
+            msg = "runtime missing function: %s."
+            raise CudaRuntimeError(msg % fname)
 
         setattr(self, fname, absent_function)
         return absent_function

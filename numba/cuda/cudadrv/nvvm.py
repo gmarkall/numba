@@ -274,7 +274,7 @@ default_data_layout = data_layout[tuple.__itemsize__ * 8]
 
 
 try:
-    from numba.cuda.cudart.runtime import runtime
+    from numba.cuda.cudadrv.runtime import runtime
     cudart_version_major = runtime.get_version()[0]
 except:
     # The CUDA Runtime may not be present
