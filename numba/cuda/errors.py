@@ -1,6 +1,14 @@
 import numbers
 
 
+class CudaRuntimeError(Exception):
+    pass
+
+
+class CudaSupportError(ImportError):
+    pass
+
+
 class KernelRuntimeError(RuntimeError):
     def __init__(self, msg, tid=None, ctaid=None):
         self.tid = tid

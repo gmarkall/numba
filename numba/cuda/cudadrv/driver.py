@@ -31,12 +31,13 @@ from collections import namedtuple, deque
 
 from numba import mviewbuf
 from numba.core import utils, errors, serialize, config
-from .error import CudaSupportError, CudaDriverError
+from .error import CudaDriverError
 from .drvapi import API_PROTOTYPES
 from .drvapi import cu_occupancy_b2d_size
 from numba.cuda.cudadrv import enums, drvapi, _extras
 from numba.core.utils import longint as long
 from numba.cuda.envvars import get_numba_envvar
+from numba.cuda.errors import CudaSupportError
 
 
 VERBOSE_JIT_LOG = int(get_numba_envvar('VERBOSE_CU_JIT_LOG', 1))
@@ -292,6 +293,7 @@ class Driver(object):
         def safe_cuda_api_call(*args):
             _logger.debug('call driver api: %s', libfn.__name__)
             retcode = libfn(*args)
+            from pudb import set_trace; set_trace()
             self._check_error(fname, retcode)
         return safe_cuda_api_call
 
