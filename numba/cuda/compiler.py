@@ -131,6 +131,26 @@ def compile_ptx_for_current_device(pyfunc, args, debug=False, device=False,
                        fastmath=fastmath, cc=cc, opt=True)
 
 
+def disassemble_cubin(cubin):
+    # nvdisasm only accepts input from a file, so we need to write out to a
+    # temp file and clean up afterwards.
+    fd = None
+    fname = None
+    try:
+        fd, fname = tempfile.mkstemp()
+        with open(fname, 'wb') as f:
+            f.write(cubin)
+
+        cp = subprocess.run(['nvdisasm', fname], check=True,
+                            capture_output=True)
+        return cp.stdout.decode('utf-8')
+    finally:
+        if fd is not None:
+            os.close(fd)
+        if fname is not None:
+            os.unlink(fname)
+
+
 class DeviceFunctionTemplate(object):
     """Unmaterialized device function
     """
@@ -190,7 +210,6 @@ class DeviceFunctionTemplate(object):
         -------
         llvmir : str
         """
-        self.compile(args)
         cres = self._compileinfos[args]
         mod = cres.library._final_module
         return str(mod)
@@ -209,7 +228,6 @@ class DeviceFunctionTemplate(object):
         -------
         ptx : bytes
         """
-        self.compile(args)
         llvmir = self.inspect_llvm(args)
         # Make PTX
         cuctx = get_context()
@@ -218,46 +236,6 @@ class DeviceFunctionTemplate(object):
         arch = nvvm.get_arch_option(*cc)
         ptx = nvvm.llvm_to_ptx(llvmir, opt=3, arch=arch, **nvvm_options)
         return ptx
-
-    def inspect_sass(self, args, nvvm_options={}):
-        """Returns the SASS compiled for *args* for the currently active GPU
-
-        Parameters
-        ----------
-        args: tuple[Type]
-            Argument types.
-        nvvm_options : dict; optional
-            See `CompilationUnit.compile` in `numba/cuda/cudadrv/nvvm.py`.
-
-        Returns
-        -------
-        ptx : bytes
-        """
-        self.compile(args)
-        ptx = self.inspect_ptx(args, nvvm_options)
-        linker = driver.Linker()
-        linker.add_ptx(ptx)
-        cubin, size = linker.complete()
-        cubin_ptr = ctypes.cast(cubin, ctypes.POINTER(ctypes.c_char))
-        data = np.ctypeslib.as_array(cubin_ptr, shape=(size,))
-
-        # nvdisasm only accepts input from a file, so we need to write out to a
-        # temp file and clean up afterwards.
-        fd = None
-        fname = None
-        try:
-            fd, fname = tempfile.mkstemp()
-            with open(fname, 'wb') as f:
-                f.write(data)
-
-            cp = subprocess.run(['nvdisasm', fname], check=True,
-                                capture_output=True)
-            return cp.stdout.decode('utf-8')
-        finally:
-            if fd is not None:
-                os.close(fd)
-            if fname is not None:
-                os.unlink(fname)
 
 
 def compile_device_template(pyfunc, debug=False, inline=False):
@@ -529,27 +507,8 @@ class CachedCUFunction(object):
 
     def get_sass(self):
         self.get()  # trigger compilation
-        cuctx = get_context()
-        device = cuctx.device
-        data = self.cubins[device.id]
-
-        # nvdisasm only accepts input from a file, so we need to write out to a
-        # temp file and clean up afterwards.
-        fd = None
-        fname = None
-        try:
-            fd, fname = tempfile.mkstemp()
-            with open(fname, 'wb') as f:
-                f.write(data)
-
-            cp = subprocess.run(['nvdisasm', fname], check=True,
-                                capture_output=True)
-            return cp.stdout.decode('utf-8')
-        finally:
-            if fd is not None:
-                os.close(fd)
-            if fname is not None:
-                os.unlink(fname)
+        device = get_context().device
+        return disassemble_cubin(self.cubins[device.id])
 
     def get_info(self):
         self.get()   # trigger compilation
