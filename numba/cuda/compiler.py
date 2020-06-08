@@ -648,9 +648,6 @@ class CUDAKernel(CUDAKernelBase):
     def inspect_sass(self):
         '''
         Returns the SASS code for this kernel.
-
-        SASS is produced by writing a cubin to a tempfile and invoking nvdisasm
-        on it.
         '''
         return self._func.get_sass()
 
