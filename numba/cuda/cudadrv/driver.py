@@ -1210,6 +1210,7 @@ def load_module_image(context, image):
         enums.CU_JIT_ERROR_LOG_BUFFER: addressof(jiterrors),
         enums.CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES: c_void_p(logsz),
         enums.CU_JIT_LOG_VERBOSE: c_void_p(VERBOSE_JIT_LOG),
+        enums.CU_JIT_GENERATE_DEBUG_INFO: c_void_p(1)
     }
 
     option_keys = (drvapi.cu_jit_option * len(options))(*options.keys())
@@ -1994,6 +1995,7 @@ class Linker(object):
             enums.CU_JIT_ERROR_LOG_BUFFER: addressof(linkererrors),
             enums.CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES: c_void_p(logsz),
             enums.CU_JIT_LOG_VERBOSE: c_void_p(1),
+            enums.CU_JIT_GENERATE_DEBUG_INFO: c_void_p(1)
         }
         if max_registers:
             options[enums.CU_JIT_MAX_REGISTERS] = c_void_p(max_registers)

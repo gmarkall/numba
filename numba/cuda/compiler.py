@@ -429,7 +429,7 @@ class CachedPTX(object):
         ptx = self.cache.get(cc)
         if ptx is None:
             arch = nvvm.get_arch_option(*cc)
-            ptx = nvvm.llvm_to_ptx(self.llvmir, opt=3, arch=arch,
+            ptx = nvvm.llvm_to_ptx(self.llvmir, opt=0, arch=arch,
                                    **self._extra_options)
             self.cache[cc] = ptx
             if config.DUMP_ASSEMBLY:

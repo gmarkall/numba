@@ -47,6 +47,8 @@ def _nvvm_lib_dir():
 
 def _get_nvvm_path_decision():
     options = [
+        ('Debug',
+         '/home/gmarkall/tmp/debug-gpgpu-compiler/x86_64_Linux_debug'),
         ('NUMBAPRO_NVVM', get_numbapro_envvar('NUMBAPRO_NVVM')),
         ('NUMBAPRO_CUDALIB', get_numbapro_envvar('NUMBAPRO_CUDALIB')),
         ('Conda environment', get_conda_ctk()),
