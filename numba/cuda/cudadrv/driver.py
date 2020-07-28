@@ -1951,6 +1951,11 @@ class Function(object):
                         maxthreads=maxtpb)
 
 
+# Start here with trying to make this the wrapper.
+# 1. First test - can we just call this directly instead of through
+#    Function.__call__ without any bad side effects?
+# 2. If so, can this work as C?
+# 3. Then, do we need to generate it? or not?
 def launch_kernel(cufunc_handle, griddim, blockdim, sharedmem, hstream, args):
     gx, gy, gz = griddim
     bx, by, bz = blockdim

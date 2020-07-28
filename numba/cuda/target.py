@@ -8,6 +8,7 @@ from numba.core import typing, types, dispatcher, debuginfo, itanium_mangler, cg
 from numba.core.utils import cached_property
 from numba.core.base import BaseContext
 from numba.core.callconv import MinimalCallConv
+from numba.core.callwrapper import PyCallWrapper
 from numba.core.typing import cmathdecl
 
 from .cudadrv import nvvm
@@ -298,6 +299,18 @@ class CUDATargetContext(BaseContext):
         # fpm.run(func)
         # fpm.finalize()
 
+
+    def create_cpython_wrapper(self, library, fndesc, env, call_helper,
+                               release_gil=False):
+        from pudb import set_trace; set_trace()
+        wrapper_module = self.create_module("wrapper")
+        fnty = self.call_conv.get_function_type(fndesc.restype, fndesc.argtypes)
+        wrapper_callee = wrapper_module.add_function(fnty, fndesc.llvm_func_name)
+        builder = CUDAPyCallWrapper(self, wrapper_module, wrapper_callee,
+                                    fndesc, env, call_helper=call_helper,
+                                    release_gil=release_gil)
+        builder.build()
+        library.add_ir_module(wrapper_module)
 
 class CUDACallConv(MinimalCallConv):
     pass

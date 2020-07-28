@@ -17,6 +17,7 @@ import numba
 from numba.cuda.cudadrv import driver as _driver
 from numba.cuda.cudadrv import devices
 from numba.core import types
+from numba.core.typing.typeof import typeof
 from numba.np.unsafe.ndarray import to_fixed_tuple
 from numba.misc import dummyarray
 from numba.np import numpy_support
@@ -257,7 +258,8 @@ class DeviceNDArrayBase(object):
         if ary is None:
             hostary = np.empty(shape=self.alloc_size, dtype=np.byte)
         else:
-            check_array_compatibility(self, ary)
+            if not isinstance(typeof(ary), types.Buffer):
+                check_array_compatibility(self, ary)
             hostary = ary
 
         if self.alloc_size != 0:

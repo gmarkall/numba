@@ -28,7 +28,7 @@ def compile_cuda(pyfunc, return_type, args, debug=False, inline=False):
     flags = compiler.Flags()
     # Do not compile (generate native code), just lower (to LLVM)
     flags.set('no_compile')
-    flags.set('no_cpython_wrapper')
+    flags.set('no_cpython_wrapper') # was commenting
     flags.set('no_cfunc_wrapper')
     if debug:
         flags.set('debuginfo')
@@ -725,7 +725,7 @@ class CUDAKernel(CUDAKernelBase):
                 stream=stream,
                 retr=retr)
 
-        if isinstance(ty, types.Array):
+        if isinstance(ty, (types.Array, types.Buffer)):
             devary = wrap_arg(val).to_device(retr, stream)
 
             c_intp = ctypes.c_ssize_t
