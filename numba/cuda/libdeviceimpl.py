@@ -8,19 +8,6 @@ registry = Registry()
 lower = registry.lower
 
 
-def bool_implement(nvname, ty):
-    def core(context, builder, sig, args):
-        assert sig.return_type == types.boolean, nvname
-        fty = context.get_value_type(ty)
-        lmod = builder.module
-        fnty = Type.function(Type.int(), [fty])
-        fn = lmod.get_or_insert_function(fnty, name=nvname)
-        result = builder.call(fn, args)
-        return context.cast(builder, result, types.int32, types.boolean)
-
-    return core
-
-
 def powi_implement(nvname):
     def core(context, builder, sig, args):
         [base, pow] = args
@@ -37,18 +24,6 @@ def powi_implement(nvname):
 
 lower(math.pow, types.float32, types.int32)(powi_implement('__nv_powif'))
 lower(math.pow, types.float64, types.int32)(powi_implement('__nv_powi'))
-
-
-booleans = []
-booleans += [('__nv_isnand', '__nv_isnanf', math.isnan)]
-booleans += [('__nv_isinfd', '__nv_isinff', math.isinf)]
-
-
-for name64, name32, key in booleans:
-    impl64 = bool_implement(name64, types.float64)
-    lower(key, types.float64)(impl64)
-    impl32 = bool_implement(name32, types.float32)
-    lower(key, types.float32)(impl32)
 
 
 def modf_implement(nvname, ty):

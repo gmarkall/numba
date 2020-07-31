@@ -1,5 +1,5 @@
 import math
-from numba.core import typing
+from numba.core import types, typing
 from numba.core.imputils import Registry
 from numba.types import float32, float64
 from numba.cuda import libdevice
@@ -7,6 +7,10 @@ from numba.cuda import libdevice
 registry = Registry()
 lower = registry.lower
 
+
+booleans = []
+booleans += [('isnand', 'isnanf', math.isnan)]
+booleans += [('isinfd', 'isinff', math.isinf)]
 
 unarys = []
 unarys += [('ceil', 'ceilf', math.ceil)]
@@ -43,6 +47,16 @@ binarys += [('fmod', 'fmodf', math.fmod)]
 binarys += [('hypot', 'hypotf', math.hypot)]
 
 
+def impl_boolean(key, ty, libfunc):
+    def lower_boolean_impl(context, builder, sig, args):
+        libfunc_impl = context.get_function(libfunc,
+                                            typing.signature(types.int32, ty))
+        result = libfunc_impl(builder, args)
+        return context.cast(builder, result, types.int32, types.boolean)
+
+    lower(key, ty)(lower_boolean_impl)
+
+
 def impl_unary(key, ty, libfunc):
     def lower_unary_impl(context, builder, sig, args):
         libfunc_impl = context.get_function(libfunc, typing.signature(ty, ty))
@@ -58,6 +72,13 @@ def impl_binary(key, ty, libfunc):
         return libfunc_impl(builder, args)
 
     lower(key, ty, ty)(lower_binary_impl)
+
+
+for fname64, fname32, key in booleans:
+    impl32 = getattr(libdevice, fname32)
+    impl64 = getattr(libdevice, fname64)
+    impl_boolean(key, float32, impl32)
+    impl_boolean(key, float64, impl64)
 
 
 for fname64, fname32, key in unarys:
