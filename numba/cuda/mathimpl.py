@@ -93,3 +93,16 @@ for fname64, fname32, key in binarys:
     impl64 = getattr(libdevice, fname64)
     impl_binary(key, float32, impl32)
     impl_binary(key, float64, impl64)
+
+
+def powi_implement(ty, libfunc):
+    def lower_powi_impl(context, builder, sig, args):
+        powi_sig = typing.signature(ty, ty, types.int32)
+        libfunc_impl = context.get_function(libfunc, powi_sig)
+        return libfunc_impl(builder, args)
+
+    lower(math.pow, ty, types.int32)(lower_powi_impl)
+
+
+powi_implement(types.float32, libdevice.powif)
+powi_implement(types.float64, libdevice.powi)

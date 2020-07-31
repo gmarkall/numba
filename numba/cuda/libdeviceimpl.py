@@ -8,24 +8,6 @@ registry = Registry()
 lower = registry.lower
 
 
-def powi_implement(nvname):
-    def core(context, builder, sig, args):
-        [base, pow] = args
-        [basety, powty] = sig.args
-        lmod = builder.module
-        fty = context.get_value_type(basety)
-        ity = context.get_value_type(types.int32)
-        fnty = Type.function(fty, [fty, ity])
-        fn = lmod.get_or_insert_function(fnty, name=nvname)
-        return builder.call(fn, [base, pow])
-
-    return core
-
-
-lower(math.pow, types.float32, types.int32)(powi_implement('__nv_powif'))
-lower(math.pow, types.float64, types.int32)(powi_implement('__nv_powi'))
-
-
 def modf_implement(nvname, ty):
     def core(context, builder, sig, args):
         arg, = args
