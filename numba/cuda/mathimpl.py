@@ -95,14 +95,29 @@ for fname64, fname32, key in binarys:
     impl_binary(key, float64, impl64)
 
 
-def powi_implement(ty, libfunc):
-    def lower_powi_impl(context, builder, sig, args):
+def impl_pow(ty, libfunc):
+    def lower_pow_impl(context, builder, sig, args):
         powi_sig = typing.signature(ty, ty, types.int32)
         libfunc_impl = context.get_function(libfunc, powi_sig)
         return libfunc_impl(builder, args)
 
-    lower(math.pow, ty, types.int32)(lower_powi_impl)
+    lower(math.pow, ty, types.int32)(lower_pow_impl)
 
 
-powi_implement(types.float32, libdevice.powif)
-powi_implement(types.float64, libdevice.powi)
+impl_pow(types.float32, libdevice.powif)
+impl_pow(types.float64, libdevice.powi)
+
+
+def impl_modf(ty, libfunc):
+    retty = types.Tuple((ty, ty))
+
+    def lower_modf_impl(context, builder, sig, args):
+        modf_sig = typing.signature(retty, ty)
+        libfunc_impl = context.get_function(libfunc, modf_sig)
+        return libfunc_impl(builder, args)
+
+    lower(key, retty, ty)(lower_modf_impl)
+
+
+impl_modf(types.float32, libdevice.modff)
+impl_modf(types.float64, libdevice.modf)
