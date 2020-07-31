@@ -1,4 +1,5 @@
 import math
+from numba.core import errors
 from numba.core.imputils import Registry
 from numba.types import float32, float64
 from numba.cuda import libdevice
@@ -27,8 +28,22 @@ lower = registry.lower
 
 def impl_unary(key, ty, libfunc):
     def lower_unary_impl(context, builder, sig, args):
-        return context.compile_internal(builder, lambda x: libfunc(x), sig,
-                                        args)
+        cres = context.compile_subroutine(builder, lambda x: libfunc(x), sig)
+        retty = sig.return_type
+        got_retty = cres.signature.return_type
+        if got_retty != retty:
+            # This error indicates an error in *func* or the caller of this
+            # method.
+            raise errors.LoweringError(
+                f'mismatching signature {got_retty} != {retty}.\n'
+            )
+        # Call into *func*
+        status, res = context.call_internal_no_propagate(
+            builder, cres.fndesc, sig, args,
+        )
+
+        return res
+
     lower(key, ty)(lower_unary_impl)
 
 
