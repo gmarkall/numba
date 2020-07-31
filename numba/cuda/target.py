@@ -74,10 +74,10 @@ class CUDATargetContext(BaseContext):
         self._target_data = ll.create_target_data(nvvm.default_data_layout)
 
     def load_additional_registries(self):
-        from . import cudaimpl, printimpl, libdevice
+        from . import cudaimpl, printimpl, libdeviceimpl
         self.install_registry(cudaimpl.registry)
         self.install_registry(printimpl.registry)
-        self.install_registry(libdevice.registry)
+        self.install_registry(libdeviceimpl.registry)
         self.install_registry(cmathimpl.registry)
 
     def codegen(self):
