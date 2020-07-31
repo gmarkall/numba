@@ -97,6 +97,7 @@ exclude =
     numba/cuda/libdevice.py
     numba/cuda/device_init.py
     numba/cuda/initialize.py
+    numba/cuda/libdevicefuncs.py
     numba/cuda/simulator_init.py
     numba/cuda/random.py
     numba/cuda/api.py

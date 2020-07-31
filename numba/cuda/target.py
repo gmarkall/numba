@@ -22,11 +22,12 @@ from numba.cpython import cmathimpl
 
 class CUDATypingContext(typing.BaseContext):
     def load_additional_registries(self):
-        from . import cudadecl, cudamath
+        from . import cudadecl, cudamath, libdevicedecl
 
         self.install_registry(cudadecl.registry)
         self.install_registry(cudamath.registry)
         self.install_registry(cmathdecl.registry)
+        self.install_registry(libdevicedecl.registry)
 
     def resolve_value_type(self, val):
         # treat dispatcher object as another device function
