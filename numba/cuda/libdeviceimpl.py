@@ -22,9 +22,12 @@ def libdevice_implement(func, retty, nbargs):
     lower(key, *argtys)(core)
 
 
+def libdevice_implement_multiple_returns(func, retty, nbargs):
+    print(f'Skipping lowering of {func} with pointer arg')
+
+
 for func, (retty, args) in libdevicefuncs.functions.items():
     if any([arg.is_ptr for arg in args]):
-        print(f'Skipping {func} with pointer arg')
-        continue
-
-    libdevice_implement(func, retty, args)
+        libdevice_implement_multiple_returns(func, retty, args)
+    else:
+        libdevice_implement(func, retty, args)
