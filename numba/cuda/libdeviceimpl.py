@@ -1,5 +1,6 @@
 from llvmlite.llvmpy.core import Type
-from numba.core.imputils import Registry
+from numba.core import cgutils, types
+from numba.core.imputils import impl_ret_borrowed, Registry
 from numba.cuda import libdevice, libdevicefuncs
 
 registry = Registry()
@@ -10,8 +11,7 @@ def libdevice_implement(func, retty, nbargs):
     def core(context, builder, sig, args):
         lmod = builder.module
         fretty = context.get_value_type(retty)
-        fargtys = [context.get_value_type(arg.ty) for arg in nbargs if not
-                   arg.is_ptr]
+        fargtys = [context.get_value_type(arg.ty) for arg in nbargs]
         fnty = Type.function(fretty, fargtys)
         fn = lmod.get_or_insert_function(fnty, name=func)
         return builder.call(fn, args)
@@ -22,8 +22,63 @@ def libdevice_implement(func, retty, nbargs):
     lower(key, *argtys)(core)
 
 
-def libdevice_implement_multiple_returns(func, retty, nbargs):
-    print(f'Skipping lowering of {func} with pointer arg')
+def libdevice_implement_multiple_returns(func, retty, prototype_args):
+    # Any pointer arguments should be part of the return type.
+    nb_return_types = [arg.ty for arg in prototype_args if arg.is_ptr]
+    # If the return type is void, there is no point adding it to the list of
+    # return types.
+    if retty != types.void:
+        nb_return_types.insert(0, retty)
+
+    nb_retty = types.Tuple(nb_return_types)
+    nb_argtypes = [arg.ty for arg in prototype_args if not arg.is_ptr]
+
+    def core(context, builder, sig, args):
+        lmod = builder.module
+
+        fargtys = []
+        for arg in prototype_args:
+            ty = context.get_value_type(arg.ty)
+            if arg.is_ptr:
+                ty = ty.as_pointer()
+            fargtys.append(ty)
+
+        fretty = context.get_value_type(retty)
+
+        fnty = Type.function(fretty, fargtys)
+        fn = lmod.get_or_insert_function(fnty, name=func)
+
+        actual_args = []
+        virtual_args = []
+        arg_idx = 0
+        #virtual_arg_idx = 0
+        for arg in prototype_args:
+            if arg.is_ptr:
+                # Allocate virtual arg and add to args
+                tmp_arg = cgutils.alloca_once(builder,
+                                              context.get_value_type(arg.ty))
+                actual_args.append(tmp_arg)
+                virtual_args.append(tmp_arg)
+            else:
+                actual_args.append(args[arg_idx])
+                arg_idx += 1
+
+        ret = builder.call(fn, actual_args)
+
+        tuple_args = []
+        if retty != types.void:
+            tuple_args.append(ret)
+        for arg in virtual_args:
+            tuple_args.append(arg)
+
+        tup = impl_ret_borrowed(context, builder, nb_retty,
+                                cgutils.pack_array(builder,
+                                                   [builder.load(arg) for arg
+                                                    in tuple_args]))
+        return tup
+
+    key = getattr(libdevice, func[5:])
+    lower(key, *nb_argtypes)(core)
 
 
 for func, (retty, args) in libdevicefuncs.functions.items():
