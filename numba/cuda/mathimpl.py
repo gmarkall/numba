@@ -116,7 +116,7 @@ def impl_modf(ty, libfunc):
         libfunc_impl = context.get_function(libfunc, modf_sig)
         return libfunc_impl(builder, args)
 
-    lower(key, retty, ty)(lower_modf_impl)
+    lower(math.modf, ty)(lower_modf_impl)
 
 
 impl_modf(types.float32, libdevice.modff)

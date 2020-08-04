@@ -69,12 +69,10 @@ def libdevice_implement_multiple_returns(func, retty, prototype_args):
         if retty != types.void:
             tuple_args.append(ret)
         for arg in virtual_args:
-            tuple_args.append(arg)
+            tuple_args.append(builder.load(arg))
 
         tup = impl_ret_borrowed(context, builder, nb_retty,
-                                cgutils.pack_array(builder,
-                                                   [builder.load(arg) for arg
-                                                    in tuple_args]))
+                                cgutils.pack_array(builder, tuple_args))
         return tup
 
     key = getattr(libdevice, func[5:])
