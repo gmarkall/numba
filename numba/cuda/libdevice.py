@@ -1,1274 +1,3400 @@
 def abs(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_abs.html
+
+    :param x:
+    :type x: int32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def acos(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_acos.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def acosf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_acosf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def acosh(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_acosh.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def acoshf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_acoshf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def asin(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_asin.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def asinf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_asinf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def asinh(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_asinh.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def asinhf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_asinhf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def atan(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_atan.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def atan2(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_atan2.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def atan2f(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_atan2f.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def atanf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_atanf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def atanh(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_atanh.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def atanhf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_atanhf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def brev(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_brev.html
+
+    :param x:
+    :type x: int32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def brevll(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_brevll.html
+
+    :param x:
+    :type x: int64
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def byte_perm(x, y, z):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_byte_perm.html
+
+    :param x:
+    :type x: int32
+    :param y:
+    :type y: int32
+    :param z:
+    :type z: int32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def cbrt(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_cbrt.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def cbrtf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_cbrtf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def ceil(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ceil.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def ceilf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ceilf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def clz(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_clz.html
+
+    :param x:
+    :type x: int32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def clzll(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_clzll.html
+
+    :param x:
+    :type x: int64
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def copysign(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_copysign.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def copysignf(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_copysignf.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def cos(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_cos.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def cosf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_cosf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def cosh(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_cosh.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def coshf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_coshf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def cospi(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_cospi.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def cospif(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_cospif.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def dadd_rd(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_dadd_rd.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def dadd_rn(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_dadd_rn.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def dadd_ru(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_dadd_ru.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def dadd_rz(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_dadd_rz.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def ddiv_rd(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ddiv_rd.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def ddiv_rn(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ddiv_rn.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def ddiv_ru(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ddiv_ru.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def ddiv_rz(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ddiv_rz.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def dmul_rd(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_dmul_rd.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def dmul_rn(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_dmul_rn.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def dmul_ru(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_dmul_ru.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def dmul_rz(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_dmul_rz.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def double2float_rd(d):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double2float_rd.html
+
+    :param d:
+    :type d: float64
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def double2float_rn(d):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double2float_rn.html
+
+    :param d:
+    :type d: float64
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def double2float_ru(d):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double2float_ru.html
+
+    :param d:
+    :type d: float64
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def double2float_rz(d):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double2float_rz.html
+
+    :param d:
+    :type d: float64
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def double2hiint(d):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double2hiint.html
+
+    :param d:
+    :type d: float64
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def double2int_rd(d):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double2int_rd.html
+
+    :param d:
+    :type d: float64
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def double2int_rn(d):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double2int_rn.html
+
+    :param d:
+    :type d: float64
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def double2int_ru(d):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double2int_ru.html
+
+    :param d:
+    :type d: float64
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def double2int_rz(d):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double2int_rz.html
+
+    :param d:
+    :type d: float64
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def double2ll_rd(f):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double2ll_rd.html
+
+    :param f:
+    :type f: float64
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def double2ll_rn(f):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double2ll_rn.html
+
+    :param f:
+    :type f: float64
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def double2ll_ru(f):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double2ll_ru.html
+
+    :param f:
+    :type f: float64
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def double2ll_rz(f):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double2ll_rz.html
+
+    :param f:
+    :type f: float64
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def double2loint(d):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double2loint.html
+
+    :param d:
+    :type d: float64
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def double2uint_rd(d):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double2uint_rd.html
+
+    :param d:
+    :type d: float64
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def double2uint_rn(d):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double2uint_rn.html
+
+    :param d:
+    :type d: float64
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def double2uint_ru(d):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double2uint_ru.html
+
+    :param d:
+    :type d: float64
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def double2uint_rz(d):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double2uint_rz.html
+
+    :param d:
+    :type d: float64
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def double2ull_rd(f):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double2ull_rd.html
+
+    :param f:
+    :type f: float64
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def double2ull_rn(f):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double2ull_rn.html
+
+    :param f:
+    :type f: float64
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def double2ull_ru(f):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double2ull_ru.html
+
+    :param f:
+    :type f: float64
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def double2ull_rz(f):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double2ull_rz.html
+
+    :param f:
+    :type f: float64
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def double_as_longlong(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_double_as_longlong.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def drcp_rd(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_drcp_rd.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def drcp_rn(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_drcp_rn.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def drcp_ru(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_drcp_ru.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def drcp_rz(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_drcp_rz.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def dsqrt_rd(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_dsqrt_rd.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def dsqrt_rn(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_dsqrt_rn.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def dsqrt_ru(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_dsqrt_ru.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def dsqrt_rz(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_dsqrt_rz.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def erf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_erf.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def erfc(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_erfc.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def erfcf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_erfcf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def erfcinv(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_erfcinv.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def erfcinvf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_erfcinvf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def erfcx(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_erfcx.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def erfcxf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_erfcxf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def erff(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_erff.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def erfinv(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_erfinv.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def erfinvf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_erfinvf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def exp(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_exp.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def exp10(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_exp10.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def exp10f(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_exp10f.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def exp2(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_exp2.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def exp2f(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_exp2f.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def expf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_expf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def expm1(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_expm1.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def expm1f(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_expm1f.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fabs(f):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fabs.html
+
+    :param f:
+    :type f: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def fabsf(f):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fabsf.html
+
+    :param f:
+    :type f: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fadd_rd(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fadd_rd.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fadd_rn(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fadd_rn.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fadd_ru(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fadd_ru.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fadd_rz(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fadd_rz.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fast_cosf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fast_cosf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fast_exp10f(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fast_exp10f.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fast_expf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fast_expf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fast_fdividef(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fast_fdividef.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fast_log10f(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fast_log10f.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fast_log2f(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fast_log2f.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fast_logf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fast_logf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fast_powf(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fast_powf.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fast_sincosf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fast_sincosf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 2)
+"""
 
 
 def fast_sinf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fast_sinf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fast_tanf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fast_tanf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fdim(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fdim.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def fdimf(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fdimf.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fdiv_rd(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fdiv_rd.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fdiv_rn(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fdiv_rn.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fdiv_ru(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fdiv_ru.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fdiv_rz(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fdiv_rz.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def ffs(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ffs.html
+
+    :param x:
+    :type x: int32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def ffsll(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ffsll.html
+
+    :param x:
+    :type x: int64
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def finitef(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_finitef.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def float2half_rn(f):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_float2half_rn.html
+
+    :param f:
+    :type f: float32
+    :rtype: UniTuple(int16 x 1)
+"""
 
 
-def float2int_rd(f):
-    pass
+def float2int_rd(x):
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_float2int_rd.html
+
+    :param in:
+    :type in: float32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
-def float2int_rn(f):
-    pass
+def float2int_rn(x):
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_float2int_rn.html
+
+    :param in:
+    :type in: float32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
-def float2int_ru(f):
-    pass
+def float2int_ru(x):
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_float2int_ru.html
+
+    :param in:
+    :type in: float32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
-def float2int_rz(f):
-    pass
+def float2int_rz(x):
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_float2int_rz.html
+
+    :param in:
+    :type in: float32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def float2ll_rd(f):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_float2ll_rd.html
+
+    :param f:
+    :type f: float32
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def float2ll_rn(f):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_float2ll_rn.html
+
+    :param f:
+    :type f: float32
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def float2ll_ru(f):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_float2ll_ru.html
+
+    :param f:
+    :type f: float32
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def float2ll_rz(f):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_float2ll_rz.html
+
+    :param f:
+    :type f: float32
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
-def float2uint_rd(f):
-    pass
+def float2uint_rd(x):
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_float2uint_rd.html
+
+    :param in:
+    :type in: float32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
-def float2uint_rn(f):
-    pass
+def float2uint_rn(x):
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_float2uint_rn.html
+
+    :param in:
+    :type in: float32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
-def float2uint_ru(f):
-    pass
+def float2uint_ru(x):
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_float2uint_ru.html
+
+    :param in:
+    :type in: float32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
-def float2uint_rz(f):
-    pass
+def float2uint_rz(x):
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_float2uint_rz.html
+
+    :param in:
+    :type in: float32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def float2ull_rd(f):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_float2ull_rd.html
+
+    :param f:
+    :type f: float32
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def float2ull_rn(f):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_float2ull_rn.html
+
+    :param f:
+    :type f: float32
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def float2ull_ru(f):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_float2ull_ru.html
+
+    :param f:
+    :type f: float32
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def float2ull_rz(f):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_float2ull_rz.html
+
+    :param f:
+    :type f: float32
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def float_as_int(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_float_as_int.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def floor(f):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_floor.html
+
+    :param f:
+    :type f: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def floorf(f):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_floorf.html
+
+    :param f:
+    :type f: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fma(x, y, z):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fma.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :param z:
+    :type z: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def fma_rd(x, y, z):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fma_rd.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :param z:
+    :type z: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def fma_rn(x, y, z):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fma_rn.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :param z:
+    :type z: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def fma_ru(x, y, z):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fma_ru.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :param z:
+    :type z: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def fma_rz(x, y, z):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fma_rz.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :param z:
+    :type z: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def fmaf(x, y, z):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fmaf.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :param z:
+    :type z: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fmaf_rd(x, y, z):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fmaf_rd.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :param z:
+    :type z: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fmaf_rn(x, y, z):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fmaf_rn.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :param z:
+    :type z: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fmaf_ru(x, y, z):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fmaf_ru.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :param z:
+    :type z: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fmaf_rz(x, y, z):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fmaf_rz.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :param z:
+    :type z: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fmax(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fmax.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def fmaxf(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fmaxf.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fmin(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fmin.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def fminf(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fminf.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fmod(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fmod.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def fmodf(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fmodf.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fmul_rd(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fmul_rd.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fmul_rn(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fmul_rn.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fmul_ru(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fmul_ru.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fmul_rz(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fmul_rz.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def frcp_rd(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_frcp_rd.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def frcp_rn(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_frcp_rn.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def frcp_ru(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_frcp_ru.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def frcp_rz(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_frcp_rz.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def frexp(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_frexp.html
+
+    :param x:
+    :type x: float64
+    :rtype: Tuple(float64, int32)
+"""
 
 
 def frexpf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_frexpf.html
+
+    :param x:
+    :type x: float32
+    :rtype: Tuple(float32, int32)
+"""
 
 
 def frsqrt_rn(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_frsqrt_rn.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fsqrt_rd(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fsqrt_rd.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fsqrt_rn(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fsqrt_rn.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fsqrt_ru(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fsqrt_ru.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fsqrt_rz(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fsqrt_rz.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fsub_rd(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fsub_rd.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fsub_rn(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fsub_rn.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fsub_ru(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fsub_ru.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def fsub_rz(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_fsub_rz.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def hadd(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_hadd.html
+
+    :param x:
+    :type x: int32
+    :param y:
+    :type y: int32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def half2float(h):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_half2float.html
+
+    :param h:
+    :type h: int16
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def hiloint2double(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_hiloint2double.html
+
+    :param x:
+    :type x: int32
+    :param y:
+    :type y: int32
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def hypot(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_hypot.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def hypotf(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_hypotf.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def ilogb(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ilogb.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def ilogbf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ilogbf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def int2double_rn(i):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_int2double_rn.html
+
+    :param i:
+    :type i: int32
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
-def int2float_rd(i):
-    pass
+def int2float_rd(x):
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_int2float_rd.html
+
+    :param in:
+    :type in: int32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
-def int2float_rn(i):
-    pass
+def int2float_rn(x):
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_int2float_rn.html
+
+    :param in:
+    :type in: int32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
-def int2float_ru(i):
-    pass
+def int2float_ru(x):
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_int2float_ru.html
+
+    :param in:
+    :type in: int32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
-def int2float_rz(i):
-    pass
+def int2float_rz(x):
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_int2float_rz.html
+
+    :param in:
+    :type in: int32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def int_as_float(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_int_as_float.html
+
+    :param x:
+    :type x: int32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def isfinited(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_isfinited.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def isinfd(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_isinfd.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def isinff(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_isinff.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def isnand(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_isnand.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def isnanf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_isnanf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def j0(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_j0.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def j0f(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_j0f.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def j1(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_j1.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def j1f(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_j1f.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def jn(n, x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_jn.html
+
+    :param n:
+    :type n: int32
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def jnf(n, x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_jnf.html
+
+    :param n:
+    :type n: int32
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def ldexp(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ldexp.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: int32
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def ldexpf(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ldexpf.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: int32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def lgamma(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_lgamma.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def lgammaf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_lgammaf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def ll2double_rd(l):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ll2double_rd.html
+
+    :param l:
+    :type l: int64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def ll2double_rn(l):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ll2double_rn.html
+
+    :param l:
+    :type l: int64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def ll2double_ru(l):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ll2double_ru.html
+
+    :param l:
+    :type l: int64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def ll2double_rz(l):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ll2double_rz.html
+
+    :param l:
+    :type l: int64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def ll2float_rd(l):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ll2float_rd.html
+
+    :param l:
+    :type l: int64
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def ll2float_rn(l):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ll2float_rn.html
+
+    :param l:
+    :type l: int64
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def ll2float_ru(l):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ll2float_ru.html
+
+    :param l:
+    :type l: int64
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def ll2float_rz(l):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ll2float_rz.html
+
+    :param l:
+    :type l: int64
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def llabs(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_llabs.html
+
+    :param x:
+    :type x: int64
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def llmax(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_llmax.html
+
+    :param x:
+    :type x: int64
+    :param y:
+    :type y: int64
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def llmin(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_llmin.html
+
+    :param x:
+    :type x: int64
+    :param y:
+    :type y: int64
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def llrint(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_llrint.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def llrintf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_llrintf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def llround(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_llround.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def llroundf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_llroundf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def log(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_log.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def log10(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_log10.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def log10f(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_log10f.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def log1p(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_log1p.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def log1pf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_log1pf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def log2(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_log2.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def log2f(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_log2f.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def logb(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_logb.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def logbf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_logbf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def logf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_logf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def longlong_as_double(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_longlong_as_double.html
+
+    :param x:
+    :type x: int64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def max(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_max.html
+
+    :param x:
+    :type x: int32
+    :param y:
+    :type y: int32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def min(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_min.html
+
+    :param x:
+    :type x: int32
+    :param y:
+    :type y: int32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def modf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_modf.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 2)
+"""
 
 
 def modff(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_modff.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 2)
+"""
 
 
 def mul24(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_mul24.html
+
+    :param x:
+    :type x: int32
+    :param y:
+    :type y: int32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def mul64hi(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_mul64hi.html
+
+    :param x:
+    :type x: int64
+    :param y:
+    :type y: int64
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def mulhi(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_mulhi.html
+
+    :param x:
+    :type x: int32
+    :param y:
+    :type y: int32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def nan():
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_nan.html
+
+
+    :rtype: Tuple(float64, int8)
+"""
 
 
 def nanf():
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_nanf.html
+
+
+    :rtype: Tuple(float32, int8)
+"""
 
 
 def nearbyint(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_nearbyint.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def nearbyintf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_nearbyintf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def nextafter(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_nextafter.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def nextafterf(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_nextafterf.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def normcdf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_normcdf.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def normcdff(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_normcdff.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def normcdfinv(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_normcdfinv.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def normcdfinvf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_normcdfinvf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def popc(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_popc.html
+
+    :param x:
+    :type x: int32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def popcll(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_popcll.html
+
+    :param x:
+    :type x: int64
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def pow(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_pow.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def powf(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_powf.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def powi(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_powi.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: int32
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def powif(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_powif.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: int32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def rcbrt(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_rcbrt.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def rcbrtf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_rcbrtf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def remainder(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_remainder.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def remainderf(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_remainderf.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def remquo(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_remquo.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: float64
+    :rtype: Tuple(float64, int32)
+"""
 
 
 def remquof(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_remquof.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: float32
+    :rtype: Tuple(float32, int32)
+"""
 
 
 def rhadd(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_rhadd.html
+
+    :param x:
+    :type x: int32
+    :param y:
+    :type y: int32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def rint(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_rint.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def rintf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_rintf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def round(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_round.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def roundf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_roundf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def rsqrt(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_rsqrt.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def rsqrtf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_rsqrtf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def sad(x, y, z):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_sad.html
+
+    :param x:
+    :type x: int32
+    :param y:
+    :type y: int32
+    :param z:
+    :type z: int32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def saturatef(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_saturatef.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def scalbn(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_scalbn.html
+
+    :param x:
+    :type x: float64
+    :param y:
+    :type y: int32
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def scalbnf(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_scalbnf.html
+
+    :param x:
+    :type x: float32
+    :param y:
+    :type y: int32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def signbitd(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_signbitd.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def signbitf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_signbitf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def sin(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_sin.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def sincos(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_sincos.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 2)
+"""
 
 
 def sincosf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_sincosf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 2)
+"""
 
 
 def sincospi(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_sincospi.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 2)
+"""
 
 
 def sincospif(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_sincospif.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 2)
+"""
 
 
 def sinf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_sinf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def sinh(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_sinh.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def sinhf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_sinhf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def sinpi(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_sinpi.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def sinpif(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_sinpif.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def sqrt(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_sqrt.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def sqrtf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_sqrtf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def tan(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_tan.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def tanf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_tanf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def tanh(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_tanh.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def tanhf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_tanhf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def tgamma(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_tgamma.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def tgammaf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_tgammaf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def trunc(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_trunc.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def truncf(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_truncf.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def uhadd(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_uhadd.html
+
+    :param x:
+    :type x: int32
+    :param y:
+    :type y: int32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def uint2double_rn(i):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_uint2double_rn.html
+
+    :param i:
+    :type i: int32
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
-def uint2float_rd(i):
-    pass
+def uint2float_rd(x):
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_uint2float_rd.html
+
+    :param in:
+    :type in: int32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
-def uint2float_rn(i):
-    pass
+def uint2float_rn(x):
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_uint2float_rn.html
+
+    :param in:
+    :type in: int32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
-def uint2float_ru(i):
-    pass
+def uint2float_ru(x):
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_uint2float_ru.html
+
+    :param in:
+    :type in: int32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
-def uint2float_rz(i):
-    pass
+def uint2float_rz(x):
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_uint2float_rz.html
+
+    :param in:
+    :type in: int32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def ull2double_rd(l):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ull2double_rd.html
+
+    :param l:
+    :type l: int64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def ull2double_rn(l):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ull2double_rn.html
+
+    :param l:
+    :type l: int64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def ull2double_ru(l):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ull2double_ru.html
+
+    :param l:
+    :type l: int64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def ull2double_rz(l):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ull2double_rz.html
+
+    :param l:
+    :type l: int64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def ull2float_rd(l):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ull2float_rd.html
+
+    :param l:
+    :type l: int64
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def ull2float_rn(l):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ull2float_rn.html
+
+    :param l:
+    :type l: int64
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def ull2float_ru(l):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ull2float_ru.html
+
+    :param l:
+    :type l: int64
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def ull2float_rz(l):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ull2float_rz.html
+
+    :param l:
+    :type l: int64
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def ullmax(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ullmax.html
+
+    :param x:
+    :type x: int64
+    :param y:
+    :type y: int64
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def ullmin(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ullmin.html
+
+    :param x:
+    :type x: int64
+    :param y:
+    :type y: int64
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def umax(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_umax.html
+
+    :param x:
+    :type x: int32
+    :param y:
+    :type y: int32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def umin(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_umin.html
+
+    :param x:
+    :type x: int32
+    :param y:
+    :type y: int32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def umul24(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_umul24.html
+
+    :param x:
+    :type x: int32
+    :param y:
+    :type y: int32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def umul64hi(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_umul64hi.html
+
+    :param x:
+    :type x: int64
+    :param y:
+    :type y: int64
+    :rtype: UniTuple(int64 x 1)
+"""
 
 
 def umulhi(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_umulhi.html
+
+    :param x:
+    :type x: int32
+    :param y:
+    :type y: int32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def urhadd(x, y):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_urhadd.html
+
+    :param x:
+    :type x: int32
+    :param y:
+    :type y: int32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def usad(x, y, z):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_usad.html
+
+    :param x:
+    :type x: int32
+    :param y:
+    :type y: int32
+    :param z:
+    :type z: int32
+    :rtype: UniTuple(int32 x 1)
+"""
 
 
 def y0(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_y0.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def y0f(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_y0f.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def y1(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_y1.html
+
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def y1f(x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_y1f.html
+
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""
 
 
 def yn(n, x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_yn.html
+
+    :param n:
+    :type n: int32
+    :param x:
+    :type x: float64
+    :rtype: UniTuple(float64 x 1)
+"""
 
 
 def ynf(n, x):
-    pass
+    """
+    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_ynf.html
+
+    :param n:
+    :type n: int32
+    :param x:
+    :type x: float32
+    :rtype: UniTuple(float32 x 1)
+"""

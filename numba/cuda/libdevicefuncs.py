@@ -1,7 +1,10 @@
 from collections import namedtuple
+from textwrap import indent
 
 arg = namedtuple("arg", ("name", "ty", "is_ptr"))
-from numba.types import float32, float64, int8, int16, int32, int64, void
+from numba.types import (float32, float64, int8, int16, int32, int64, void,
+                         Tuple)
+from numba.core.typing.templates import signature
 
 functions = {
     "__nv_abs": (int32, [arg(name="x", ty=int32, is_ptr=False)]),
@@ -899,3 +902,54 @@ functions = {
         ],
     ),
 }
+
+
+def create_signature(retty, args):
+    # Any pointer arguments should be part of the return type.
+    return_types = [arg.ty for arg in args if arg.is_ptr]
+    # If the return type is void, there is no point adding it to the list of
+    # return types.
+    if retty != void:
+        return_types.insert(0, retty)
+
+    retty = Tuple(return_types)
+    argtypes = [arg.ty for arg in args if not arg.is_ptr]
+
+    return signature(retty, *argtypes)
+
+
+# Generates the stubs for libdevice functions.
+#
+# python -c "from numba.cuda.libdevicefuncs import generate_stubs; \
+#            generate_stubs()" > numba/cuda/libdevice.py
+
+docstring_template = '''
+See https://docs.nvidia.com/cuda/libdevice-users-guide/{func}.html
+
+{param_types}
+:rtype: {retty}
+'''
+
+param_template = '''\
+:param {a.name}:
+:type {a.name}: {a.ty}'''
+
+
+def generate_stubs():
+    for name, (retty, args) in functions.items():
+        def argname(arg):
+            if arg.name == 'in':
+                return 'x'
+            else:
+                return arg.name
+        argnames = [argname(a) for a in args if not a.is_ptr]
+        argstr = ', '.join(argnames)
+        signature = create_signature(retty, args)
+
+        param_types = "\n".join([param_template.format(a=a) for a in args if not
+                                 a.is_ptr])
+        docstring = docstring_template.format(param_types=param_types,
+                                              retty=signature.return_type,
+                                              func=name)
+        docstring = indent(docstring, '    ')
+        print(f'def {name[5:]}({argstr}):\n    """{docstring}"""\n\n')
