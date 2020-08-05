@@ -130,15 +130,26 @@ for fname64, fname32, key in binarys:
 
 def impl_pow(ty, libfunc):
     def lower_pow_impl(context, builder, sig, args):
-        powi_sig = typing.signature(ty, ty, types.int32)
-        libfunc_impl = context.get_function(libfunc, powi_sig)
+        pow_sig = typing.signature(ty, ty, ty)
+        libfunc_impl = context.get_function(libfunc, pow_sig)
         return libfunc_impl(builder, args)
 
     lower(math.pow, ty, types.int32)(lower_pow_impl)
 
 
-impl_pow(types.float32, libdevice.powif)
-impl_pow(types.float64, libdevice.powi)
+def impl_pow_int(ty, libfunc):
+    def lower_pow_impl_int(context, builder, sig, args):
+        powi_sig = typing.signature(ty, ty, types.int32)
+        libfunc_impl = context.get_function(libfunc, powi_sig)
+        return libfunc_impl(builder, args)
+
+    lower(math.pow, ty, types.int32)(lower_pow_impl_int)
+
+
+impl_pow(types.float32, libdevice.powf)
+impl_pow(types.float64, libdevice.pow)
+impl_pow_int(types.float32, libdevice.powif)
+impl_pow_int(types.float64, libdevice.powi)
 
 
 def impl_modf(ty, libfunc):
