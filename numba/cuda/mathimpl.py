@@ -1,7 +1,8 @@
 import math
+from llvmlite import ir
 from numba.core import types, typing
 from numba.core.imputils import Registry
-from numba.types import float32, float64
+from numba.types import float32, float64, int64, uint64
 from numba.cuda import libdevice
 
 registry = Registry()
@@ -65,6 +66,21 @@ def impl_unary(key, ty, libfunc):
     lower(key, ty)(lower_unary_impl)
 
 
+def impl_unary_int(key, libfunc, signed=False):
+    def lower_unary_int_impl(context, builder, sig, args):
+        if sig.args[0] == int64:
+            convert = builder.sitofp
+        else:
+            convert = builder.uitofp
+        arg = convert(args[0], ir.DoubleType())
+        sig = typing.signature(float64, float64)
+        libfunc_impl = context.get_function(libfunc, sig)
+        return libfunc_impl(builder, [arg])
+
+    ty = signed and int64 or uint64
+    lower(key, ty)(lower_unary_int_impl)
+
+
 def impl_binary(key, ty, libfunc):
     def lower_binary_impl(context, builder, sig, args):
         libfunc_impl = context.get_function(libfunc,
@@ -86,6 +102,8 @@ for fname64, fname32, key in unarys:
     impl64 = getattr(libdevice, fname64)
     impl_unary(key, float32, impl32)
     impl_unary(key, float64, impl64)
+    impl_unary_int(key, impl64, signed=False)
+    impl_unary_int(key, impl64, signed=True)
 
 
 for fname64, fname32, key in binarys:

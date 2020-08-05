@@ -1,7 +1,8 @@
 import sys
 import numpy as np
 from numba.cuda.testing import unittest, CUDATestCase
-from numba import cuda, float32, float64, int32, int64
+from numba.np import numpy_support
+from numba import cuda, float32, float64, int32, int64, uint64
 import math
 
 
@@ -182,37 +183,59 @@ def math_mod_binop(A, B, C):
 
 class TestCudaMath(CUDATestCase):
     def unary_template_float32(self, func, npfunc, start=0, stop=1):
-        self.unary_template(func, npfunc, np.float32, float32, start, stop)
+       self.unary_template(func, npfunc, np.float32, np.float32, float32,
+                           start, stop)
 
 
     def unary_template_float64(self, func, npfunc, start=0, stop=1):
-        self.unary_template(func, npfunc, np.float64, float64, start, stop)
+        self.unary_template(func, npfunc, np.float64, np.float64, float64,
+                            start, stop)
 
 
-    def unary_template(self, func, npfunc, npdtype, npmtype, start, stop):
+    def unary_template_int64(self, func, npfunc, start=0, stop=50):
+        self.unary_template(func, npfunc, np.int64, np.float64, int64, start,
+                            stop)
+
+
+    def unary_template_uint64(self, func, npfunc, start=0, stop=50):
+        self.unary_template(func, npfunc, np.uint64, np.float64, uint64, start,
+                            stop)
+
+
+    def unary_template(self, func, npfunc, npdtype, nprestype, npmtype, start,
+                       stop):
         nelem = 50
         A = np.linspace(start, stop, nelem).astype(npdtype)
-        B = np.empty_like(A)
-        arytype = npmtype[::1]
-        cfunc = cuda.jit((arytype, arytype))(func)
+        B = np.empty_like(A).astype(nprestype)
+        arytype = numpy_support.from_dtype(npdtype)[::1]
+        restype = numpy_support.from_dtype(nprestype)[::1]
+        cfunc = cuda.jit((arytype, restype))(func)
         cfunc[1, nelem](A, B)
-        self.assertTrue(np.allclose(npfunc(A), B))
+        # When this test was originally written it used
+        # assertTrue(np.allclose(...), which has different default tolerance
+        # values to assert_allclose. The tolerance values here are the defaults
+        # from np.allclose, which are required for these tests to pass.
+        np.testing.assert_allclose(npfunc(A), B, rtol=1e-5, atol=0)
 
 
     def unary_bool_template_float32(self, func, npfunc, start=0, stop=1):
-        self.unary_template(func, npfunc, np.float32, float32, start, stop)
+        self.unary_template(func, npfunc, np.float32, np.float32, float32,
+                            start, stop)
 
 
     def unary_bool_template_float64(self, func, npfunc, start=0, stop=1):
-        self.unary_template(func, npfunc, np.float64, float64, start, stop)
+        self.unary_template(func, npfunc, np.float64, np.float64, float64,
+                            start, stop)
 
 
     def unary_bool_template_int32(self, func, npfunc, start=0, stop=49):
-        self.unary_template(func, npfunc, np.int32, int32, start, stop)
+        self.unary_template(func, npfunc, np.int32, np.int32, int32, start,
+                            stop)
 
 
     def unary_bool_template_int64(self, func, npfunc, start=0, stop=49):
-        self.unary_template(func, npfunc, np.int64, int64, start, stop)
+        self.unary_template(func, npfunc, np.int64, np.int64, int64, start,
+                            stop)
 
 
     def unary_bool_template(self, func, npfunc, npdtype, npmtype, start, stop):
@@ -223,7 +246,7 @@ class TestCudaMath(CUDATestCase):
         oarytype = int32[::1]
         cfunc = cuda.jit((iarytype, oarytype))(func)
         cfunc[1, nelem](A, B)
-        self.assertTrue(np.all(npfunc(A), B))
+        np.testing.assert_allclose(npfunc(A), B)
 
 
     def binary_template_float32(self, func, npfunc, start=0, stop=1):
@@ -258,6 +281,10 @@ class TestCudaMath(CUDATestCase):
     def test_math_acos(self):
         self.unary_template_float32(math_acos, np.arccos)
         self.unary_template_float64(math_acos, np.arccos)
+        # For integers we can only test with zero, since <=-1 and >=1 result in
+        # invalid values.
+        self.unary_template_int64(math_acos, np.arccos, start=0, stop=0)
+        self.unary_template_uint64(math_acos, np.arccos, start=0, stop=0)
 
     #------------------------------------------------------------------------------
     # test_math_asin
@@ -266,6 +293,10 @@ class TestCudaMath(CUDATestCase):
     def test_math_asin(self):
         self.unary_template_float32(math_asin, np.arcsin)
         self.unary_template_float64(math_asin, np.arcsin)
+        # For integers we can only test with zero, since <=-1 and >=1 result in
+        # invalid values.
+        self.unary_template_int64(math_asin, np.arcsin, start=0, stop=0)
+        self.unary_template_uint64(math_asin, np.arcsin, start=0, stop=0)
 
     #------------------------------------------------------------------------------
     # test_math_atan
@@ -274,6 +305,8 @@ class TestCudaMath(CUDATestCase):
     def test_math_atan(self):
         self.unary_template_float32(math_atan, np.arctan)
         self.unary_template_float64(math_atan, np.arctan)
+        self.unary_template_int64(math_atan, np.arctan)
+        self.unary_template_uint64(math_atan, np.arctan)
 
     #------------------------------------------------------------------------------
     # test_math_acosh
@@ -282,6 +315,8 @@ class TestCudaMath(CUDATestCase):
     def test_math_acosh(self):
         self.unary_template_float32(math_acosh, np.arccosh, start=1, stop=2)
         self.unary_template_float64(math_acosh, np.arccosh, start=1, stop=2)
+        self.unary_template_int64(math_acosh, np.arccosh, start=1, stop=2)
+        self.unary_template_uint64(math_acosh, np.arccosh, start=1, stop=2)
 
     #------------------------------------------------------------------------------
     # test_math_asinh
@@ -290,6 +325,8 @@ class TestCudaMath(CUDATestCase):
     def test_math_asinh(self):
         self.unary_template_float32(math_asinh, np.arcsinh)
         self.unary_template_float64(math_asinh, np.arcsinh)
+        self.unary_template_int64(math_asinh, np.arcsinh)
+        self.unary_template_uint64(math_asinh, np.arcsinh)
 
     #------------------------------------------------------------------------------
     # test_math_atanh
@@ -298,6 +335,8 @@ class TestCudaMath(CUDATestCase):
     def test_math_atanh(self):
         self.unary_template_float32(math_atanh, np.arctanh, start=0, stop=.9)
         self.unary_template_float64(math_atanh, np.arctanh, start=0, stop=.9)
+        self.unary_template_int64(math_atanh, np.arctanh, start=0, stop=.9)
+        self.unary_template_uint64(math_atanh, np.arctanh, start=0, stop=.9)
 
 
     #------------------------------------------------------------------------------
@@ -307,6 +346,8 @@ class TestCudaMath(CUDATestCase):
     def test_math_cos(self):
         self.unary_template_float32(math_cos, np.cos)
         self.unary_template_float64(math_cos, np.cos)
+        self.unary_template_int64(math_cos, np.cos)
+        self.unary_template_uint64(math_cos, np.cos)
 
     #------------------------------------------------------------------------------
     # test_math_sin
@@ -315,6 +356,8 @@ class TestCudaMath(CUDATestCase):
     def test_math_sin(self):
         self.unary_template_float32(math_sin, np.sin)
         self.unary_template_float64(math_sin, np.sin)
+        self.unary_template_int64(math_sin, np.sin)
+        self.unary_template_uint64(math_sin, np.sin)
 
     #------------------------------------------------------------------------------
     # test_math_tan
@@ -323,6 +366,8 @@ class TestCudaMath(CUDATestCase):
     def test_math_tan(self):
         self.unary_template_float32(math_tan, np.tan)
         self.unary_template_float64(math_tan, np.tan)
+        self.unary_template_int64(math_tan, np.tan)
+        self.unary_template_uint64(math_tan, np.tan)
 
     #------------------------------------------------------------------------------
     # test_math_cosh
@@ -331,6 +376,8 @@ class TestCudaMath(CUDATestCase):
     def test_math_cosh(self):
         self.unary_template_float32(math_cosh, np.cosh)
         self.unary_template_float64(math_cosh, np.cosh)
+        self.unary_template_int64(math_cosh, np.cosh)
+        self.unary_template_uint64(math_cosh, np.cosh)
 
     #------------------------------------------------------------------------------
     # test_math_sinh
@@ -339,6 +386,8 @@ class TestCudaMath(CUDATestCase):
     def test_math_sinh(self):
         self.unary_template_float32(math_sinh, np.sinh)
         self.unary_template_float64(math_sinh, np.sinh)
+        self.unary_template_int64(math_sinh, np.sinh)
+        self.unary_template_uint64(math_sinh, np.sinh)
 
     #------------------------------------------------------------------------------
     # test_math_tanh
@@ -347,6 +396,8 @@ class TestCudaMath(CUDATestCase):
     def test_math_tanh(self):
         self.unary_template_float32(math_tanh, np.tanh)
         self.unary_template_float64(math_tanh, np.tanh)
+        self.unary_template_int64(math_tanh, np.tanh)
+        self.unary_template_uint64(math_tanh, np.tanh)
 
     #------------------------------------------------------------------------------
     # test_math_atan2
@@ -365,6 +416,8 @@ class TestCudaMath(CUDATestCase):
             return self._math_vectorize(math.erf, x)
         self.unary_template_float32(math_erf, ufunc)
         self.unary_template_float64(math_erf, ufunc)
+        self.unary_template_int64(math_erf, ufunc)
+        self.unary_template_uint64(math_erf, ufunc)
 
     #------------------------------------------------------------------------------
     # test_math_erfc
@@ -375,6 +428,8 @@ class TestCudaMath(CUDATestCase):
             return self._math_vectorize(math.erfc, x)
         self.unary_template_float32(math_erfc, ufunc)
         self.unary_template_float64(math_erfc, ufunc)
+        self.unary_template_int64(math_erfc, ufunc)
+        self.unary_template_uint64(math_erfc, ufunc)
 
     #------------------------------------------------------------------------------
     # test_math_exp
@@ -383,6 +438,8 @@ class TestCudaMath(CUDATestCase):
     def test_math_exp(self):
         self.unary_template_float32(math_exp, np.exp)
         self.unary_template_float64(math_exp, np.exp)
+        self.unary_template_int64(math_exp, np.exp)
+        self.unary_template_uint64(math_exp, np.exp)
 
     #------------------------------------------------------------------------------
     # test_math_expm1
@@ -390,6 +447,8 @@ class TestCudaMath(CUDATestCase):
     def test_math_expm1(self):
         self.unary_template_float32(math_expm1, np.expm1)
         self.unary_template_float64(math_expm1, np.expm1)
+        self.unary_template_int64(math_expm1, np.expm1)
+        self.unary_template_uint64(math_expm1, np.expm1)
 
     #------------------------------------------------------------------------------
     # test_math_fabs
@@ -398,6 +457,8 @@ class TestCudaMath(CUDATestCase):
     def test_math_fabs(self):
         self.unary_template_float32(math_fabs, np.fabs, start=-1)
         self.unary_template_float64(math_fabs, np.fabs, start=-1)
+        self.unary_template_int64(math_fabs, np.fabs, start=-1)
+        self.unary_template_uint64(math_fabs, np.fabs, start=-1)
 
     #------------------------------------------------------------------------------
     # test_math_gamma
@@ -408,6 +469,10 @@ class TestCudaMath(CUDATestCase):
             return self._math_vectorize(math.gamma, x)
         self.unary_template_float32(math_gamma, ufunc, start=0.1)
         self.unary_template_float64(math_gamma, ufunc, start=0.1)
+        # The gamma function has a limited domain - for integers we can test
+        # from 1 to 3
+        self.unary_template_int64(math_gamma, ufunc, start=1, stop=3)
+        self.unary_template_uint64(math_gamma, ufunc, start=1, stop=3)
 
     #------------------------------------------------------------------------------
     # test_math_lgamma
@@ -418,6 +483,10 @@ class TestCudaMath(CUDATestCase):
             return self._math_vectorize(math.lgamma, x)
         self.unary_template_float32(math_lgamma, ufunc, start=0.1)
         self.unary_template_float64(math_lgamma, ufunc, start=0.1)
+        # The gamma function has a limited domain - for integers we can test
+        # from 1 to 3
+        self.unary_template_int64(math_lgamma, ufunc, start=1, stop=3)
+        self.unary_template_uint64(math_lgamma, ufunc, start=1, stop=3)
 
     #------------------------------------------------------------------------------
     # test_math_log
@@ -426,6 +495,8 @@ class TestCudaMath(CUDATestCase):
     def test_math_log(self):
         self.unary_template_float32(math_log, np.log, start=1)
         self.unary_template_float64(math_log, np.log, start=1)
+        self.unary_template_int64(math_log, np.log, start=1)
+        self.unary_template_uint64(math_log, np.log, start=1)
 
     #------------------------------------------------------------------------------
     # test_math_log10
@@ -434,6 +505,8 @@ class TestCudaMath(CUDATestCase):
     def test_math_log10(self):
         self.unary_template_float32(math_log10, np.log10, start=1)
         self.unary_template_float64(math_log10, np.log10, start=1)
+        self.unary_template_int64(math_log10, np.log10, start=1)
+        self.unary_template_uint64(math_log10, np.log10, start=1)
 
     #------------------------------------------------------------------------------
     # test_math_log1p
@@ -442,6 +515,8 @@ class TestCudaMath(CUDATestCase):
     def test_math_log1p(self):
         self.unary_template_float32(math_log1p, np.log1p)
         self.unary_template_float64(math_log1p, np.log1p)
+        self.unary_template_int64(math_log1p, np.log1p)
+        self.unary_template_uint64(math_log1p, np.log1p)
 
     #------------------------------------------------------------------------------
     # test_math_sqrt
@@ -450,6 +525,8 @@ class TestCudaMath(CUDATestCase):
     def test_math_sqrt(self):
         self.unary_template_float32(math_sqrt, np.sqrt)
         self.unary_template_float64(math_sqrt, np.sqrt)
+        self.unary_template_int64(math_sqrt, np.sqrt)
+        self.unary_template_uint64(math_sqrt, np.sqrt)
 
     #------------------------------------------------------------------------------
     # test_math_hypot
@@ -484,6 +561,8 @@ class TestCudaMath(CUDATestCase):
     def test_math_ceil(self):
         self.unary_template_float32(math_ceil, np.ceil)
         self.unary_template_float64(math_ceil, np.ceil)
+        self.unary_template_int64(math_ceil, np.ceil)
+        self.unary_template_uint64(math_ceil, np.ceil)
 
     #------------------------------------------------------------------------------
     # test_math_floor
@@ -492,6 +571,8 @@ class TestCudaMath(CUDATestCase):
     def test_math_floor(self):
         self.unary_template_float32(math_floor, np.floor)
         self.unary_template_float64(math_floor, np.floor)
+        self.unary_template_int64(math_floor, np.floor)
+        self.unary_template_uint64(math_floor, np.floor)
 
     #------------------------------------------------------------------------------
     # test_math_copysign
