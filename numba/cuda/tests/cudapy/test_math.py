@@ -2,7 +2,7 @@ import sys
 import numpy as np
 from numba.cuda.testing import unittest, CUDATestCase
 from numba.np import numpy_support
-from numba import cuda, float32, float64, int32, int64, uint64
+from numba import cuda, float32, float64, int32, int64, uint64, vectorize
 import math
 
 
@@ -267,13 +267,6 @@ class TestCudaMath(CUDATestCase):
         cfunc[1, nelem](A, A, B)
         self.assertTrue(np.allclose(npfunc(A, A), B))
 
-    # Test helper for math functions when no ufunc exists
-    # and dtype specificity is required.
-    def _math_vectorize(self, mathfunc, x):
-        ret = np.zeros_like(x)
-        for k in range(len(x)):
-            ret[k] = mathfunc(x[k])
-        return ret
 
     #------------------------------------------------------------------------------
     # test_math_acos
@@ -412,8 +405,9 @@ class TestCudaMath(CUDATestCase):
 
 
     def test_math_erf(self):
+        @vectorize
         def ufunc(x):
-            return self._math_vectorize(math.erf, x)
+            return math.erf(x)
         self.unary_template_float32(math_erf, ufunc)
         self.unary_template_float64(math_erf, ufunc)
         self.unary_template_int64(math_erf, ufunc)
@@ -424,8 +418,9 @@ class TestCudaMath(CUDATestCase):
 
 
     def test_math_erfc(self):
+        @vectorize
         def ufunc(x):
-            return self._math_vectorize(math.erfc, x)
+            return math.erfc(x)
         self.unary_template_float32(math_erfc, ufunc)
         self.unary_template_float64(math_erfc, ufunc)
         self.unary_template_int64(math_erfc, ufunc)
@@ -465,28 +460,26 @@ class TestCudaMath(CUDATestCase):
 
 
     def test_math_gamma(self):
+        @vectorize
         def ufunc(x):
-            return self._math_vectorize(math.gamma, x)
+            return math.gamma(x)
         self.unary_template_float32(math_gamma, ufunc, start=0.1)
         self.unary_template_float64(math_gamma, ufunc, start=0.1)
-        # The gamma function has a limited domain - for integers we can test
-        # from 1 to 3
-        self.unary_template_int64(math_gamma, ufunc, start=1, stop=3)
-        self.unary_template_uint64(math_gamma, ufunc, start=1, stop=3)
+        self.unary_template_int64(math_gamma, ufunc, start=1)
+        self.unary_template_uint64(math_gamma, ufunc, start=1)
 
     #------------------------------------------------------------------------------
     # test_math_lgamma
 
 
     def test_math_lgamma(self):
+        @vectorize
         def ufunc(x):
-            return self._math_vectorize(math.lgamma, x)
+            return math.lgamma(x)
         self.unary_template_float32(math_lgamma, ufunc, start=0.1)
         self.unary_template_float64(math_lgamma, ufunc, start=0.1)
-        # The gamma function has a limited domain - for integers we can test
-        # from 1 to 3
-        self.unary_template_int64(math_lgamma, ufunc, start=1, stop=3)
-        self.unary_template_uint64(math_lgamma, ufunc, start=1, stop=3)
+        self.unary_template_int64(math_lgamma, ufunc, start=1)
+        self.unary_template_uint64(math_lgamma, ufunc, start=1)
 
     #------------------------------------------------------------------------------
     # test_math_log
