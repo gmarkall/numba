@@ -183,27 +183,18 @@ def math_mod_binop(A, B, C):
 
 class TestCudaMath(CUDATestCase):
     def unary_template_float32(self, func, npfunc, start=0, stop=1):
-       self.unary_template(func, npfunc, np.float32, np.float32, float32,
-                           start, stop)
-
+       self.unary_template(func, npfunc, np.float32, np.float32, start, stop)
 
     def unary_template_float64(self, func, npfunc, start=0, stop=1):
-        self.unary_template(func, npfunc, np.float64, np.float64, float64,
-                            start, stop)
-
+        self.unary_template(func, npfunc, np.float64, np.float64, start, stop)
 
     def unary_template_int64(self, func, npfunc, start=0, stop=50):
-        self.unary_template(func, npfunc, np.int64, np.float64, int64, start,
-                            stop)
-
+        self.unary_template(func, npfunc, np.int64, np.float64, start, stop)
 
     def unary_template_uint64(self, func, npfunc, start=0, stop=50):
-        self.unary_template(func, npfunc, np.uint64, np.float64, uint64, start,
-                            stop)
+        self.unary_template(func, npfunc, np.uint64, np.float64, start, stop)
 
-
-    def unary_template(self, func, npfunc, npdtype, nprestype, npmtype, start,
-                       stop):
+    def unary_template(self, func, npfunc, npdtype, nprestype, start, stop):
         nelem = 50
         A = np.linspace(start, stop, nelem).astype(npdtype)
         B = np.empty_like(A).astype(nprestype)
@@ -211,32 +202,24 @@ class TestCudaMath(CUDATestCase):
         restype = numpy_support.from_dtype(nprestype)[::1]
         cfunc = cuda.jit((arytype, restype))(func)
         cfunc[1, nelem](A, B)
+
         # When this test was originally written it used
         # assertTrue(np.allclose(...), which has different default tolerance
         # values to assert_allclose. The tolerance values here are the defaults
         # from np.allclose, which are required for these tests to pass.
         np.testing.assert_allclose(npfunc(A), B, rtol=1e-5, atol=0)
 
-
     def unary_bool_template_float32(self, func, npfunc, start=0, stop=1):
-        self.unary_template(func, npfunc, np.float32, np.float32, float32,
-                            start, stop)
-
+        self.unary_template(func, npfunc, np.float32, np.float32, start, stop)
 
     def unary_bool_template_float64(self, func, npfunc, start=0, stop=1):
-        self.unary_template(func, npfunc, np.float64, np.float64, float64,
-                            start, stop)
-
+        self.unary_template(func, npfunc, np.float64, np.float64, start, stop)
 
     def unary_bool_template_int32(self, func, npfunc, start=0, stop=49):
-        self.unary_template(func, npfunc, np.int32, np.int32, int32, start,
-                            stop)
-
+        self.unary_template(func, npfunc, np.int32, np.int32, start, stop)
 
     def unary_bool_template_int64(self, func, npfunc, start=0, stop=49):
-        self.unary_template(func, npfunc, np.int64, np.int64, int64, start,
-                            stop)
-
+        self.unary_template(func, npfunc, np.int64, np.int64, start, stop)
 
     def unary_bool_template(self, func, npfunc, npdtype, npmtype, start, stop):
         nelem = 50
@@ -248,24 +231,28 @@ class TestCudaMath(CUDATestCase):
         cfunc[1, nelem](A, B)
         np.testing.assert_allclose(npfunc(A), B)
 
-
     def binary_template_float32(self, func, npfunc, start=0, stop=1):
-        self.binary_template(func, npfunc, np.float32, float32, start, stop)
-
+        self.binary_template(func, npfunc, np.float32, np.float32, start, stop)
 
     def binary_template_float64(self, func, npfunc, start=0, stop=1):
-        self.binary_template(func, npfunc, np.float64, float64, start, stop)
+        self.binary_template(func, npfunc, np.float64, np.float64, start, stop)
 
+    def binary_template_int64(self, func, npfunc, start=0, stop=50):
+        self.binary_template(func, npfunc, np.int64, np.float64, start, stop)
 
-    def binary_template(self, func, npfunc, npdtype, npmtype, start, stop):
+    def binary_template_uint64(self, func, npfunc, start=0, stop=50):
+        self.binary_template(func, npfunc, np.uint64, np.float64, start, stop)
+
+    def binary_template(self, func, npfunc, npdtype, nprestype, start, stop):
         nelem = 50
         A = np.linspace(start, stop, nelem).astype(npdtype)
-        B = np.empty_like(A)
-        arytype = npmtype[::1]
-        cfunc = cuda.jit((arytype, arytype, arytype))(func)
+        B = np.empty_like(A).astype(nprestype)
+        arytype = numpy_support.from_dtype(npdtype)[::1]
+        restype = numpy_support.from_dtype(nprestype)[::1]
+        cfunc = cuda.jit((arytype, arytype, restype))(func)
         cfunc.bind()
         cfunc[1, nelem](A, A, B)
-        self.assertTrue(np.allclose(npfunc(A, A), B))
+        np.testing.assert_allclose(npfunc(A, A), B)
 
 
     #------------------------------------------------------------------------------
@@ -399,6 +386,8 @@ class TestCudaMath(CUDATestCase):
     def test_math_atan2(self):
         self.binary_template_float32(math_atan2, np.arctan2)
         self.binary_template_float64(math_atan2, np.arctan2)
+        self.binary_template_int64(math_atan2, np.arctan2)
+        self.binary_template_uint64(math_atan2, np.arctan2)
 
     #------------------------------------------------------------------------------
     # test_math_erf
@@ -528,6 +517,8 @@ class TestCudaMath(CUDATestCase):
     def test_math_hypot(self):
         self.binary_template_float32(math_hypot, np.hypot)
         self.binary_template_float64(math_hypot, np.hypot)
+        self.binary_template_int64(math_hypot, np.hypot)
+        self.binary_template_uint64(math_hypot, np.hypot)
 
 
     #------------------------------------------------------------------------------
