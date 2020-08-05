@@ -525,33 +525,9 @@ class TestCudaMath(CUDATestCase):
     # test_math_pow
 
 
-    #def pow_template_int32(self, func, npfunc, start=0, stop=50):
-    #    self.binary_template(func, npfunc, np.int64, np.float64, start, stop)
-
-    def pow_template_int32(self, npdtype):
-        from pudb import set_trace; set_trace()
-        nprestype = np.float64
-        nelem = 50
-        A = np.linspace(0, 50, nelem).astype(npdtype)
-        B = np.arange(nelem, dtype=np.int32)
-        C = np.empty_like(A)
-        arytype = numpy_support.from_dtype(npdtype)[::1]
-        restype = numpy_support.from_dtype(nprestype)[::1]
-        cfunc = cuda.jit((arytype, int32[::1], arytype))(math_pow)
-        cfunc.bind()
-        cfunc[1, nelem](A, B, C)
-        print(A)
-        print(B)
-        print(C)
-        print(np.power(A, B))
-        np.testing.assert_allclose(np.power(A, B).astype(npdtype), C)
-
-
     def test_math_pow(self):
         self.binary_template_float32(math_pow, np.power)
         self.binary_template_float64(math_pow, np.power)
-        self.pow_template_int32(np.float32)
-        self.pow_template_int32(np.float64)
 
 
     #------------------------------------------------------------------------------
