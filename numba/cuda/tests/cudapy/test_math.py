@@ -207,7 +207,11 @@ class TestCudaMath(CUDATestCase):
         # assertTrue(np.allclose(...), which has different default tolerance
         # values to assert_allclose. The tolerance values here are the defaults
         # from np.allclose, which are required for these tests to pass.
-        np.testing.assert_allclose(npfunc(A), B, rtol=1e-5, atol=0)
+        if npdtype == np.float64:
+            rtol = 1e-15
+        else:
+            rtol = 1e-6
+        np.testing.assert_allclose(npfunc(A), B, rtol=rtol)
 
     def unary_bool_template_float32(self, func, npfunc, start=0, stop=1):
         self.unary_template(func, npfunc, np.float32, np.float32, start, stop)
