@@ -48,6 +48,12 @@ binarys += [('fmod', 'fmodf', math.fmod)]
 binarys += [('hypot', 'hypotf', math.hypot)]
 
 
+@lower(math.isinf, types.Integer)
+@lower(math.isnan, types.Integer)
+def math_isinf_isnan_int(context, builder, sig, args):
+    return context.get_constant(types.boolean, 0)
+
+
 def impl_boolean(key, ty, libfunc):
     def lower_boolean_impl(context, builder, sig, args):
         libfunc_impl = context.get_function(libfunc,
