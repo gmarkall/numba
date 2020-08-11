@@ -4,6 +4,7 @@ This is a direct translation of nvvm.h
 import logging
 import re
 import sys
+import warnings
 from ctypes import (c_void_p, c_int, POINTER, c_char_p, c_size_t, byref,
                     c_char)
 
@@ -286,7 +287,7 @@ def get_supported_ccs():
 
     try:
         from numba.cuda.cudadrv.runtime import runtime
-        cudart_version_major = runtime.get_version()[0]
+        cudart_version_major, cudart_version_minor = runtime.get_version()
     except: # noqa: E722
         # The CUDA Runtime may not be present
         cudart_version_major = 0
@@ -295,16 +296,15 @@ def get_supported_ccs():
     if cudart_version_major == 0:
         _supported_cc = ()
     elif cudart_version_major < 9:
-        # CUDA 8.x
-        _supported_cc = (2, 0), (2, 1), (3, 0), (3, 5), (5, 0), (5, 2), (5, 3), (6, 0), (6, 1), (6, 2) # noqa: E501
-    elif cudart_version_major < 10:
-        # CUDA 9.x
+        _supported_cc = ()
+        msg = f"CUDA Toolkit {cudart_version_major}.{cudart_version_minor} " + \
+              "is unsupported by Numba - 9.0 is the minimum required version."
+        warnings.warn(msg)
+    elif cudart_version_major == 9:
         _supported_cc = (3, 0), (3, 5), (5, 0), (5, 2), (5, 3), (6, 0), (6, 1), (6, 2), (7, 0) # noqa: E501
-    elif cudart_version_major < 11:
-        # CUDA 10.x
+    elif cudart_version_major == 10:
         _supported_cc = (3, 0), (3, 5), (5, 0), (5, 2), (5, 3), (6, 0), (6, 1), (6, 2), (7, 0), (7, 2), (7, 5) # noqa: E501
     else:
-        # CUDA 11.0 and later
         _supported_cc = (3, 5), (5, 0), (5, 2), (5, 3), (6, 0), (6, 1), (6, 2), (7, 0), (7, 2), (7, 5), (8, 0) # noqa: E501
 
     return _supported_cc
@@ -355,7 +355,7 @@ def get_arch_option(major, minor):
 
 
 MISSING_LIBDEVICE_FILE_MSG = '''Missing libdevice file for {arch}.
-Please ensure you have package cudatoolkit >= 8.
+Please ensure you have package cudatoolkit >= 9.
 Install package by:
 
     conda install cudatoolkit
