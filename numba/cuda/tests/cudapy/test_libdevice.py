@@ -65,7 +65,7 @@ def make_test_call(libname):
         d = { 'func': apiname, 'pyargs': pyargsstr, 'funcargs': funcargsstr,
               'retvars': retvarsstr }
         code = function_template % d
-        print(code)
+        #print(code)
         locals = {}
         exec(code, globals(), locals)
         pyfunc = locals['pyfunc']
@@ -75,12 +75,12 @@ def make_test_call(libname):
             pyreturns = [ret[::1] for ret in sig.return_type]
             pyargs = pyreturns + pyargs
         else:
-            pyargs.insert(0, retty[::1])
-        print(pyargs)
+            pyargs.insert(0, sig.return_type[::1])
+        #print(pyargs)
 
         ptx, resty = compile_ptx(pyfunc, pyargs)
 
-        print(ptx)
+        #print(ptx)
 
     return _test_call_functions
 
