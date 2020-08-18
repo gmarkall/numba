@@ -912,7 +912,11 @@ def create_signature(retty, args):
     if retty != void:
         return_types.insert(0, retty)
 
-    retty = Tuple(return_types)
+    if len(return_types) > 1:
+        retty = Tuple(return_types)
+    else:
+        retty = return_types[0]
+
     argtypes = [arg.ty for arg in args if not arg.is_ptr]
 
     return signature(retty, *argtypes)

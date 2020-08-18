@@ -30,7 +30,11 @@ def libdevice_implement_multiple_returns(func, retty, prototype_args):
     if retty != types.void:
         nb_return_types.insert(0, retty)
 
-    nb_retty = types.Tuple(nb_return_types)
+    if len(nb_return_types) > 1:
+        nb_retty = types.Tuple(nb_return_types)
+    else:
+        nb_retty = nb_return_types[0]
+
     nb_argtypes = [arg.ty for arg in prototype_args if not arg.is_ptr]
 
     def core(context, builder, sig, args):
