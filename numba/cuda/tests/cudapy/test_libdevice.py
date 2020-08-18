@@ -1,7 +1,7 @@
 import numpy as np
-from numba.core.typing import signature
+from numba.core import types
 from numba.cuda.testing import unittest, CUDATestCase
-from numba import cuda, void
+from numba import cuda
 from numba.cuda import libdevice, compile_ptx
 from numba.cuda.libdevicefuncs import functions, create_signature
 
@@ -18,8 +18,9 @@ def use_sincos(s, c, x):
 function_template = """\
 from numba.cuda import libdevice
 
-def pyfunc(%(args)s):
-    ret = libdevice.%(func)s(%(args)s)
+def pyfunc(%(pyargs)s):
+    ret = libdevice.%(func)s(%(funcargs)s)
+    %(retvars)s = ret
 """
 
 
@@ -48,25 +49,35 @@ def make_test_call(libname):
         apifunc = getattr(libdevice, libname[5:])
         retty, args = functions[libname]
         sig = create_signature(retty, args)
-        print(apifunc, sig)
 
-        argsstr = ", ".join(['a%s' % i for i, arg in enumerate(args) if not
-                             arg.is_ptr])
-        d = { 'func': apiname, 'args': argsstr }
-        print(d)
+        funcargsstr = ", ".join(['a%d' % i for i, arg in enumerate(args) if not
+                                 arg.is_ptr])
+
+        if isinstance(sig.return_type, (types.Tuple, types.UniTuple)):
+            pyargsstr = ", ".join(['r%d' % i for i in
+                                   range(len(sig.return_type))])
+            pyargsstr += ", " + funcargsstr
+            retvarsstr = ", ".join(['r%d[0]' % i for i in
+                                    range(len(sig.return_type))])
+        else:
+            pyargsstr = "r0, " + funcargsstr
+            retvarsstr = "r0[0]"
+        d = { 'func': apiname, 'pyargs': pyargsstr, 'funcargs': funcargsstr,
+              'retvars': retvarsstr }
         code = function_template % d
         print(code)
         locals = {}
         exec(code, globals(), locals)
         pyfunc = locals['pyfunc']
-        print(pyfunc)
 
         pyargs = [ arg.ty for arg in args if not arg.is_ptr ]
-        pysig = signature(void, *pyargs)
-        print(pysig)
+        if isinstance(sig.return_type, (types.Tuple, types.UniTuple)):
+            pyreturns = [ret[::1] for ret in sig.return_type]
+            pyargs = pyreturns + pyargs
+        else:
+            pyargs.insert(0, retty[::1])
+        print(pyargs)
 
-        #cufunc = cuda.jit(pysig)(pyfunc)
-        #print(cufunc)
         ptx, resty = compile_ptx(pyfunc, pyargs)
 
         print(ptx)
@@ -75,7 +86,6 @@ def make_test_call(libname):
 
 
 for libname in functions:
-    print("Doing", libname)
     setattr(TestLibdeviceCompilation, 'test_%s' % libname,
             make_test_call(libname))
 
