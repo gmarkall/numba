@@ -347,10 +347,12 @@ class BuildMapConstraint(object):
                 # Single key:value in ctor, key is str, value is an otherwise
                 # illegal container type, e.g. LiteralStrKeyDict or
                 # List, there's no way to put this into a typed.Dict, so make it
-                # a LiteralStrKeyDict.
+                # a LiteralStrKeyDict, same goes for LiteralList.
                 if len(vtys) == 1:
                     valty = vtys[0]
-                    if isinstance(valty, (types.LiteralStrKeyDict, types.List)):
+                    if isinstance(valty, (types.LiteralStrKeyDict,
+                                          types.List,
+                                          types.LiteralList)):
                         homogeneous = False
 
                 if strkey and not homogeneous:
@@ -1138,7 +1140,7 @@ precise type that can be inferred from the other variables. Whilst sometimes
 the type of empty lists can be inferred, this is not always the case, see this
 documentation for help:
 
-http://numba.pydata.org/numba-doc/latest/user/troubleshoot.html#my-code-has-an-untyped-list-problem
+https://numba.pydata.org/numba-doc/latest/user/troubleshoot.html#my-code-has-an-untyped-list-problem
 """
             if offender is not None:
                 # This block deals with imprecise lists
