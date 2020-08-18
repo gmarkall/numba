@@ -4,7 +4,7 @@ def abs(x):
 
     :param x: Argument.
     :type x: int32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -14,7 +14,7 @@ def acos(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -24,7 +24,7 @@ def acosf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -34,7 +34,7 @@ def acosh(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -44,7 +44,7 @@ def acoshf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -54,7 +54,7 @@ def asin(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -64,7 +64,7 @@ def asinf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -74,7 +74,7 @@ def asinh(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -84,7 +84,7 @@ def asinhf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -94,7 +94,7 @@ def atan(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -106,7 +106,7 @@ def atan2(x, y):
     :type x: float64
     :param y: Argument.
     :type y: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -118,7 +118,7 @@ def atan2f(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -128,7 +128,7 @@ def atanf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -138,7 +138,7 @@ def atanh(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -148,7 +148,7 @@ def atanhf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -158,7 +158,7 @@ def brev(x):
 
     :param x: Argument.
     :type x: int32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -168,7 +168,7 @@ def brevll(x):
 
     :param x: Argument.
     :type x: int64
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -182,7 +182,7 @@ def byte_perm(x, y, z):
     :type y: int32
     :param z: Argument.
     :type z: int32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -192,7 +192,7 @@ def cbrt(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -202,7 +202,7 @@ def cbrtf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -212,7 +212,7 @@ def ceil(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -222,7 +222,7 @@ def ceilf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -232,7 +232,7 @@ def clz(x):
 
     :param x: Argument.
     :type x: int32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -242,7 +242,7 @@ def clzll(x):
 
     :param x: Argument.
     :type x: int64
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -254,7 +254,7 @@ def copysign(x, y):
     :type x: float64
     :param y: Argument.
     :type y: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -266,7 +266,7 @@ def copysignf(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -276,7 +276,7 @@ def cos(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -286,7 +286,7 @@ def cosf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -296,7 +296,7 @@ def cosh(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -306,7 +306,7 @@ def coshf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -316,7 +316,7 @@ def cospi(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -326,7 +326,7 @@ def cospif(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -338,7 +338,7 @@ def dadd_rd(x, y):
     :type x: float64
     :param y: Argument.
     :type y: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -350,7 +350,7 @@ def dadd_rn(x, y):
     :type x: float64
     :param y: Argument.
     :type y: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -362,7 +362,7 @@ def dadd_ru(x, y):
     :type x: float64
     :param y: Argument.
     :type y: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -374,7 +374,7 @@ def dadd_rz(x, y):
     :type x: float64
     :param y: Argument.
     :type y: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -386,7 +386,7 @@ def ddiv_rd(x, y):
     :type x: float64
     :param y: Argument.
     :type y: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -398,7 +398,7 @@ def ddiv_rn(x, y):
     :type x: float64
     :param y: Argument.
     :type y: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -410,7 +410,7 @@ def ddiv_ru(x, y):
     :type x: float64
     :param y: Argument.
     :type y: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -422,7 +422,7 @@ def ddiv_rz(x, y):
     :type x: float64
     :param y: Argument.
     :type y: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -434,7 +434,7 @@ def dmul_rd(x, y):
     :type x: float64
     :param y: Argument.
     :type y: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -446,7 +446,7 @@ def dmul_rn(x, y):
     :type x: float64
     :param y: Argument.
     :type y: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -458,7 +458,7 @@ def dmul_ru(x, y):
     :type x: float64
     :param y: Argument.
     :type y: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -470,7 +470,7 @@ def dmul_rz(x, y):
     :type x: float64
     :param y: Argument.
     :type y: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -480,7 +480,7 @@ def double2float_rd(d):
 
     :param d: Argument.
     :type d: float64
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -490,7 +490,7 @@ def double2float_rn(d):
 
     :param d: Argument.
     :type d: float64
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -500,7 +500,7 @@ def double2float_ru(d):
 
     :param d: Argument.
     :type d: float64
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -510,7 +510,7 @@ def double2float_rz(d):
 
     :param d: Argument.
     :type d: float64
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -520,7 +520,7 @@ def double2hiint(d):
 
     :param d: Argument.
     :type d: float64
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -530,7 +530,7 @@ def double2int_rd(d):
 
     :param d: Argument.
     :type d: float64
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -540,7 +540,7 @@ def double2int_rn(d):
 
     :param d: Argument.
     :type d: float64
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -550,7 +550,7 @@ def double2int_ru(d):
 
     :param d: Argument.
     :type d: float64
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -560,7 +560,7 @@ def double2int_rz(d):
 
     :param d: Argument.
     :type d: float64
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -570,7 +570,7 @@ def double2ll_rd(f):
 
     :param f: Argument.
     :type f: float64
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -580,7 +580,7 @@ def double2ll_rn(f):
 
     :param f: Argument.
     :type f: float64
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -590,7 +590,7 @@ def double2ll_ru(f):
 
     :param f: Argument.
     :type f: float64
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -600,7 +600,7 @@ def double2ll_rz(f):
 
     :param f: Argument.
     :type f: float64
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -610,7 +610,7 @@ def double2loint(d):
 
     :param d: Argument.
     :type d: float64
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -620,7 +620,7 @@ def double2uint_rd(d):
 
     :param d: Argument.
     :type d: float64
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -630,7 +630,7 @@ def double2uint_rn(d):
 
     :param d: Argument.
     :type d: float64
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -640,7 +640,7 @@ def double2uint_ru(d):
 
     :param d: Argument.
     :type d: float64
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -650,7 +650,7 @@ def double2uint_rz(d):
 
     :param d: Argument.
     :type d: float64
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -660,7 +660,7 @@ def double2ull_rd(f):
 
     :param f: Argument.
     :type f: float64
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -670,7 +670,7 @@ def double2ull_rn(f):
 
     :param f: Argument.
     :type f: float64
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -680,7 +680,7 @@ def double2ull_ru(f):
 
     :param f: Argument.
     :type f: float64
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -690,7 +690,7 @@ def double2ull_rz(f):
 
     :param f: Argument.
     :type f: float64
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -700,7 +700,7 @@ def double_as_longlong(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -710,7 +710,7 @@ def drcp_rd(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -720,7 +720,7 @@ def drcp_rn(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -730,7 +730,7 @@ def drcp_ru(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -740,7 +740,7 @@ def drcp_rz(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -750,7 +750,7 @@ def dsqrt_rd(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -760,7 +760,7 @@ def dsqrt_rn(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -770,7 +770,7 @@ def dsqrt_ru(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -780,7 +780,7 @@ def dsqrt_rz(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -790,7 +790,7 @@ def erf(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -800,7 +800,7 @@ def erfc(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -810,7 +810,7 @@ def erfcf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -820,7 +820,7 @@ def erfcinv(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -830,7 +830,7 @@ def erfcinvf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -840,7 +840,7 @@ def erfcx(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -850,7 +850,7 @@ def erfcxf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -860,7 +860,7 @@ def erff(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -870,7 +870,7 @@ def erfinv(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -880,7 +880,7 @@ def erfinvf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -890,7 +890,7 @@ def exp(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -900,7 +900,7 @@ def exp10(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -910,7 +910,7 @@ def exp10f(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -920,7 +920,7 @@ def exp2(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -930,7 +930,7 @@ def exp2f(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -940,7 +940,7 @@ def expf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -950,7 +950,7 @@ def expm1(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -960,7 +960,7 @@ def expm1f(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -970,7 +970,7 @@ def fabs(f):
 
     :param f: Argument.
     :type f: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -980,7 +980,7 @@ def fabsf(f):
 
     :param f: Argument.
     :type f: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -992,7 +992,7 @@ def fadd_rd(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1004,7 +1004,7 @@ def fadd_rn(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1016,7 +1016,7 @@ def fadd_ru(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1028,7 +1028,7 @@ def fadd_rz(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1038,7 +1038,7 @@ def fast_cosf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1048,7 +1048,7 @@ def fast_exp10f(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1058,7 +1058,7 @@ def fast_expf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1070,7 +1070,7 @@ def fast_fdividef(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1080,7 +1080,7 @@ def fast_log10f(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1090,7 +1090,7 @@ def fast_log2f(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1100,7 +1100,7 @@ def fast_logf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1112,7 +1112,7 @@ def fast_powf(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1132,7 +1132,7 @@ def fast_sinf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1142,7 +1142,7 @@ def fast_tanf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1154,7 +1154,7 @@ def fdim(x, y):
     :type x: float64
     :param y: Argument.
     :type y: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -1166,7 +1166,7 @@ def fdimf(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1178,7 +1178,7 @@ def fdiv_rd(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1190,7 +1190,7 @@ def fdiv_rn(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1202,7 +1202,7 @@ def fdiv_ru(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1214,7 +1214,7 @@ def fdiv_rz(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1224,7 +1224,7 @@ def ffs(x):
 
     :param x: Argument.
     :type x: int32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -1234,7 +1234,7 @@ def ffsll(x):
 
     :param x: Argument.
     :type x: int64
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -1244,7 +1244,7 @@ def finitef(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -1254,7 +1254,7 @@ def float2half_rn(f):
 
     :param f: Argument.
     :type f: float32
-    :rtype: UniTuple(int16 x 1)
+    :rtype: int16
 """
 
 
@@ -1264,7 +1264,7 @@ def float2int_rd(x):
 
     :param in: Argument.
     :type in: float32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -1274,7 +1274,7 @@ def float2int_rn(x):
 
     :param in: Argument.
     :type in: float32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -1284,7 +1284,7 @@ def float2int_ru(x):
 
     :param in: Argument.
     :type in: float32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -1294,7 +1294,7 @@ def float2int_rz(x):
 
     :param in: Argument.
     :type in: float32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -1304,7 +1304,7 @@ def float2ll_rd(f):
 
     :param f: Argument.
     :type f: float32
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -1314,7 +1314,7 @@ def float2ll_rn(f):
 
     :param f: Argument.
     :type f: float32
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -1324,7 +1324,7 @@ def float2ll_ru(f):
 
     :param f: Argument.
     :type f: float32
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -1334,7 +1334,7 @@ def float2ll_rz(f):
 
     :param f: Argument.
     :type f: float32
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -1344,7 +1344,7 @@ def float2uint_rd(x):
 
     :param in: Argument.
     :type in: float32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -1354,7 +1354,7 @@ def float2uint_rn(x):
 
     :param in: Argument.
     :type in: float32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -1364,7 +1364,7 @@ def float2uint_ru(x):
 
     :param in: Argument.
     :type in: float32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -1374,7 +1374,7 @@ def float2uint_rz(x):
 
     :param in: Argument.
     :type in: float32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -1384,7 +1384,7 @@ def float2ull_rd(f):
 
     :param f: Argument.
     :type f: float32
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -1394,7 +1394,7 @@ def float2ull_rn(f):
 
     :param f: Argument.
     :type f: float32
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -1404,7 +1404,7 @@ def float2ull_ru(f):
 
     :param f: Argument.
     :type f: float32
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -1414,7 +1414,7 @@ def float2ull_rz(f):
 
     :param f: Argument.
     :type f: float32
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -1424,7 +1424,7 @@ def float_as_int(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -1434,7 +1434,7 @@ def floor(f):
 
     :param f: Argument.
     :type f: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -1444,7 +1444,7 @@ def floorf(f):
 
     :param f: Argument.
     :type f: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1458,7 +1458,7 @@ def fma(x, y, z):
     :type y: float64
     :param z: Argument.
     :type z: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -1472,7 +1472,7 @@ def fma_rd(x, y, z):
     :type y: float64
     :param z: Argument.
     :type z: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -1486,7 +1486,7 @@ def fma_rn(x, y, z):
     :type y: float64
     :param z: Argument.
     :type z: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -1500,7 +1500,7 @@ def fma_ru(x, y, z):
     :type y: float64
     :param z: Argument.
     :type z: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -1514,7 +1514,7 @@ def fma_rz(x, y, z):
     :type y: float64
     :param z: Argument.
     :type z: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -1528,7 +1528,7 @@ def fmaf(x, y, z):
     :type y: float32
     :param z: Argument.
     :type z: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1542,7 +1542,7 @@ def fmaf_rd(x, y, z):
     :type y: float32
     :param z: Argument.
     :type z: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1556,7 +1556,7 @@ def fmaf_rn(x, y, z):
     :type y: float32
     :param z: Argument.
     :type z: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1570,7 +1570,7 @@ def fmaf_ru(x, y, z):
     :type y: float32
     :param z: Argument.
     :type z: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1584,7 +1584,7 @@ def fmaf_rz(x, y, z):
     :type y: float32
     :param z: Argument.
     :type z: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1596,7 +1596,7 @@ def fmax(x, y):
     :type x: float64
     :param y: Argument.
     :type y: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -1608,7 +1608,7 @@ def fmaxf(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1620,7 +1620,7 @@ def fmin(x, y):
     :type x: float64
     :param y: Argument.
     :type y: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -1632,7 +1632,7 @@ def fminf(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1644,7 +1644,7 @@ def fmod(x, y):
     :type x: float64
     :param y: Argument.
     :type y: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -1656,7 +1656,7 @@ def fmodf(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1668,7 +1668,7 @@ def fmul_rd(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1680,7 +1680,7 @@ def fmul_rn(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1692,7 +1692,7 @@ def fmul_ru(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1704,7 +1704,7 @@ def fmul_rz(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1714,7 +1714,7 @@ def frcp_rd(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1724,7 +1724,7 @@ def frcp_rn(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1734,7 +1734,7 @@ def frcp_ru(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1744,7 +1744,7 @@ def frcp_rz(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1774,7 +1774,7 @@ def frsqrt_rn(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1784,7 +1784,7 @@ def fsqrt_rd(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1794,7 +1794,7 @@ def fsqrt_rn(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1804,7 +1804,7 @@ def fsqrt_ru(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1814,7 +1814,7 @@ def fsqrt_rz(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1826,7 +1826,7 @@ def fsub_rd(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1838,7 +1838,7 @@ def fsub_rn(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1850,7 +1850,7 @@ def fsub_ru(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1862,7 +1862,7 @@ def fsub_rz(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1874,7 +1874,7 @@ def hadd(x, y):
     :type x: int32
     :param y: Argument.
     :type y: int32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -1884,7 +1884,7 @@ def half2float(h):
 
     :param h: Argument.
     :type h: int16
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1896,7 +1896,7 @@ def hiloint2double(x, y):
     :type x: int32
     :param y: Argument.
     :type y: int32
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -1908,7 +1908,7 @@ def hypot(x, y):
     :type x: float64
     :param y: Argument.
     :type y: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -1920,7 +1920,7 @@ def hypotf(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1930,7 +1930,7 @@ def ilogb(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -1940,7 +1940,7 @@ def ilogbf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -1950,7 +1950,7 @@ def int2double_rn(i):
 
     :param i: Argument.
     :type i: int32
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -1960,7 +1960,7 @@ def int2float_rd(x):
 
     :param in: Argument.
     :type in: int32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1970,7 +1970,7 @@ def int2float_rn(x):
 
     :param in: Argument.
     :type in: int32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1980,7 +1980,7 @@ def int2float_ru(x):
 
     :param in: Argument.
     :type in: int32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -1990,7 +1990,7 @@ def int2float_rz(x):
 
     :param in: Argument.
     :type in: int32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2000,7 +2000,7 @@ def int_as_float(x):
 
     :param x: Argument.
     :type x: int32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2010,7 +2010,7 @@ def isfinited(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -2020,7 +2020,7 @@ def isinfd(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -2030,7 +2030,7 @@ def isinff(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -2040,7 +2040,7 @@ def isnand(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -2050,7 +2050,7 @@ def isnanf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -2060,7 +2060,7 @@ def j0(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2070,7 +2070,7 @@ def j0f(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2080,7 +2080,7 @@ def j1(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2090,7 +2090,7 @@ def j1f(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2102,7 +2102,7 @@ def jn(n, x):
     :type n: int32
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2114,7 +2114,7 @@ def jnf(n, x):
     :type n: int32
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2126,7 +2126,7 @@ def ldexp(x, y):
     :type x: float64
     :param y: Argument.
     :type y: int32
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2138,7 +2138,7 @@ def ldexpf(x, y):
     :type x: float32
     :param y: Argument.
     :type y: int32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2148,7 +2148,7 @@ def lgamma(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2158,7 +2158,7 @@ def lgammaf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2168,7 +2168,7 @@ def ll2double_rd(l):
 
     :param l: Argument.
     :type l: int64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2178,7 +2178,7 @@ def ll2double_rn(l):
 
     :param l: Argument.
     :type l: int64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2188,7 +2188,7 @@ def ll2double_ru(l):
 
     :param l: Argument.
     :type l: int64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2198,7 +2198,7 @@ def ll2double_rz(l):
 
     :param l: Argument.
     :type l: int64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2208,7 +2208,7 @@ def ll2float_rd(l):
 
     :param l: Argument.
     :type l: int64
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2218,7 +2218,7 @@ def ll2float_rn(l):
 
     :param l: Argument.
     :type l: int64
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2228,7 +2228,7 @@ def ll2float_ru(l):
 
     :param l: Argument.
     :type l: int64
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2238,7 +2238,7 @@ def ll2float_rz(l):
 
     :param l: Argument.
     :type l: int64
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2248,7 +2248,7 @@ def llabs(x):
 
     :param x: Argument.
     :type x: int64
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -2260,7 +2260,7 @@ def llmax(x, y):
     :type x: int64
     :param y: Argument.
     :type y: int64
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -2272,7 +2272,7 @@ def llmin(x, y):
     :type x: int64
     :param y: Argument.
     :type y: int64
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -2282,7 +2282,7 @@ def llrint(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -2292,7 +2292,7 @@ def llrintf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -2302,7 +2302,7 @@ def llround(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -2312,7 +2312,7 @@ def llroundf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -2322,7 +2322,7 @@ def log(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2332,7 +2332,7 @@ def log10(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2342,7 +2342,7 @@ def log10f(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2352,7 +2352,7 @@ def log1p(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2362,7 +2362,7 @@ def log1pf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2372,7 +2372,7 @@ def log2(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2382,7 +2382,7 @@ def log2f(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2392,7 +2392,7 @@ def logb(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2402,7 +2402,7 @@ def logbf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2412,7 +2412,7 @@ def logf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2422,7 +2422,7 @@ def longlong_as_double(x):
 
     :param x: Argument.
     :type x: int64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2434,7 +2434,7 @@ def max(x, y):
     :type x: int32
     :param y: Argument.
     :type y: int32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -2446,7 +2446,7 @@ def min(x, y):
     :type x: int32
     :param y: Argument.
     :type y: int32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -2478,7 +2478,7 @@ def mul24(x, y):
     :type x: int32
     :param y: Argument.
     :type y: int32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -2490,7 +2490,7 @@ def mul64hi(x, y):
     :type x: int64
     :param y: Argument.
     :type y: int64
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -2502,25 +2502,7 @@ def mulhi(x, y):
     :type x: int32
     :param y: Argument.
     :type y: int32
-    :rtype: UniTuple(int32 x 1)
-"""
-
-
-def nan():
-    """
-    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_nan.html
-
-
-    :rtype: Tuple(float64, int8)
-"""
-
-
-def nanf():
-    """
-    See https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_nanf.html
-
-
-    :rtype: Tuple(float32, int8)
+    :rtype: int32
 """
 
 
@@ -2530,7 +2512,7 @@ def nearbyint(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2540,7 +2522,7 @@ def nearbyintf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2552,7 +2534,7 @@ def nextafter(x, y):
     :type x: float64
     :param y: Argument.
     :type y: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2564,7 +2546,7 @@ def nextafterf(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2574,7 +2556,7 @@ def normcdf(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2584,7 +2566,7 @@ def normcdff(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2594,7 +2576,7 @@ def normcdfinv(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2604,7 +2586,7 @@ def normcdfinvf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2614,7 +2596,7 @@ def popc(x):
 
     :param x: Argument.
     :type x: int32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -2624,7 +2606,7 @@ def popcll(x):
 
     :param x: Argument.
     :type x: int64
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -2636,7 +2618,7 @@ def pow(x, y):
     :type x: float64
     :param y: Argument.
     :type y: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2648,7 +2630,7 @@ def powf(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2660,7 +2642,7 @@ def powi(x, y):
     :type x: float64
     :param y: Argument.
     :type y: int32
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2672,7 +2654,7 @@ def powif(x, y):
     :type x: float32
     :param y: Argument.
     :type y: int32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2682,7 +2664,7 @@ def rcbrt(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2692,7 +2674,7 @@ def rcbrtf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2704,7 +2686,7 @@ def remainder(x, y):
     :type x: float64
     :param y: Argument.
     :type y: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2716,7 +2698,7 @@ def remainderf(x, y):
     :type x: float32
     :param y: Argument.
     :type y: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2752,7 +2734,7 @@ def rhadd(x, y):
     :type x: int32
     :param y: Argument.
     :type y: int32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -2762,7 +2744,7 @@ def rint(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2772,7 +2754,7 @@ def rintf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2782,7 +2764,7 @@ def round(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2792,7 +2774,7 @@ def roundf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2802,7 +2784,7 @@ def rsqrt(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2812,7 +2794,7 @@ def rsqrtf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2826,7 +2808,7 @@ def sad(x, y, z):
     :type y: int32
     :param z: Argument.
     :type z: int32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -2836,7 +2818,7 @@ def saturatef(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2848,7 +2830,7 @@ def scalbn(x, y):
     :type x: float64
     :param y: Argument.
     :type y: int32
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2860,7 +2842,7 @@ def scalbnf(x, y):
     :type x: float32
     :param y: Argument.
     :type y: int32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2870,7 +2852,7 @@ def signbitd(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -2880,7 +2862,7 @@ def signbitf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -2890,7 +2872,7 @@ def sin(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2940,7 +2922,7 @@ def sinf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2950,7 +2932,7 @@ def sinh(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2960,7 +2942,7 @@ def sinhf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2970,7 +2952,7 @@ def sinpi(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -2980,7 +2962,7 @@ def sinpif(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -2990,7 +2972,7 @@ def sqrt(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -3000,7 +2982,7 @@ def sqrtf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -3010,7 +2992,7 @@ def tan(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -3020,7 +3002,7 @@ def tanf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -3030,7 +3012,7 @@ def tanh(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -3040,7 +3022,7 @@ def tanhf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -3050,7 +3032,7 @@ def tgamma(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -3060,7 +3042,7 @@ def tgammaf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -3070,7 +3052,7 @@ def trunc(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -3080,7 +3062,7 @@ def truncf(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -3092,7 +3074,7 @@ def uhadd(x, y):
     :type x: int32
     :param y: Argument.
     :type y: int32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -3102,7 +3084,7 @@ def uint2double_rn(i):
 
     :param i: Argument.
     :type i: int32
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -3112,7 +3094,7 @@ def uint2float_rd(x):
 
     :param in: Argument.
     :type in: int32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -3122,7 +3104,7 @@ def uint2float_rn(x):
 
     :param in: Argument.
     :type in: int32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -3132,7 +3114,7 @@ def uint2float_ru(x):
 
     :param in: Argument.
     :type in: int32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -3142,7 +3124,7 @@ def uint2float_rz(x):
 
     :param in: Argument.
     :type in: int32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -3152,7 +3134,7 @@ def ull2double_rd(l):
 
     :param l: Argument.
     :type l: int64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -3162,7 +3144,7 @@ def ull2double_rn(l):
 
     :param l: Argument.
     :type l: int64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -3172,7 +3154,7 @@ def ull2double_ru(l):
 
     :param l: Argument.
     :type l: int64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -3182,7 +3164,7 @@ def ull2double_rz(l):
 
     :param l: Argument.
     :type l: int64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -3192,7 +3174,7 @@ def ull2float_rd(l):
 
     :param l: Argument.
     :type l: int64
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -3202,7 +3184,7 @@ def ull2float_rn(l):
 
     :param l: Argument.
     :type l: int64
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -3212,7 +3194,7 @@ def ull2float_ru(l):
 
     :param l: Argument.
     :type l: int64
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -3222,7 +3204,7 @@ def ull2float_rz(l):
 
     :param l: Argument.
     :type l: int64
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -3234,7 +3216,7 @@ def ullmax(x, y):
     :type x: int64
     :param y: Argument.
     :type y: int64
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -3246,7 +3228,7 @@ def ullmin(x, y):
     :type x: int64
     :param y: Argument.
     :type y: int64
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -3258,7 +3240,7 @@ def umax(x, y):
     :type x: int32
     :param y: Argument.
     :type y: int32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -3270,7 +3252,7 @@ def umin(x, y):
     :type x: int32
     :param y: Argument.
     :type y: int32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -3282,7 +3264,7 @@ def umul24(x, y):
     :type x: int32
     :param y: Argument.
     :type y: int32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -3294,7 +3276,7 @@ def umul64hi(x, y):
     :type x: int64
     :param y: Argument.
     :type y: int64
-    :rtype: UniTuple(int64 x 1)
+    :rtype: int64
 """
 
 
@@ -3306,7 +3288,7 @@ def umulhi(x, y):
     :type x: int32
     :param y: Argument.
     :type y: int32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -3318,7 +3300,7 @@ def urhadd(x, y):
     :type x: int32
     :param y: Argument.
     :type y: int32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -3332,7 +3314,7 @@ def usad(x, y, z):
     :type y: int32
     :param z: Argument.
     :type z: int32
-    :rtype: UniTuple(int32 x 1)
+    :rtype: int32
 """
 
 
@@ -3342,7 +3324,7 @@ def y0(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -3352,7 +3334,7 @@ def y0f(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -3362,7 +3344,7 @@ def y1(x):
 
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -3372,7 +3354,7 @@ def y1f(x):
 
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 
@@ -3384,7 +3366,7 @@ def yn(n, x):
     :type n: int32
     :param x: Argument.
     :type x: float64
-    :rtype: UniTuple(float64 x 1)
+    :rtype: float64
 """
 
 
@@ -3396,7 +3378,7 @@ def ynf(n, x):
     :type n: int32
     :param x: Argument.
     :type x: float32
-    :rtype: UniTuple(float32 x 1)
+    :rtype: float32
 """
 
 

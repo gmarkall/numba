@@ -659,8 +659,14 @@ functions = {
         int32,
         [arg(name="x", ty=int32, is_ptr=False), arg(name="y", ty=int32, is_ptr=False)],
     ),
-    "__nv_nan": (float64, [arg(name="tagp", ty=int8, is_ptr=True)]),
-    "__nv_nanf": (float32, [arg(name="tagp", ty=int8, is_ptr=True)]),
+    # __nv_nan and __nv_nanf are excluded - they return a representation of a
+    # quiet NaN, but the argument they take seems to be undocumented, and
+    # follows a strange form - it is not an output like every other pointer
+    # argument. If a NaN is required, one can be obtained in CUDA Python by
+    # other means, e.g. `math.nan`. They are left in this list for completeness
+    # / reference.
+    # "__nv_nan": (float64, [arg(name="tagp", ty=int8, is_ptr=True)]),
+    # "__nv_nanf": (float32, [arg(name="tagp", ty=int8, is_ptr=True)]),
     "__nv_nearbyint": (float64, [arg(name="x", ty=float64, is_ptr=False)]),
     "__nv_nearbyintf": (float32, [arg(name="x", ty=float32, is_ptr=False)]),
     "__nv_nextafter": (
