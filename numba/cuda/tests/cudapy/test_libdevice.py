@@ -15,16 +15,14 @@ def use_sincos(s, c, x):
         c[i] = cr
 
 
-function_template = """\
-from numba.cuda import libdevice
-
-def pyfunc(%(pyargs)s):
-    ret = libdevice.%(func)s(%(funcargs)s)
-    %(retvars)s = ret
-"""
-
-
 class TestLibdevice(CUDATestCase):
+    """
+    Some tests of libdevice function wrappers that check the returned values.
+
+    These are mainly to check that the generation of all the implementations
+    results in correct typing and lowering for each type of function return
+    (e.g. scalar return, UniTuple return, Tuple return, etc.).
+    """
 
     def test_sincos(self):
         arr = np.arange(100, dtype=np.float64)
@@ -38,11 +36,25 @@ class TestLibdevice(CUDATestCase):
         np.testing.assert_allclose(np.sin(arr), sres)
 
 
-class TestLibdeviceCompilation(unittest.TestCase):
-    pass
+# A template for generating tests of compiling calls to libdevice functions.
+# The purpose of the call and assignment of the return variables is to ensure
+# the actual function implementations are not thrown away resulting in a PTX
+# implementation that only contains the ret instruction - this may hide certain
+# errors.
+function_template = """\
+from numba.cuda import libdevice
+
+def pyfunc(%(pyargs)s):
+    ret = libdevice.%(func)s(%(funcargs)s)
+    %(retvars)s = ret
+"""
 
 
 def make_test_call(libname):
+    """
+    Generates a test function for each libdevice function.
+    """
+
     def _test_call_functions(self):
         # Strip off '__nv_' from libdevice name to get Python name
         apiname = libname[5:]
@@ -50,51 +62,74 @@ def make_test_call(libname):
         retty, args = functions[libname]
         sig = create_signature(retty, args)
 
-        funcargsstr = ", ".join(['a%d' % i for i, arg in enumerate(args) if not
-                                 arg.is_ptr])
+        # Construct arguments to the libdevice function. These are all
+        # non-pointer arguments to the underlying bitcode function.
+        funcargs = ", ".join(['a%d' % i for i, arg in enumerate(args) if not
+                              arg.is_ptr])
 
+        # Arguments to the Python function (`pyfunc` in the template above) are
+        # the arguments to the libdevice function, plus as many extra arguments
+        # as there are in the return type of the libdevice function - one for
+        # scalar-valued returns, or the length of the tuple for tuple-valued
+        # returns.
         if isinstance(sig.return_type, (types.Tuple, types.UniTuple)):
-            pyargsstr = ", ".join(['r%d' % i for i in
-                                   range(len(sig.return_type))])
-            pyargsstr += ", " + funcargsstr
-            retvarsstr = ", ".join(['r%d[0]' % i for i in
-                                    range(len(sig.return_type))])
+            # Start with the parameters for the return values
+            pyargs = ", ".join(['r%d' % i for i in
+                                range(len(sig.return_type))])
+            # Add the parameters for the argument values
+            pyargs += ", " + funcargs
+            # Generate the unpacking of the return value from the libdevice
+            # function into the Python function return values (`r0`, `r1`,
+            # etc.).
+            retvars = ", ".join(['r%d[0]' % i for i in
+                                 range(len(sig.return_type))])
         else:
-            pyargsstr = "r0, " + funcargsstr
-            retvarsstr = "r0[0]"
-        d = { 'func': apiname, 'pyargs': pyargsstr, 'funcargs': funcargsstr,
-              'retvars': retvarsstr }
+            # Scalar return is a more straightforward case
+            pyargs = "r0, " + funcargs
+            retvars = "r0[0]"
+
+        # Create the string containing the function to compile
+        d = { 'func': apiname,
+              'pyargs': pyargs,
+              'funcargs': funcargs,
+              'retvars': retvars }
         code = function_template % d
-        #print(code)
+        print(code)
+
+        # Convert the string to a Python function
         locals = {}
         exec(code, globals(), locals)
         pyfunc = locals['pyfunc']
 
+        # Compute the signature for compilation. This mirrors the creation of
+        # arguments to the Python function above.
         pyargs = [ arg.ty for arg in args if not arg.is_ptr ]
         if isinstance(sig.return_type, (types.Tuple, types.UniTuple)):
             pyreturns = [ret[::1] for ret in sig.return_type]
             pyargs = pyreturns + pyargs
         else:
             pyargs.insert(0, sig.return_type[::1])
-        #print(pyargs)
+        print(pyargs)
 
         ptx, resty = compile_ptx(pyfunc, pyargs)
 
-        #print(ptx)
+        print(ptx)
 
     return _test_call_functions
+
+
+class TestLibdeviceCompilation(unittest.TestCase):
+    """
+    Class for holding all tests of compiling calls to libdevice functions. We
+    generate the actual tests in this class (as opposed to using subTest and
+    one test within this class) because there are a lot of tests, and it makes
+    the test suite appear frozen to test them all as subTests in one test.
+    """
 
 
 for libname in functions:
     setattr(TestLibdeviceCompilation, 'test_%s' % libname,
             make_test_call(libname))
-
-
-def test_made(self):
-    print("yep!")
-
-
-setattr(TestLibdevice, 'test_made', test_made)
 
 
 if __name__ == '__main__':

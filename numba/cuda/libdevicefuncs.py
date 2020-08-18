@@ -911,6 +911,11 @@ functions = {
 
 
 def create_signature(retty, args):
+    """
+    Given the return type and arguments for a libdevice function, return the
+    signature of the stub function used to call it from CUDA Python.
+    """
+
     # Any pointer arguments should be part of the return type.
     return_types = [arg.ty for arg in args if arg.is_ptr]
     # If the return type is void, there is no point adding it to the list of
@@ -928,7 +933,9 @@ def create_signature(retty, args):
     return signature(retty, *argtypes)
 
 
-# Generates the stubs for libdevice functions.
+# The following code generates the stubs for libdevice functions.
+#
+# Stubs can be regenerated (e.g. if the functions dict above is modified) with:
 #
 # python -c "from numba.cuda.libdevicefuncs import generate_stubs; \
 #            generate_stubs()" > numba/cuda/libdevice.py
@@ -947,6 +954,8 @@ param_template = '''\
 
 def generate_stubs():
     for name, (retty, args) in functions.items():
+        # Some libdevice functions have arguments called `in`, which causes a
+        # syntax error in Python, so we rename these to `x`.
         def argname(arg):
             if arg.name == 'in':
                 return 'x'

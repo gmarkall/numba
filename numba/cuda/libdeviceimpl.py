@@ -23,19 +23,8 @@ def libdevice_implement(func, retty, nbargs):
 
 
 def libdevice_implement_multiple_returns(func, retty, prototype_args):
-    # Any pointer arguments should be part of the return type.
-    nb_return_types = [arg.ty for arg in prototype_args if arg.is_ptr]
-    # If the return type is void, there is no point adding it to the list of
-    # return types.
-    if retty != types.void:
-        nb_return_types.insert(0, retty)
-
-    if len(nb_return_types) > 1:
-        nb_retty = types.Tuple(nb_return_types)
-    else:
-        nb_retty = nb_return_types[0]
-
-    nb_argtypes = [arg.ty for arg in prototype_args if not arg.is_ptr]
+    sig = libdevicefuncs.create_signature(retty, prototype_args)
+    nb_retty = sig.return_type
 
     def core(context, builder, sig, args):
         lmod = builder.module
@@ -80,7 +69,7 @@ def libdevice_implement_multiple_returns(func, retty, prototype_args):
             return cgutils.pack_struct(builder, tuple_args)
 
     key = getattr(libdevice, func[5:])
-    lower(key, *nb_argtypes)(core)
+    lower(key, *sig.args)(core)
 
 
 for func, (retty, args) in libdevicefuncs.functions.items():
