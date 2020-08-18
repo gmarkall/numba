@@ -41,12 +41,14 @@ def libdevice_implement_multiple_returns(func, retty, prototype_args):
         fnty = Type.function(fretty, fargtys)
         fn = lmod.get_or_insert_function(fnty, name=func)
 
+        # For returned values that are returned through a pointer, we need to
+        # allocate variables on the stack and pass a pointer to them.
         actual_args = []
         virtual_args = []
         arg_idx = 0
         for arg in prototype_args:
             if arg.is_ptr:
-                # Allocate virtual arg and add to args
+                # Allocate space for return value and add to args
                 tmp_arg = cgutils.alloca_once(builder,
                                               context.get_value_type(arg.ty))
                 actual_args.append(tmp_arg)
@@ -57,6 +59,8 @@ def libdevice_implement_multiple_returns(func, retty, prototype_args):
 
         ret = builder.call(fn, actual_args)
 
+        # Following the call, we need to assemble the returned values into a
+        # tuple for returning back to the caller.
         tuple_args = []
         if retty != types.void:
             tuple_args.append(ret)
