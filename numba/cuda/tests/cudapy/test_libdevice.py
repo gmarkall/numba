@@ -94,7 +94,6 @@ def make_test_call(libname):
               'funcargs': funcargs,
               'retvars': retvars }
         code = function_template % d
-        print(code)
 
         # Convert the string to a Python function
         locals = {}
@@ -109,11 +108,17 @@ def make_test_call(libname):
             pyargs = pyreturns + pyargs
         else:
             pyargs.insert(0, sig.return_type[::1])
-        print(pyargs)
 
         ptx, resty = compile_ptx(pyfunc, pyargs)
 
-        print(ptx)
+        # If the function body was discarded by optimization (therefore making
+        # the test a bit weak), there won't be any loading of parameters -
+        # ensure that a load from parameters occurs somewhere in the PTX
+        self.assertIn('ld.param', ptx)
+
+        # Returning the result (through a passed-in array) should also require
+        # a store to global memory, so check for at least one of those too.
+        self.assertIn('st.global', ptx)
 
     return _test_call_functions
 
