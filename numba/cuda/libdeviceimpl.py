@@ -1,6 +1,6 @@
 from llvmlite.llvmpy.core import Type
 from numba.core import cgutils, types
-from numba.core.imputils import impl_ret_borrowed, Registry
+from numba.core.imputils import Registry
 from numba.cuda import libdevice, libdevicefuncs
 
 registry = Registry()
@@ -51,7 +51,6 @@ def libdevice_implement_multiple_returns(func, retty, prototype_args):
         actual_args = []
         virtual_args = []
         arg_idx = 0
-        #virtual_arg_idx = 0
         for arg in prototype_args:
             if arg.is_ptr:
                 # Allocate virtual arg and add to args
@@ -71,9 +70,10 @@ def libdevice_implement_multiple_returns(func, retty, prototype_args):
         for arg in virtual_args:
             tuple_args.append(builder.load(arg))
 
-        tup = impl_ret_borrowed(context, builder, nb_retty,
-                                cgutils.pack_array(builder, tuple_args))
-        return tup
+        if isinstance(nb_retty, types.UniTuple):
+            return cgutils.pack_array(builder, tuple_args)
+        else:
+            return cgutils.pack_struct(builder, tuple_args)
 
     key = getattr(libdevice, func[5:])
     lower(key, *nb_argtypes)(core)
