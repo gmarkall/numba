@@ -931,7 +931,7 @@ See https://docs.nvidia.com/cuda/libdevice-users-guide/{func}.html
 '''
 
 param_template = '''\
-:param {a.name}:
+:param {a.name}: Argument.
 :type {a.name}: {a.ty}'''
 
 
