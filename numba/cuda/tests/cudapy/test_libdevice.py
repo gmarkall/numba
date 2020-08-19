@@ -25,6 +25,7 @@ class TestLibdevice(CUDATestCase):
     """
 
     def test_sincos(self):
+        # Tests return of a UniTuple from a libdevice function
         arr = np.arange(100, dtype=np.float64)
         sres = np.zeros_like(arr)
         cres = np.zeros_like(arr)
