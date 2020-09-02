@@ -1,7 +1,7 @@
 import numpy as np
 import math
 import time
-from numba import cuda, double
+from numba import cuda, double, void
 from numba.cuda.testing import unittest, CUDATestCase
 
 
@@ -67,7 +67,7 @@ class TestBlackScholes(CUDATestCase):
 
 
 
-        @cuda.jit(argtypes=(double,), restype=double, device=True, inline=True)
+        @cuda.jit(double(double), device=True, inline=True)
         def cnd_cuda(d):
             K = 1.0 / (1.0 + 0.2316419 * math.fabs(d))
             ret_val = (RSQRT2PI * math.exp(-0.5 * d * d) *
@@ -77,7 +77,7 @@ class TestBlackScholes(CUDATestCase):
             return ret_val
 
 
-        @cuda.jit(argtypes=(double[:], double[:], double[:], double[:], double[:],
+        @cuda.jit(void(double[:], double[:], double[:], double[:], double[:],
                             double, double))
         def black_scholes_cuda(callResult, putResult, S, X, T, R, V):
             i = cuda.threadIdx.x + cuda.blockIdx.x * cuda.blockDim.x

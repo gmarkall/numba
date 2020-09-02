@@ -37,8 +37,6 @@ def jit(func_or_sig=None, argtypes=None, device=False, inline=False,
        .. note:: A kernel cannot have any return value.
     :param device: Indicates whether this is a device function.
     :type device: bool
-    :param bind: (Deprecated) Force binding to CUDA context immediately
-    :type bind: bool
     :param link: A list of files containing PTX source to link with the function
     :type link: list
     :param debug: If True, check for exceptions thrown when executing the
@@ -65,14 +63,15 @@ def jit(func_or_sig=None, argtypes=None, device=False, inline=False,
         raise NotImplementedError("bounds checking is not supported for CUDA")
 
     if argtypes is not None:
-        msg = _msg_deprecated_signature_arg.format('argtypes')
-        warn(msg, category=NumbaDeprecationWarning)
+        raise DeprecationError(_msg_deprecated_signature_arg.format('argtypes'))
+
+    if argtypes is not None:
+        raise DeprecationError(_msg_deprecated_signature_arg.format('restypes'))
 
     if 'bind' in kws:
-        msg = _msg_deprecated_signature_arg.format('bind')
-        warn(msg, category=NumbaDeprecationWarning)
-    else:
-        bind=True
+        raise DeprecationError(_msg_deprecated_signature_arg.format('bind'))
+
+    bind=True
 
     fastmath = kws.get('fastmath', False)
     if argtypes is None and not sigutils.is_signature(func_or_sig):
