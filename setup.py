@@ -3,6 +3,7 @@ import platform
 import sys
 from distutils import sysconfig
 from distutils.command import build
+from distutils.command.build_ext import build_ext
 from distutils.spawn import spawn
 
 from setuptools import Extension, find_packages, setup
@@ -36,17 +37,55 @@ versioneer.parentdir_prefix = 'numba-'
 cmdclass = versioneer.get_cmdclass()
 cmdclass['build_doc'] = build_doc
 
-
-GCCFLAGS = ["-std=c89", "-Wdeclaration-after-statement", "-Werror"]
-
-if os.environ.get("NUMBA_GCC_FLAGS"):
-    CFLAGS = GCCFLAGS
-else:
-    CFLAGS = ['-g']
-
 install_name_tool_fixer = []
 if sys.platform == 'darwin':
     install_name_tool_fixer += ['-headerpad_max_install_names']
+
+build_ext = cmdclass.get('build_ext', build_ext)
+
+numba_be_user_options = [
+    ('werror', None, 'Build extensions with -Werror'),
+    ('wall', None, 'Build extensions with -Wall'),
+    ('noopt', None, 'Build extensions without optimization'),
+]
+
+
+class NumbaBuildExt(build_ext):
+
+    user_options = build_ext.user_options + numba_be_user_options
+    boolean_options = build_ext.boolean_options + ['werror', 'wall', 'noopt']
+
+    def initialize_options(self):
+        super().initialize_options()
+        # We build with -Werror and -Wall by default on Linux x86, to provide
+        # some level of checking without the burden of maintaining it for all
+        # platforms.
+        is_linux_x86 = (sys.platform == 'linux' and platform.machine()
+                        in ('i386', 'x86_64'))
+        self.werror = is_linux_x86
+        self.wall = is_linux_x86
+        # Building with debug symbols should generally work on Linux and OS X.
+        self.debug = sys.platform in ('linux', 'darwin')
+        # Optional build without optimization, to make debugging extensions
+        # easier.
+        self.noopt = 0
+
+    def run(self):
+        extra_compile_args = []
+        if self.noopt:
+            # Debugging is easier with an unoptimized binary
+            extra_compile_args.append('-O0')
+        if self.werror:
+            extra_compile_args.append('-Werror')
+        if self.wall:
+            extra_compile_args.append('-Wall')
+        for ext in self.extensions:
+            ext.extra_compile_args.extend(extra_compile_args)
+
+        super().run()
+
+
+cmdclass['build_ext'] = NumbaBuildExt
 
 
 def is_building():
@@ -92,7 +131,6 @@ def get_ext_modules():
 
     ext_dynfunc = Extension(name='numba._dynfunc',
                             sources=['numba/_dynfuncmod.c'],
-                            extra_compile_args=CFLAGS,
                             depends=['numba/_pymodule.h',
                                      'numba/_dynfunc.c'])
 
@@ -114,7 +152,6 @@ def get_ext_modules():
                                        "numba/cext/dictobject.c",
                                        "numba/cext/listobject.c",
                                        ],
-                              extra_compile_args=CFLAGS,
                               extra_link_args=install_name_tool_fixer,
                               depends=["numba/_pymodule.h",
                                        "numba/_helperlib.c",
