@@ -786,11 +786,9 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
 
     _fold_args = True
 
-    def __init__(self, py_func, sigs, bind, targetoptions):
-        #super().__init__()
+    def __init__(self, py_func, sigs, targetoptions):
         self.py_func = py_func
         self.sigs = []
-        self._bind = bind
         self.link = targetoptions.pop('link', (),)
         self._can_compile = True
 
@@ -826,8 +824,6 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
 
         # Not clear when this is ever true anywhere in Numba
         exact_match_required = False
-
-        #from pudb import set_trace; set_trace()
 
         _dispatcher.Dispatcher.__init__(self, self._tm.get_pointer(),
                                         arg_count, self._fold_args, argnames,
@@ -922,7 +918,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         targetoptions = self.targetoptions
         targetoptions['link'] = self.link
         specialization = Dispatcher(self.py_func, [types.void(*argtypes)],
-                                    self._bind, targetoptions)
+                                    targetoptions)
         self.specializations[cc, argtypes] = specialization
         return specialization
 
@@ -974,8 +970,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
                                     link=self.link,
                                     **self.targetoptions)
             self.definitions[(cc, argtypes)] = kernel
-            if self._bind:
-                kernel.bind()
+            kernel.bind()
             self.sigs.append(sig)
         return kernel
 
@@ -1056,11 +1051,11 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
             defn.bind()
 
     @classmethod
-    def _rebuild(cls, py_func, sigs, bind, targetoptions):
+    def _rebuild(cls, py_func, sigs, targetoptions):
         """
         Rebuild an instance.
         """
-        instance = cls(py_func, sigs, bind, targetoptions)
+        instance = cls(py_func, sigs, targetoptions)
         return instance
 
     def _reduce_states(self):
@@ -1068,5 +1063,5 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         Reduce the instance for serialization.
         Compiled definitions are discarded.
         """
-        return dict(py_func=self.py_func, sigs=self.sigs, bind=self._bind,
+        return dict(py_func=self.py_func, sigs=self.sigs,
                     targetoptions=self.targetoptions)

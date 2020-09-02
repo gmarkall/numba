@@ -71,8 +71,6 @@ def jit(func_or_sig=None, argtypes=None, device=False, inline=False,
     if 'bind' in kws:
         raise DeprecationError(_msg_deprecated_signature_arg.format('bind'))
 
-    bind=True
-
     fastmath = kws.get('fastmath', False)
     if argtypes is None and not sigutils.is_signature(func_or_sig):
         if func_or_sig is None:
@@ -98,7 +96,7 @@ def jit(func_or_sig=None, argtypes=None, device=False, inline=False,
                 targetoptions['opt'] = opt
                 targetoptions['link'] = link
                 sigs = None
-                return Dispatcher(func_or_sig, sigs, bind=bind,
+                return Dispatcher(func_or_sig, sigs,
                                   targetoptions=targetoptions)
 
     else:
@@ -132,7 +130,7 @@ def jit(func_or_sig=None, argtypes=None, device=False, inline=False,
             targetoptions['debug'] = debug
             targetoptions['link'] = link
             targetoptions['opt'] = opt
-            return Dispatcher(func, sigs, bind=bind, targetoptions=targetoptions)
+            return Dispatcher(func, sigs, targetoptions=targetoptions)
 
         def device_jit(func):
             return compile_device(func, restype, argtypes, inline=inline,
