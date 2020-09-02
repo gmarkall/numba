@@ -7,10 +7,13 @@ import tempfile
 
 import numpy as np
 
+from numba import _dispatcher
 from numba.core.typing.templates import AbstractTemplate, ConcreteTemplate
 from numba.core import (types, typing, utils, funcdesc, serialize, config,
                         compiler, sigutils)
+from numba.core.typeconv.rules import default_type_manager
 from numba.core.compiler_lock import global_compiler_lock
+from numba.core.dispatcher import OmittedArg
 import numba
 from .cudadrv.devices import get_context
 from .cudadrv import nvvm, driver
@@ -770,7 +773,7 @@ class _KernelConfiguration:
                                     self.stream, self.sharedmem)
 
 
-class Dispatcher(serialize.ReduceMixin):
+class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
     '''
     CUDA Dispatcher object. When configured and called, the dispatcher will
     specialize itself for the given arguments (if no suitable specialized
@@ -780,9 +783,12 @@ class Dispatcher(serialize.ReduceMixin):
     Dispatcher objects are not to be constructed by the user, but instead are
     created using the :func:`numba.cuda.jit` decorator.
     '''
-    def __init__(self, func, sigs, bind, targetoptions):
-        super().__init__()
-        self.py_func = func
+
+    _fold_args = True
+
+    def __init__(self, py_func, sigs, bind, targetoptions):
+        #super().__init__()
+        self.py_func = py_func
         self.sigs = []
         self._bind = bind
         self.link = targetoptions.pop('link', (),)
@@ -801,6 +807,32 @@ class Dispatcher(serialize.ReduceMixin):
         from .descriptor import CUDATargetDesc
 
         self.typingctx = CUDATargetDesc.typingctx
+
+        self._tm = default_type_manager
+
+        pysig = utils.pysignature(py_func)
+        arg_count = len(pysig.parameters)
+        argnames = tuple(pysig.parameters)
+        default_values = self.py_func.__defaults__ or ()
+        defargs = tuple(OmittedArg(val) for val in default_values)
+        can_fallback = False # Fallback to object mode?
+
+        try:
+            lastarg = list(pysig.parameters.values())[-1]
+        except IndexError:
+            has_stararg = False
+        else:
+            has_stararg = lastarg.kind == lastarg.VAR_POSITIONAL
+
+        # Not clear when this is ever true anywhere in Numba
+        exact_match_required = False
+
+        #from pudb import set_trace; set_trace()
+
+        _dispatcher.Dispatcher.__init__(self, self._tm.get_pointer(),
+                                        arg_count, self._fold_args, argnames,
+                                        defargs, can_fallback, has_stararg,
+                                        exact_match_required)
 
         if sigs:
             if len(sigs) > 1:
