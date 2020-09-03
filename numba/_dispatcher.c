@@ -227,6 +227,41 @@ Dispatcher_Insert(DispatcherObject *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
+static
+PyObject*
+Dispatcher_Cuda_Insert(DispatcherObject *self, PyObject *args)
+{
+    PyObject *sigtup, *cfunc;
+    int i, sigsz;
+    int *sig;
+
+    if (!PyArg_ParseTuple(args, "OO", &sigtup, &cfunc)) {
+        return NULL;
+    }
+
+    sigsz = PySequence_Fast_GET_SIZE(sigtup);
+    sig = malloc(sigsz * sizeof(int));
+
+    for (i = 0; i < sigsz; ++i) {
+        sig[i] = PyLong_AsLong(PySequence_Fast_GET_ITEM(sigtup, i));
+    }
+
+    /* Old comment: The reference to cfunc is borrowed; this only works because
+     * the derived Python class also stores an (owned) reference to cfunc.
+     *
+     * New comment: Incref here, but when should we decref? */
+    Py_INCREF(cfunc);
+    dispatcher_add_defn(self->dispatcher, sig, (void*) cfunc);
+
+    /* Add first definition */
+    if (!self->firstdef) {
+        self->firstdef = cfunc;
+    }
+
+    free(sig);
+
+    Py_RETURN_NONE;
+}
 
 static
 void explain_issue(PyObject *dispatcher, PyObject *args, PyObject *kws,
@@ -732,6 +767,8 @@ static PyMethodDef Dispatcher_methods[] = {
     { "_clear", (PyCFunction)Dispatcher_clear, METH_NOARGS, NULL },
     { "_insert", (PyCFunction)Dispatcher_Insert, METH_VARARGS,
       "insert new definition"},
+    { "_cuda_insert", (PyCFunction)Dispatcher_Cuda_Insert, METH_VARARGS,
+      "insert new definition for CUDA kernel"},
     { "_cuda_call", (PyCFunction)Dispatcher_cuda_call,
       METH_VARARGS | METH_KEYWORDS, "CUDA call resolution" },
     { NULL },

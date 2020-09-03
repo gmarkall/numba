@@ -1,3 +1,4 @@
+import collections
 import ctypes
 import inspect
 import os
@@ -828,6 +829,10 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         # Not clear when this is ever true anywhere in Numba
         exact_match_required = False
 
+        # A mapping of signatures to compile results
+        # Stopgap for _DispatcherBase
+        self.overloads = collections.OrderedDict()
+
         _dispatcher.Dispatcher.__init__(self, self._tm.get_pointer(),
                                         arg_count, self._fold_args, argnames,
                                         defargs, can_fallback, has_stararg,
@@ -911,6 +916,28 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         argtypes = [typeof(a, Purpose.argument) for a in args]
         return self.compile(tuple(argtypes))
 
+    def _search_new_conversions(self, *args, **kws):
+        # Stopgap. need to move to using
+        # _DispatcherBase._search_new_conversions
+        assert not kws
+        args = [typeof(a, Purpose.argument) for a in args]
+        found = False
+        for sig in self.nopython_signatures:
+            conv = self.typingctx.install_possible_conversions(args, sig.args)
+            if conv:
+                found = True
+        return found
+
+    def typeof_pyval(self, val):
+        # Stopgap. Need to move to _DispatcherBase.typeof_pyval
+        return typeof(val, Purpose.argument)
+
+    @property
+    def nopython_signatures(self):
+        # Stopgap from _DispatcherBase
+        return [cres.signature for cres in self.overloads.values()
+                if not cres.objectmode and not cres.interpmode]
+
     def specialize(self, *args):
         '''
         Create a new instance of this dispatcher specialized for the given
@@ -968,6 +995,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         specialized for the given signature.
         '''
         # Need to add overload here, I think. Not use self.definitions anymore.
+        print("Compiling")
         argtypes, return_type = sigutils.normalize_signature(sig)
         assert return_type is None or return_type == types.none
         cc = get_current_device().compute_capability
@@ -982,6 +1010,18 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
                                     link=self.link,
                                     **self.targetoptions)
             self.definitions[(cc, argtypes)] = kernel
+            # Inspired by _DispatcherBase.add_overload - another Stopgap.
+            #from pudb import set_trace; set_trace()
+            # Seems surprising that we sometimes get a tuple and sometimes a
+            # signature. Looks like we could do with some better normalization
+            # somewhere.
+            if isinstance(sig, tuple):
+                c_sig = [a._code for a in sig]
+            else:
+                c_sig = [a._code for a in sig.args]
+            self._cuda_insert(c_sig, kernel)
+            self.overloads[argtypes] = kernel
+
             kernel.bind()
             self.sigs.append(sig)
         return kernel
