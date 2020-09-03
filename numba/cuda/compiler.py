@@ -68,7 +68,7 @@ def compile_kernel(pyfunc, args, link, debug=False, inline=False,
     cukern = _Kernel(llvm_module=lib._final_module,
                      name=kernel.name,
                      pretty_name=cres.fndesc.qualname,
-                     argtypes=cres.signature.args,
+                     signature=cres.signature,
                      type_annotation=cres.type_annotation,
                      link=link,
                      debug=debug,
@@ -509,7 +509,7 @@ class _Kernel(serialize.ReduceMixin):
     CUDA Kernel specialized for a given set of argument types. When called, this
     object launches the kernel on the device.
     '''
-    def __init__(self, llvm_module, name, pretty_name, argtypes, call_helper,
+    def __init__(self, llvm_module, name, pretty_name, signature, call_helper,
                  link=(), debug=False, fastmath=False, type_annotation=None,
                  extensions=[], max_registers=None, opt=True):
         super().__init__()
@@ -524,13 +524,17 @@ class _Kernel(serialize.ReduceMixin):
         cufunc = CachedCUFunction(name, ptx, link, max_registers)
         # populate members
         self.entry_name = name
-        self.argument_types = tuple(argtypes)
+        self.signature = signature
         self.linking = tuple(link)
         self._type_annotation = type_annotation
         self._func = cufunc
         self.debug = debug
         self.call_helper = call_helper
         self.extensions = list(extensions)
+
+    @property
+    def argument_types(self):
+        return tuple(self.signature.args)
 
     @classmethod
     def _rebuild(cls, name, argtypes, cufunc, link, debug, call_helper,
@@ -935,8 +939,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
     @property
     def nopython_signatures(self):
         # Stopgap from _DispatcherBase
-        return [cres.signature for cres in self.overloads.values()
-                if not cres.objectmode and not cres.interpmode]
+        return [kernel.signature for kernel in self.overloads.values()]
 
     def specialize(self, *args):
         '''
@@ -1011,14 +1014,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
                                     **self.targetoptions)
             self.definitions[(cc, argtypes)] = kernel
             # Inspired by _DispatcherBase.add_overload - another Stopgap.
-            #from pudb import set_trace; set_trace()
-            # Seems surprising that we sometimes get a tuple and sometimes a
-            # signature. Looks like we could do with some better normalization
-            # somewhere.
-            if isinstance(sig, tuple):
-                c_sig = [a._code for a in sig]
-            else:
-                c_sig = [a._code for a in sig.args]
+            c_sig = [a._code for a in argtypes]
             self._cuda_insert(c_sig, kernel)
             self.overloads[argtypes] = kernel
 
