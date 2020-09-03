@@ -383,6 +383,23 @@ compile_and_invoke(DispatcherObject *self, PyObject *args, PyObject *kws, PyObje
     return retval;
 }
 
+static
+PyObject*
+compile_only(DispatcherObject *self, PyObject *args, PyObject *kws, PyObject *locals)
+{
+    /* Compile a new one */
+    PyObject *cfa, *cfunc;
+    cfa = PyObject_GetAttrString((PyObject*)self, "_compile_for_args");
+    if (cfa == NULL)
+        return NULL;
+
+    cfunc = PyObject_Call(cfa, args, kws);
+    Py_DECREF(cfa);
+
+    return cfunc;
+}
+
+
 static int
 find_named_args(DispatcherObject *self, PyObject **pargs, PyObject **pkws)
 {
@@ -603,10 +620,120 @@ CLEANUP:
     return retval;
 }
 
+static PyObject*
+Dispatcher_cuda_call(DispatcherObject *self, PyObject *args, PyObject *kws)
+{
+    PyObject *tmptype, *retval = NULL;
+    int *tys = NULL;
+    int argct;
+    int i;
+    int prealloc[24];
+    int matches;
+    PyObject *cfunc;
+    PyThreadState *ts = PyThreadState_Get();
+    PyObject *locals = NULL;
+    if (ts->use_tracing && ts->c_profilefunc) {
+        locals = PyEval_GetLocals();
+        if (locals == NULL) {
+            goto CLEANUP;
+        }
+    }
+    if (self->fold_args) {
+        if (find_named_args(self, &args, &kws))
+            return NULL;
+    }
+    else
+        Py_INCREF(args);
+    /* Now we own a reference to args */
+
+    argct = PySequence_Fast_GET_SIZE(args);
+
+    if (argct < (Py_ssize_t) (sizeof(prealloc) / sizeof(int)))
+        tys = prealloc;
+    else
+        tys = malloc(argct * sizeof(int));
+
+    for (i = 0; i < argct; ++i) {
+        tmptype = PySequence_Fast_GET_ITEM(args, i);
+        tys[i] = typeof_typecode((PyObject *) self, tmptype);
+        if (tys[i] == -1) {
+            if (self->can_fallback){
+                /* We will clear the exception if fallback is allowed. */
+                PyErr_Clear();
+            } else {
+                goto CLEANUP;
+            }
+        }
+    }
+
+    /* If compilation is enabled, ensure that an exact match is found and if
+     * not compile one */
+    self->exact_match_required |= self->can_compile;
+
+    /* We only allow unsafe conversions if compilation of new specializations
+       has been disabled. */
+    cfunc = dispatcher_resolve(self->dispatcher, tys, &matches,
+                               !self->can_compile, self->exact_match_required);
+
+    if (matches == 0 && !self->can_compile) {
+        /*
+         * If we can't compile a new specialization, look for
+         * matching signatures for which conversions haven't been
+         * registered on the C++ TypeManager.
+         */
+        int res = search_new_conversions((PyObject *) self, args, kws);
+        if (res < 0) {
+            retval = NULL;
+            goto CLEANUP;
+        }
+        if (res > 0) {
+            /* Retry with the newly registered conversions */
+            cfunc = dispatcher_resolve(self->dispatcher, tys, &matches,
+                                       !self->can_compile,
+                                       self->exact_match_required);
+        }
+    }
+
+    if (matches == 1) {
+        /* Definition is found */
+        retval = cfunc; // = call_cfunc(self, cfunc, args, kws, locals);
+        goto CLEANUP;
+    } else if (matches == 0) {
+        /* No matching definition */
+        if (self->can_compile) {
+            retval = compile_only(self, args, kws, locals);
+        } else if (self->fallbackdef) {
+            /* Have object fallback */
+            retval = call_cfunc(self, self->fallbackdef, args, kws, locals);
+        } else {
+            /* Raise TypeError */
+            explain_matching_error((PyObject *) self, args, kws);
+            retval = NULL;
+        }
+    } else if (self->can_compile) {
+        /* Ambiguous, but are allowed to compile */
+        retval = compile_only(self, args, kws, locals);
+    } else {
+        /* Ambiguous */
+        explain_ambiguous((PyObject *) self, args, kws);
+        retval = NULL;
+    }
+
+CLEANUP:
+    if (tys != prealloc)
+        free(tys);
+    Py_DECREF(args);
+
+    return retval;
+}
+
+
 static PyMethodDef Dispatcher_methods[] = {
     { "_clear", (PyCFunction)Dispatcher_clear, METH_NOARGS, NULL },
     { "_insert", (PyCFunction)Dispatcher_Insert, METH_VARARGS,
       "insert new definition"},
+    { "_cuda_call", (PyCFunction)Dispatcher_cuda_call,
+      METH_VARARGS | METH_KEYWORDS, "CUDA call resolution" },
     { NULL },
 };
 

@@ -14,6 +14,7 @@ from numba.core import (types, typing, utils, funcdesc, serialize, config,
 from numba.core.typeconv.rules import default_type_manager
 from numba.core.compiler_lock import global_compiler_lock
 from numba.core.dispatcher import OmittedArg
+from numba.core.typing.typeof import Purpose, typeof
 import numba
 from .cudadrv.devices import get_context
 from .cudadrv import nvvm, driver
@@ -784,7 +785,9 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
     created using the :func:`numba.cuda.jit` decorator.
     '''
 
-    _fold_args = True
+    # Whether to fold named arguments and default values. These are presently
+    # not supported on CUDA IIRC.
+    _fold_args = False
 
     def __init__(self, py_func, sigs, targetoptions):
         self.py_func = py_func
@@ -895,10 +898,18 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         '''
         Compile if necessary and invoke this kernel with *args*.
         '''
-        argtypes = tuple(
-            [self.typingctx.resolve_argument_type(a) for a in args])
-        kernel = self.compile(argtypes)
+        #argtypes = tuple(
+        #    [self.typingctx.resolve_argument_type(a) for a in args])
+        kernel = _dispatcher.Dispatcher._cuda_call(self, *args)
+        #kernel = self.compile(argtypes)
         kernel.launch(args, griddim, blockdim, stream, sharedmem)
+
+    def _compile_for_args(self, *args, **kws):
+        # Stopgap. Ideally we would move to using
+        # _DispatcherBase._compile_for_args.
+        assert not kws
+        argtypes = [typeof(a, Purpose.argument) for a in args]
+        return self.compile(tuple(argtypes))
 
     def specialize(self, *args):
         '''
@@ -956,6 +967,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         Compile and bind to the current context a version of this kernel
         specialized for the given signature.
         '''
+        # Need to add overload here, I think. Not use self.definitions anymore.
         argtypes, return_type = sigutils.normalize_signature(sig)
         assert return_type is None or return_type == types.none
         cc = get_current_device().compute_capability
