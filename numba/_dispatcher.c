@@ -738,7 +738,9 @@ Dispatcher_cuda_call(DispatcherObject *self, PyObject *args, PyObject *kws)
         /* No matching definition */
         if (self->can_compile) {
             retval = compile_only(self, args, kws, locals);
-            Py_INCREF(retval);
+            if (retval) {
+              Py_INCREF(retval);
+            }
         } else if (self->fallbackdef) {
             /* Have object fallback */
             retval = call_cfunc(self, self->fallbackdef, args, kws, locals);
