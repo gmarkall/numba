@@ -732,11 +732,13 @@ Dispatcher_cuda_call(DispatcherObject *self, PyObject *args, PyObject *kws)
     if (matches == 1) {
         /* Definition is found */
         retval = cfunc; // = call_cfunc(self, cfunc, args, kws, locals);
+        Py_INCREF(retval);
         goto CLEANUP;
     } else if (matches == 0) {
         /* No matching definition */
         if (self->can_compile) {
             retval = compile_only(self, args, kws, locals);
+            Py_INCREF(retval);
         } else if (self->fallbackdef) {
             /* Have object fallback */
             retval = call_cfunc(self, self->fallbackdef, args, kws, locals);
@@ -748,6 +750,7 @@ Dispatcher_cuda_call(DispatcherObject *self, PyObject *args, PyObject *kws)
     } else if (self->can_compile) {
         /* Ambiguous, but are allowed to compile */
         retval = compile_only(self, args, kws, locals);
+        Py_INCREF(retval);
     } else {
         /* Ambiguous */
         explain_ambiguous((PyObject *) self, args, kws);
@@ -758,10 +761,6 @@ CLEANUP:
     if (tys != prealloc)
         free(tys);
     Py_DECREF(args);
-
-    // Needed for the cuda case because we're returning the resolved overload
-    // back to Python, instead of calling it from C and returning the result.
-    Py_INCREF(retval);
 
     return retval;
 }
