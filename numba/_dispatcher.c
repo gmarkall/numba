@@ -759,6 +759,10 @@ CLEANUP:
         free(tys);
     Py_DECREF(args);
 
+    // Needed for the cuda case because we're returning the resolved overload
+    // back to Python, instead of calling it from C and returning the result.
+    Py_INCREF(retval);
+
     return retval;
 }
 
