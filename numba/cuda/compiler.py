@@ -917,14 +917,14 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         # Stopgap. Ideally we would move to using
         # _DispatcherBase._compile_for_args.
         assert not kws
-        argtypes = [typeof(a, Purpose.argument) for a in args]
+        argtypes = [self.typeof_pyval(a) for a in args]
         return self.compile(tuple(argtypes))
 
     def _search_new_conversions(self, *args, **kws):
         # Stopgap. need to move to using
         # _DispatcherBase._search_new_conversions
         assert not kws
-        args = [typeof(a, Purpose.argument) for a in args]
+        args = [self.typeof_pyval(a) for a in args]
         found = False
         for sig in self.nopython_signatures:
             conv = self.typingctx.install_possible_conversions(args, sig.args)
@@ -934,7 +934,14 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
 
     def typeof_pyval(self, val):
         # Stopgap. Need to move to _DispatcherBase.typeof_pyval
-        return typeof(val, Purpose.argument)
+        # Note this differs though because of the cuda array interface.
+        try:
+            return typeof(val, Purpose.argument)
+        except ValueError:
+            if numba.cuda.is_cuda_array(val):
+                return typeof(numba.cuda.as_cuda_array(val), Purpose.argument)
+            else:
+                raise
 
     @property
     def nopython_signatures(self):
