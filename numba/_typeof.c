@@ -42,6 +42,11 @@ static PyObject *str_typeof_pyval = NULL;
 static PyObject *str_value = NULL;
 static PyObject *str_numba_type = NULL;
 
+static PyObject *devicendarraybase;
+
+void typeof_set_devicendarraybase(PyObject *val) {
+    devicendarraybase = val;
+}
 
 /*
  * Type fingerprint computation.
@@ -763,6 +768,13 @@ int typecode_arrayscalar(PyObject *dispatcher, PyObject* aryscalar) {
     return BASIC_TYPECODES[typecode];
 }
 
+static
+int typecode_devicendarray(PyObject *dispatcher, PyObject *val)
+{
+  // Placeholder for now.
+  return typecode_using_fingerprint(dispatcher, val);
+}
+
 int
 typeof_typecode(PyObject *dispatcher, PyObject *val)
 {
@@ -795,6 +807,9 @@ typeof_typecode(PyObject *dispatcher, PyObject *val)
     /* Array handling */
     else if (PyType_IsSubtype(tyobj, &PyArray_Type)) {
         return typecode_ndarray(dispatcher, (PyArrayObject*)val);
+    }
+    else if (PyType_IsSubtype(tyobj, (PyTypeObject*)(devicendarraybase))) {
+        return typecode_devicendarray(dispatcher, val);
     }
 
     return typecode_using_fingerprint(dispatcher, val);

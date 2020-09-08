@@ -18,6 +18,7 @@ from numba.core.dispatcher import OmittedArg
 from numba.core.typing.typeof import Purpose, typeof
 import numba
 from .cudadrv.devices import get_context
+from .cudadrv.devicearray import DeviceNDArrayBase
 from .cudadrv import nvvm, driver
 from .errors import missing_launch_config_msg, normalize_kernel_dimensions
 from .api import get_current_device
@@ -847,6 +848,8 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
                 raise TypeError("Only one signature supported at present")
             self.compile(sigs[0])
             self._can_compile = False
+
+        self._cuda_set_arrayclass(DeviceNDArrayBase)
 
     def configure(self, griddim, blockdim, stream=0, sharedmem=0):
         griddim, blockdim = normalize_kernel_dimensions(griddim, blockdim)

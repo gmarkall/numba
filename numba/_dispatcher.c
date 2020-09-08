@@ -229,6 +229,21 @@ Dispatcher_Insert(DispatcherObject *self, PyObject *args)
 
 static
 PyObject*
+Dispatcher_cuda_set_arrayclass(DispatcherObject *self, PyObject *args) {
+  PyObject *val;
+
+  if (!PyArg_ParseTuple(args, "O", &val)) {
+    return NULL;
+  }
+
+  /* FIXME: Borrowed ref, but should be OK for testing */
+  typeof_set_devicendarraybase(val);
+
+  Py_RETURN_NONE;
+}
+
+static
+PyObject*
 Dispatcher_Cuda_Insert(DispatcherObject *self, PyObject *args)
 {
     PyObject *sigtup, *cfunc;
@@ -776,6 +791,8 @@ static PyMethodDef Dispatcher_methods[] = {
       "insert new definition for CUDA kernel"},
     { "_cuda_call", (PyCFunction)Dispatcher_cuda_call,
       METH_VARARGS | METH_KEYWORDS, "CUDA call resolution" },
+    { "_cuda_set_arrayclass", (PyCFunction)Dispatcher_cuda_set_arrayclass,
+      METH_VARARGS, "set dispatcher base class for CUDA kernel" },
     { NULL },
 };
 
