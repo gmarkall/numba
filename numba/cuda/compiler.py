@@ -912,6 +912,14 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         '''
         #argtypes = tuple(
         #    [self.typingctx.resolve_argument_type(a) for a in args])
+
+        print("Call codes:")
+        for a in args:
+            try:
+                print(f"compile for args: {a._numba_type_._code}")
+            except AttributeError:
+                from pudb import set_trace; set_trace()
+                print("Missing code")
         kernel = _dispatcher.Dispatcher._cuda_call(self, *args)
         #kernel = self.compile(argtypes)
         kernel.launch(args, griddim, blockdim, stream, sharedmem)
@@ -921,6 +929,8 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         # _DispatcherBase._compile_for_args.
         assert not kws
         argtypes = [self.typeof_pyval(a) for a in args]
+        codes = [ a._code for a in argtypes ]
+        print(f"compile for args: {codes}")
         return self.compile(tuple(argtypes))
 
     def _search_new_conversions(self, *args, **kws):
@@ -1008,8 +1018,10 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         specialized for the given signature.
         '''
         # Need to add overload here, I think. Not use self.definitions anymore.
-        print("Compiling")
         argtypes, return_type = sigutils.normalize_signature(sig)
+        codes = [ a._code for a in argtypes ]
+        print(f"compile for args: {codes}")
+        print(f"Compiling for {argtypes}")
         assert return_type is None or return_type == types.none
         cc = get_current_device().compute_capability
         if self.specialized:

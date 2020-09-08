@@ -771,8 +771,27 @@ int typecode_arrayscalar(PyObject *dispatcher, PyObject* aryscalar) {
 static
 int typecode_devicendarray(PyObject *dispatcher, PyObject *val)
 {
+//  int typecode;
+//  int dtype;
+//  int ndim;
+//  int layout = 0;
+//
+//  PyObject *tmp;
+//
+//  PyDict* flags = (PyDict*)PyObject_GetAttrString(val, "flags");
+//  if (PyDict_GetItemString(flags, 'C_CONTIGUOUS') == Py_True) {
+//    layout = 1;
+//  } else if (PyDict_GetItemString(flags, 'F_CONTIGUOUS') == Py_True) {
+//    layout = 2;
+//  }
+//
+//  int dtype_num = 
+//  dtype = dtype_num_to_typecode(dtype_num);
+
   // Placeholder for now.
-  return typecode_using_fingerprint(dispatcher, val);
+  //return typecode_using_fingerprint(dispatcher, val);
+  return _typecode_fallback(dispatcher, val, 0);
+  // FIXME: Should retain a reference on the first use?
 }
 
 int
