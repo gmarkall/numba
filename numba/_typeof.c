@@ -770,28 +770,37 @@ int typecode_arrayscalar(PyObject *dispatcher, PyObject* aryscalar) {
 }
 
 static
-int typecode_devicendarray(PyObject *dispatcher, PyObject *val)
+int typecode_devicendarray(PyObject *dispatcher, PyObject *ary)
 {
     int typecode;
     int dtype;
     int ndim;
     int layout = 0;
 
-    PyObject* flags = PyObject_GetAttrString(val, "flags");
+    PyObject* flags = PyObject_GetAttrString(ary, "flags");
     if (PyDict_GetItemString(flags, "C_CONTIGUOUS") == Py_True) {
         layout = 1;
     } else if (PyDict_GetItemString(flags, "F_CONTIGUOUS") == Py_True) {
         layout = 2;
     }
 
-    PyObject* dtype_obj = PyObject_GetAttrString(val, "dtype");
+    PyObject* dtype_obj = PyObject_GetAttrString(ary, "dtype");
     int dtype_num = PyLong_AsLong(PyObject_GetAttrString(dtype_obj, "num"));
     dtype = dtype_num_to_typecode(dtype_num);
 
-    ndim = PyLong_AsLong(PyObject_GetAttrString(val, "ndim"));
+    ndim = PyLong_AsLong(PyObject_GetAttrString(ary, "ndim"));
 
     typecode = cached_arycode[ndim - 1][layout][dtype];
+    printf("typecode_devicendarray from cache: %d\n", typecode);
+
+    if (typecode == -1) {
+        /* First use of this table entry, so it requires populating */
+        typecode = typecode_fallback_keep_ref(dispatcher, (PyObject*)ary);
+        cached_arycode[ndim - 1][layout][dtype] = typecode;
+    }
+
     printf("typecode_devicendarray: %d\n", typecode);
+
     return typecode;
 
     // Placeholder for now.
