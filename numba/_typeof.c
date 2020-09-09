@@ -798,15 +798,11 @@ int typecode_devicendarray(PyObject *dispatcher, PyObject *ary)
     assert(ndim <= N_NDIM);
     typecode = cached_arycode[ndim - 1][layout][dtype];
 
-    printf("typecode_devicendarray from cache: %d\n", typecode);
-
     if (typecode == -1) {
         /* First use of this table entry, so it requires populating */
         typecode = typecode_fallback_keep_ref(dispatcher, (PyObject*)ary);
         cached_arycode[ndim - 1][layout][dtype] = typecode;
     }
-
-    printf("typecode_devicendarray: %d\n", typecode);
 
     return typecode;
 
