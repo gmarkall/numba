@@ -784,13 +784,20 @@ int typecode_devicendarray(PyObject *dispatcher, PyObject *ary)
         layout = 2;
     }
 
+    ndim = PyLong_AsLong(PyObject_GetAttrString(ary, "ndim"));
+
+    if (ndim <= 0 || ndim > N_NDIM) goto FALLBACK;
+
     PyObject* dtype_obj = PyObject_GetAttrString(ary, "dtype");
     int dtype_num = PyLong_AsLong(PyObject_GetAttrString(dtype_obj, "num"));
     dtype = dtype_num_to_typecode(dtype_num);
+    if (dtype == -1) goto FALLBACK;
 
-    ndim = PyLong_AsLong(PyObject_GetAttrString(ary, "ndim"));
-
+    /* Fast path, using direct table lookup */
+    assert(layout < N_LAYOUT);
+    assert(ndim <= N_NDIM);
     typecode = cached_arycode[ndim - 1][layout][dtype];
+
     printf("typecode_devicendarray from cache: %d\n", typecode);
 
     if (typecode == -1) {
@@ -803,12 +810,26 @@ int typecode_devicendarray(PyObject *dispatcher, PyObject *ary)
 
     return typecode;
 
-    // Placeholder for now.
-    //return typecode_using_fingerprint(dispatcher, val);
-    //typecode = _typecode_fallback(dispatcher, val, 0);
-    //printf("typecode_devicendarray: %d\n", typecode);
-    //return typecode;
-    // FIXME: Should retain a reference on the first use?
+FALLBACK:
+    /* Slower path, for non-trivial array types */
+
+    // FIXME: Very slow, just always fingerprint
+    return typecode_using_fingerprint(dispatcher, (PyObject *) ary);
+
+    /* If this isn't a structured array then we can't use the cache */
+    if (dtype_num != NPY_VOID)
+        return typecode_using_fingerprint(dispatcher, (PyObject *) ary);
+
+    assert(0);
+
+//    /* Check type cache */
+//    typecode = get_cached_ndarray_typecode(ndim, layout, PyArray_DESCR(ary));
+//    if (typecode == -1) {
+//        /* First use of this type, use fallback and populate the cache */
+//        typecode = typecode_fallback_keep_ref(dispatcher, (PyObject*)ary);
+//        cache_ndarray_typecode(ndim, layout, PyArray_DESCR(ary), typecode);
+//    }
+//    return typecode;
 }
 
 int
