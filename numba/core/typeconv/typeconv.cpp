@@ -146,6 +146,7 @@ int TypeManager::_selectOverload(const Type sig[], const Type ovsigs[],
 
         for (int j = 0; j < sigsz; ++j) {
             TypeCompatibleCode tcc = isCompatible(sig[j], entry[j]);
+            printf("sig = %d, entry = %d, code = %d\n", sig[j], entry[j], tcc);
             if (tcc == TCC_FALSE ||
                 (tcc == TCC_CONVERT_UNSAFE && !allow_unsafe) ||
                 (tcc != TCC_EXACT && exact_match_required)) {
