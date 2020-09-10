@@ -163,6 +163,7 @@ class OmittedArgDataModel(DataModel):
 
 
 @register_default(types.Boolean)
+@register_default(types.BooleanLiteral)
 class BooleanModel(DataModel):
     _bit_type = ir.IntType(1)
     _byte_type = ir.IntType(8)
@@ -302,7 +303,6 @@ class EnumModel(ProxyModel):
 @register_default(types.Dummy)
 @register_default(types.ExceptionInstance)
 @register_default(types.ExternalFunction)
-@register_default(types.Macro)
 @register_default(types.EnumClass)
 @register_default(types.IntEnumClass)
 @register_default(types.NumberClass)
@@ -311,6 +311,7 @@ class EnumModel(ProxyModel):
 @register_default(types.DType)
 @register_default(types.RecursiveCall)
 @register_default(types.MakeFunctionLiteral)
+@register_default(types.Poison)
 class OpaqueModel(PrimitiveModel):
     """
     Passed as opaque pointers
@@ -718,6 +719,8 @@ class ComplexModel(StructModel):
         super(ComplexModel, self).__init__(dmm, fe_type, members)
 
 
+@register_default(types.LiteralList)
+@register_default(types.LiteralStrKeyDict)
 @register_default(types.Tuple)
 @register_default(types.NamedTuple)
 @register_default(types.StarArgTuple)
@@ -1342,3 +1345,25 @@ class DeferredStructModel(CompositeModel):
     def traverse(self, builder):
         return [(self.actual_fe_type,
                  lambda value: builder.extract_value(value, [0]))]
+
+
+@register_default(types.StructRefPayload)
+class StructPayloadModel(StructModel):
+    """Model for the payload of a mutable struct
+    """
+    def __init__(self, dmm, fe_typ):
+        members = tuple(fe_typ.field_dict.items())
+        super().__init__(dmm, fe_typ, members)
+
+
+class StructRefModel(StructModel):
+    """Model for a mutable struct.
+    A reference to the payload
+    """
+    def __init__(self, dmm, fe_typ):
+        dtype = fe_typ.get_data_type()
+        members = [
+            ("meminfo", types.MemInfoPointer(dtype)),
+        ]
+        super().__init__(dmm, fe_typ, members)
+

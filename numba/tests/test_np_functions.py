@@ -245,6 +245,10 @@ def asarray_kws(a, dtype):
     return np.asarray(a, dtype=dtype)
 
 
+def asfarray(a, dtype=np.float64):
+    return np.asfarray(a, dtype=dtype)
+
+
 def extract(condition, arr):
     return np.extract(condition, arr)
 
@@ -3141,6 +3145,31 @@ class TestNPFunctions(MemoryLeakMixin, TestCase):
                 else:
                     check_pass_through(cfunc, True, params)
 
+    def test_asarray_literal(self):
+
+        def case1():
+            return np.asarray("hello world")
+
+        def case2(): # kind1
+            s = "hello world"
+            return np.asarray(s)
+
+        def case3(): # kind2
+            s = '大处 着眼，小处着手。大大大处'
+            return np.asarray(s)
+
+        def case4():
+            s = ''
+            return np.asarray(s)
+
+        funcs = [case1, case2, case3, case4]
+
+        for pyfunc in funcs:
+            cfunc = jit(nopython=True)(pyfunc)
+            expected = pyfunc()
+            got = cfunc()
+            self.assertPreciseEqual(expected, got)
+
     def test_asarray_rejects_List_with_illegal_dtype(self):
         self.disable_leak_check()
         cfunc = jit(nopython=True)(asarray)
@@ -3182,6 +3211,28 @@ class TestNPFunctions(MemoryLeakMixin, TestCase):
         test_reject(make_nested_list())
         test_reject(make_nested_list_with_dict())
         test_reject(make_unicode_list())
+
+    def test_asfarray(self):
+        def inputs():
+            yield np.array([1, 2, 3]), None
+            yield np.array([2, 3], dtype=np.float32), np.float32
+            yield np.array([2, 3], dtype=np.int8), np.int8
+            yield np.array([2, 3], dtype=np.int8), np.complex64
+            yield np.array([2, 3], dtype=np.int8), np.complex128
+
+        pyfunc = asfarray
+        cfunc = jit(nopython=True)(pyfunc)
+
+        for arr, dt in inputs():
+            if dt is None:
+                expected = pyfunc(arr)
+                got = cfunc(arr)
+            else:
+                expected = pyfunc(arr, dtype=dt)
+                got = cfunc(arr, dtype=dt)
+
+            self.assertPreciseEqual(expected, got)
+            self.assertTrue(np.issubdtype(got.dtype, np.inexact), got.dtype)
 
     def test_repeat(self):
         # np.repeat(a, repeats)

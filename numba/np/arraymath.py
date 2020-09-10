@@ -4061,7 +4061,25 @@ def np_asarray(a, dtype=None):
             for i, v in enumerate(a):
                 ret[i] = v
             return ret
+    elif isinstance(a, types.StringLiteral):
+        arr = np.asarray(a.literal_value)
 
+        def impl(a, dtype=None):
+            return arr.copy()
+
+    return impl
+
+
+@overload(np.asfarray)
+def np_asfarray(a, dtype=np.float64):
+    dtype = as_dtype(dtype)
+    if not np.issubdtype(dtype, np.inexact):
+        dx = types.float64
+    else:
+        dx = dtype
+
+    def impl(a, dtype=np.float64):
+        return np.asarray(a, dx)
     return impl
 
 

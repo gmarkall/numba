@@ -338,6 +338,7 @@ The following top-level functions are supported:
 * :func:`numpy.array` (only the 2 first arguments)
 * :func:`numpy.array_equal`
 * :func:`numpy.asarray` (only the 2 first arguments)
+* :func:`numpy.asfarray` 
 * :func:`numpy.asfortranarray` (only the first argument)
 * :func:`numpy.atleast_1d`
 * :func:`numpy.atleast_2d`
@@ -608,6 +609,7 @@ Math operations
  remainder           Yes          Yes
  mod                 Yes          Yes
  fmod                Yes          Yes
+ divmod (*)          Yes          Yes
  abs                 Yes          Yes
  absolute            Yes          Yes
  fabs                Yes          Yes
@@ -629,6 +631,7 @@ Math operations
  lcm                 Yes          Yes
 ==============  =============  ===============
 
+(\*) not supported on timedelta types
 
 Trigonometric functions
 -----------------------
