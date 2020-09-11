@@ -499,30 +499,47 @@ class _Kernel(serialize.ReduceMixin):
     '''
 
     @global_compiler_lock
-    def __init__(self, pyfunc, args, link, debug=False, inline=False,
-                 fastmath=False, extensions=[], max_registers=None, opt=True):
+    def __init__(self, py_func, argtypes, link, debug=False, inline=False,
+                 fastmath=False, extensions=None, max_registers=None, opt=True):
         super().__init__()
-        cres = compile_cuda(pyfunc, types.void, args, debug=debug,
-                            inline=inline)
+
+        self.py_func = py_func
+        self.argtypes = argtypes
+        self.link = tuple(link)
+        self.debug = debug
+        self.inline = inline
+        self.fastmath = fastmath
+        self.extensions = extensions or []
+        self.max_registers = max_registers
+        self.opt = opt
+
+        cc = get_current_device().compute_capability
+        self.compile(cc)
+
+    def compile(self, cc):
+
+        cres = compile_cuda(self.py_func, types.void, self.argtypes,
+                            debug=self.debug,
+                            inline=self.inline)
         fname = cres.fndesc.llvm_func_name
         args = cres.signature.args
         lib, kernel = cres.target_context.prepare_cuda_kernel(cres.library,
                                                               fname,
                                                               args,
-                                                              debug=debug)
+                                                              debug=self.debug)
 
         self.initialize(llvm_module=lib._final_module,
                         name=kernel.name,
                         pretty_name=cres.fndesc.qualname,
                         signature=cres.signature,
                         type_annotation=cres.type_annotation,
-                        link=link,
-                        debug=debug,
-                        opt=opt,
+                        link=self.link,
+                        debug=self.debug,
+                        opt=self.opt,
                         call_helper=cres.call_helper,
-                        fastmath=fastmath,
-                        extensions=extensions,
-                        max_registers=max_registers)
+                        fastmath=self.fastmath,
+                        extensions=self.extensions,
+                        max_registers=self.max_registers)
 
     def initialize(self, llvm_module, name, pretty_name, signature,
                    call_helper, link=(), debug=False, fastmath=False,
