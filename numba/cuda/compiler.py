@@ -510,7 +510,6 @@ class _Kernel(serialize.ReduceMixin):
     object launches the kernel on the device.
     '''
 
-    @global_compiler_lock
     def __init__(self, py_func, argtypes, link, debug=False, inline=False,
                  fastmath=False, extensions=None, max_registers=None, opt=True):
         super().__init__()
@@ -527,9 +526,7 @@ class _Kernel(serialize.ReduceMixin):
 
         self.definitions = {}
 
-        cc = get_current_device().compute_capability
-        self.compile(cc)
-
+    @global_compiler_lock
     def compile(self, cc):
 
         cres = compile_cuda(self.py_func, types.void, self.argtypes,
@@ -559,13 +556,16 @@ class _Kernel(serialize.ReduceMixin):
         cufunc = CachedCUFunction(name, ptx, self.link, self.max_registers)
 
         # populate members
-        self.definitions[cc] = _KernelDefinition(
+        defn = _KernelDefinition(
             entry_name=name,
             signature=signature,
             type_annotation=type_annotation,
             func=cufunc,
             call_helper=call_helper
         )
+
+        self.definitions[cc] = defn
+        return defn
 
     @property
     def argument_types(self):
@@ -599,6 +599,7 @@ class _Kernel(serialize.ReduceMixin):
         Thread, block and shared memory configuration are serialized.
         Stream information is discarded.
         """
+        # FIXME: this needs fixing.
         return dict(name=self.entry_name, argtypes=self.argument_types,
                     cufunc=self._func, link=self.link, debug=self.debug,
                     call_helper=self.call_helper, extensions=self.extensions)
@@ -616,26 +617,44 @@ class _Kernel(serialize.ReduceMixin):
     @property
     def _func(self):
         cc = get_current_device().compute_capability
-        return self.definitions[cc].func
+        defn = self.definitions.get(cc, None)
+        if defn is None:
+            defn = self.compile(cc)
+        return defn.func
 
     @property
     def _type_annotation(self):
-        return next(iter(self.definitions.values())).type_annotation
+        try:
+            defn = next(iter(self.definitions.values()))
+        except StopIteration:
+            cc = get_current_device().compute_capability
+            defn = self.compile(cc)
+
+        return defn.type_annotation
 
     @property
     def entry_name(self):
         cc = get_current_device().compute_capability
-        return self.definitions[cc].entry_name
+        defn = self.definitions.get(cc, None)
+        if defn is None:
+            defn = self.compile(cc)
+        return defn.entry_name
 
     @property
     def call_helper(self):
         cc = get_current_device().compute_capability
-        return self.definitions[cc].call_helper
+        defn = self.definitions.get(cc, None)
+        if defn is None:
+            defn = self.compile(cc)
+        return defn.call_helper
 
     @property
     def signature(self):
         cc = get_current_device().compute_capability
-        return self.definitions[cc].signature
+        defn = self.definitions.get(cc, None)
+        if defn is None:
+            defn = self.compile(cc)
+        return defn.signature
 
     def bind(self):
         """
