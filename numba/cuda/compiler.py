@@ -15,7 +15,9 @@ from numba.core import (types, typing, utils, funcdesc, serialize, config,
 from numba.core.typeconv.rules import default_type_manager
 from numba.core.compiler_lock import global_compiler_lock
 from numba.core.dispatcher import OmittedArg
+from numba.core.errors import NumbaDeprecationWarning
 from numba.core.typing.typeof import Purpose, typeof
+from warnings import warn
 import numba
 from .cudadrv.devices import get_context
 from .cudadrv.devicearray import DeviceNDArrayBase
@@ -57,28 +59,13 @@ def compile_cuda(pyfunc, return_type, args, debug=False, inline=False):
     return cres
 
 
-@global_compiler_lock
 def compile_kernel(pyfunc, args, link, debug=False, inline=False,
                    fastmath=False, extensions=[], max_registers=None, opt=True):
-    cres = compile_cuda(pyfunc, types.void, args, debug=debug, inline=inline)
-    fname = cres.fndesc.llvm_func_name
-    lib, kernel = cres.target_context.prepare_cuda_kernel(cres.library, fname,
-                                                          cres.signature.args,
-                                                          debug=debug)
-
-    cukern = _Kernel(llvm_module=lib._final_module,
-                     name=kernel.name,
-                     pretty_name=cres.fndesc.qualname,
-                     signature=cres.signature,
-                     type_annotation=cres.type_annotation,
-                     link=link,
-                     debug=debug,
-                     opt=opt,
-                     call_helper=cres.call_helper,
-                     fastmath=fastmath,
-                     extensions=extensions,
-                     max_registers=max_registers)
-    return cukern
+    warn("compile_kernel is for internal use only",
+         category=NumbaDeprecationWarning)
+    return _Kernel(pyfunc, args, link, debug=debug, inline=inline,
+                   fastmath=fastmath, extensions=extensions,
+                   max_registers=max_registers, opt=opt)
 
 
 @global_compiler_lock
@@ -510,10 +497,37 @@ class _Kernel(serialize.ReduceMixin):
     CUDA Kernel specialized for a given set of argument types. When called, this
     object launches the kernel on the device.
     '''
-    def __init__(self, llvm_module, name, pretty_name, signature, call_helper,
-                 link=(), debug=False, fastmath=False, type_annotation=None,
-                 extensions=[], max_registers=None, opt=True):
+
+    @global_compiler_lock
+    def __init__(self, pyfunc, args, link, debug=False, inline=False,
+                 fastmath=False, extensions=[], max_registers=None, opt=True):
         super().__init__()
+        cres = compile_cuda(pyfunc, types.void, args, debug=debug,
+                            inline=inline)
+        fname = cres.fndesc.llvm_func_name
+        args = cres.signature.args
+        lib, kernel = cres.target_context.prepare_cuda_kernel(cres.library,
+                                                              fname,
+                                                              args,
+                                                              debug=debug)
+
+        self.initialize(llvm_module=lib._final_module,
+                        name=kernel.name,
+                        pretty_name=cres.fndesc.qualname,
+                        signature=cres.signature,
+                        type_annotation=cres.type_annotation,
+                        link=link,
+                        debug=debug,
+                        opt=opt,
+                        call_helper=cres.call_helper,
+                        fastmath=fastmath,
+                        extensions=extensions,
+                        max_registers=max_registers)
+
+    def initialize(self, llvm_module, name, pretty_name, signature,
+                   call_helper, link=(), debug=False, fastmath=False,
+                   type_annotation=None, extensions=[], max_registers=None,
+                   opt=True):
         # initialize CUfunction
         options = {
             'debug': debug,
@@ -922,7 +936,6 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         # _DispatcherBase._compile_for_args.
         assert not kws
         argtypes = [self.typeof_pyval(a) for a in args]
-        codes = [ a._code for a in argtypes ]
         return self.compile(tuple(argtypes))
 
     def _search_new_conversions(self, *args, **kws):
@@ -1020,9 +1033,8 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         if kernel is None:
             if not self._can_compile:
                 raise RuntimeError("Compilation disabled")
-            kernel = compile_kernel(self.py_func, argtypes,
-                                    link=self.link,
-                                    **self.targetoptions)
+            kernel = _Kernel(self.py_func, argtypes, link=self.link,
+                             **self.targetoptions)
             self.definitions[(cc, argtypes)] = kernel
             # Inspired by _DispatcherBase.add_overload - another Stopgap.
             c_sig = [a._code for a in argtypes]
