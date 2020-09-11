@@ -557,12 +557,9 @@ class _Kernel(serialize.ReduceMixin):
         # populate members
         self.entry_name = name
         self.signature = signature
-        self.linking = tuple(link)
         self._type_annotation = type_annotation
         self._func = cufunc
-        self.debug = debug
         self.call_helper = call_helper
-        self.extensions = list(extensions)
 
     @property
     def argument_types(self):
@@ -580,7 +577,7 @@ class _Kernel(serialize.ReduceMixin):
         # populate members
         instance.entry_name = name
         instance.argument_types = tuple(argtypes)
-        instance.linking = tuple(link)
+        instance.link = tuple(link)
         instance._type_annotation = None
         instance._func = cufunc
         instance.debug = debug
@@ -597,7 +594,7 @@ class _Kernel(serialize.ReduceMixin):
         Stream information is discarded.
         """
         return dict(name=self.entry_name, argtypes=self.argument_types,
-                    cufunc=self._func, link=self.linking, debug=self.debug,
+                    cufunc=self._func, link=self.link, debug=self.debug,
                     call_helper=self.call_helper, extensions=self.extensions)
 
     def __call__(self, *args, **kwargs):
