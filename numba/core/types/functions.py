@@ -457,6 +457,20 @@ class MakeFunctionLiteral(Literal, Opaque):
     pass
 
 
+class _PickleableWeakRef(weakref.ref):
+    """
+    Allow a weakref to be pickled.
+
+    Note that this only unpickles usefully if the object referred to
+    is kept alive elsewhere in the pickle, else the weakref will immediately expire.
+    """
+    def __getnewargs__(self):
+        obj = self()
+        if obj is None:
+            raise ReferenceError("underlying object has vanished")
+        return (obj,)
+
+
 class WeakType(Type):
     """
     Base class for types parametered by a mortal object, to which only
@@ -464,7 +478,7 @@ class WeakType(Type):
     """
 
     def _store_object(self, obj):
-        self._wr = weakref.ref(obj)
+        self._wr = _PickleableWeakRef(obj)
 
     def _get_object(self):
         obj = self._wr()
