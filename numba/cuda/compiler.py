@@ -615,10 +615,11 @@ class _Kernel(serialize.ReduceMixin):
                           sharedmem=self.sharedmem)
 
     @property
-    def _func(self):
-        cc = get_current_device().compute_capability
+    def _func(self, cc):
+        #cc = get_current_device().compute_capability
         defn = self.definitions.get(cc, None)
         if defn is None:
+            print(f"Compiling for {cc}")
             defn = self.compile(cc)
         return defn.func
 
@@ -688,12 +689,13 @@ class _Kernel(serialize.ReduceMixin):
         '''
         return self._func.ptx.get().decode('ascii')
 
-    def inspect_sass(self):
+    def inspect_sass(self, cc=None):
         '''
         Returns the SASS code for this kernel.
 
         Requires nvdisasm to be available on the PATH.
         '''
+        defn = self.definitions[cc]
         return self._func.get_sass()
 
     def inspect_types(self, file=None):
@@ -878,7 +880,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         self.link = targetoptions.pop('link', (),)
         self._can_compile = True
 
-        # keyed by a `(compute capability, args)` tuple
+        # keyed by args
         self.definitions = {}
         self.specializations = {}
 
@@ -1074,7 +1076,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
     def _func(self, signature=None, compute_capability=None):
         cc = compute_capability or get_current_device().compute_capability
         if signature is not None:
-            return self.definitions[(cc, signature)]._func
+            return self.definitions[signature]._func
         elif self.specialized:
             return self.definition._func
         else:
@@ -1092,13 +1094,13 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         if self.specialized:
             return self.definition
         else:
-            kernel = self.definitions.get((cc, argtypes))
+            kernel = self.definitions.get(argtypes)
         if kernel is None:
             if not self._can_compile:
                 raise RuntimeError("Compilation disabled")
             kernel = _Kernel(self.py_func, argtypes, link=self.link,
                              **self.targetoptions)
-            self.definitions[(cc, argtypes)] = kernel
+            self.definitions[argtypes] = kernel
             # Inspired by _DispatcherBase.add_overload - another Stopgap.
             c_sig = [a._code for a in argtypes]
             self._cuda_insert(c_sig, kernel)
@@ -1117,6 +1119,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         '''
         cc = compute_capability or get_current_device().compute_capability
         if signature is not None:
+            from pudb import set_trace; set_trace()
             return self.definitions[(cc, signature)].inspect_llvm()
         elif self.specialized:
             return self.definition.inspect_llvm()
@@ -1150,7 +1153,8 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         '''
         cc = compute_capability or get_current_device().compute_capability
         if signature is not None:
-            return self.definitions[(cc, signature)].inspect_sass()
+            from pudb import set_trace; set_trace()
+            return self.definitions[signature].inspect_sass()
         elif self.specialized:
             return self.definition.inspect_sass()
         else:
