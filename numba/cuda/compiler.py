@@ -395,13 +395,15 @@ class CachedPTX(object):
         self.cache = {}
         self._extra_options = options.copy()
 
-    def get(self):
+    def get(self, cc=None):
         """
         Get PTX for the current active context.
         """
-        cuctx = get_context()
-        device = cuctx.device
-        cc = device.compute_capability
+        if not cc:
+            cuctx = get_context()
+            device = cuctx.device
+            cc = device.compute_capability
+
         ptx = self.cache.get(cc)
         if ptx is None:
             arch = nvvm.get_arch_option(*cc)
@@ -513,10 +515,9 @@ class _Kernel(serialize.ReduceMixin):
         self.max_registers = max_registers
         self.opt = opt
 
-        cc = get_current_device().compute_capability
-        self.compile(cc)
+        self.compile()
 
-    def compile(self, cc):
+    def compile(self):
 
         cres = compile_cuda(self.py_func, types.void, self.argtypes,
                             debug=self.debug,
@@ -633,11 +634,11 @@ class _Kernel(serialize.ReduceMixin):
         '''
         return str(self._func.ptx.llvmir)
 
-    def inspect_asm(self):
+    def inspect_asm(self, cc):
         '''
         Returns the PTX code for this kernel.
         '''
-        return self._func.ptx.get().decode('ascii')
+        return self._func.ptx.get(cc).decode('ascii')
 
     def inspect_sass(self):
         '''
@@ -829,7 +830,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         self.link = targetoptions.pop('link', (),)
         self._can_compile = True
 
-        # keyed by a `(compute capability, args)` tuple
+        # keyed by args
         self.definitions = {}
         self.specializations = {}
 
@@ -1022,11 +1023,8 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         return next(iter(self.definitions.values()))
 
     @property
-    def _func(self, signature=None, compute_capability=None):
-        cc = compute_capability or get_current_device().compute_capability
-        if signature is not None:
-            return self.definitions[(cc, signature)]._func
-        elif self.specialized:
+    def _func(self):
+        if self.specialized:
             return self.definition._func
         else:
             return {sig: defn._func for sig, defn in self.definitions.items()}
@@ -1039,17 +1037,16 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         # Need to add overload here, I think. Not use self.definitions anymore.
         argtypes, return_type = sigutils.normalize_signature(sig)
         assert return_type is None or return_type == types.none
-        cc = get_current_device().compute_capability
         if self.specialized:
             return self.definition
         else:
-            kernel = self.definitions.get((cc, argtypes))
+            kernel = self.definitions.get(argtypes)
         if kernel is None:
             if not self._can_compile:
                 raise RuntimeError("Compilation disabled")
             kernel = _Kernel(self.py_func, argtypes, link=self.link,
                              **self.targetoptions)
-            self.definitions[(cc, argtypes)] = kernel
+            self.definitions[argtypes] = kernel
             # Inspired by _DispatcherBase.add_overload - another Stopgap.
             c_sig = [a._code for a in argtypes]
             self._cuda_insert(c_sig, kernel)
@@ -1066,9 +1063,11 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         dispatcher is specialized, the IR for the single specialization is
         returned.
         '''
-        cc = compute_capability or get_current_device().compute_capability
+        if compute_capability is not None:
+            warn('passing compute_capability has no effect on the LLVM IR',
+                 category=NumbaDeprecationWarning)
         if signature is not None:
-            return self.definitions[(cc, signature)].inspect_llvm()
+            return self.definitions[signature].inspect_llvm()
         elif self.specialized:
             return self.definition.inspect_llvm()
         else:
@@ -1084,11 +1083,11 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         '''
         cc = compute_capability or get_current_device().compute_capability
         if signature is not None:
-            return self.definitions[(cc, signature)].inspect_asm()
+            return self.definitions[signature].inspect_asm(cc)
         elif self.specialized:
-            return self.definition.inspect_asm()
+            return self.definition.inspect_asm(cc)
         else:
-            return dict((sig, defn.inspect_asm())
+            return dict((sig, defn.inspect_asm(cc))
                         for sig, defn in self.definitions.items())
 
     def inspect_sass(self, signature=None, compute_capability=None):
@@ -1097,11 +1096,15 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         far, or the SASS code for a specific signature and compute_capability
         if given.
 
+        SASS for the device in the current context is returned.
+
         Requires nvdisasm to be available on the PATH.
         '''
-        cc = compute_capability or get_current_device().compute_capability
+        if compute_capability is not None:
+            warn('passing compute_capability has no effect on the SASS code',
+                 category=NumbaDeprecationWarning)
         if signature is not None:
-            return self.definitions[(cc, signature)].inspect_sass()
+            return self.definitions[signature].inspect_sass()
         elif self.specialized:
             return self.definition.inspect_sass()
         else:
