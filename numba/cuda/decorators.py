@@ -1,6 +1,5 @@
-from warnings import warn
 from numba.core import types, config, sigutils
-from numba.core.errors import NumbaDeprecationWarning
+from numba.core.errors import DeprecationError
 from .compiler import (compile_device, declare_device_function, Dispatcher,
                        compile_device_template)
 from .simulator.kernel import FakeCUDAKernel
@@ -58,7 +57,7 @@ def jit(func_or_sig=None, argtypes=None, device=False, inline=False,
     if link and config.ENABLE_CUDASIM:
         raise NotImplementedError('Cannot link PTX in the simulator')
 
-    if kws.get('boundscheck') == True:
+    if kws.get('boundscheck'):
         raise NotImplementedError("bounds checking is not supported for CUDA")
 
     if argtypes is not None:
@@ -108,8 +107,8 @@ def jit(func_or_sig=None, argtypes=None, device=False, inline=False,
         if func_or_sig is None:
             if config.ENABLE_CUDASIM:
                 def autojitwrapper(func):
-                    return FakeCUDAKernel(func, device=device, fastmath=fastmath,
-                                          debug=debug)
+                    return FakeCUDAKernel(func, device=device,
+                                          fastmath=fastmath, debug=debug)
             else:
                 def autojitwrapper(func):
                     return jit(func, device=device, debug=debug, opt=opt, **kws)
@@ -118,8 +117,8 @@ def jit(func_or_sig=None, argtypes=None, device=False, inline=False,
         # func_or_sig is a function
         else:
             if config.ENABLE_CUDASIM:
-                return FakeCUDAKernel(func_or_sig, device=device, fastmath=fastmath,
-                                      debug=debug)
+                return FakeCUDAKernel(func_or_sig, device=device,
+                                      fastmath=fastmath, debug=debug)
             elif device:
                 return jitdevice(func_or_sig, debug=debug, opt=opt, **kws)
             else:

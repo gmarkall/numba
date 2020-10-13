@@ -644,7 +644,7 @@ Dispatcher_call(Dispatcher *self, PyObject *args, PyObject *kws)
 
     /* If compilation is enabled, ensure that an exact match is found and if
      * not compile one */
-    self->exact_match_required |= self->can_compile;
+    int exact_match_required = self->can_compile ? 1 : self->exact_match_required;
 
     /* We only allow unsafe conversions if compilation of new specializations
        has been disabled. */
@@ -826,7 +826,11 @@ static PyMethodDef Dispatcher_methods[] = {
 };
 
 static PyMemberDef Dispatcher_members[] = {
+<<<<<<< HEAD:numba/_dispatcher.cpp
     {(char*)"_can_compile", T_BOOL, offsetof(Dispatcher, can_compile), 0, NULL },
+=======
+    {"_can_compile", T_BOOL, offsetof(DispatcherObject, can_compile), 0, NULL },
+>>>>>>> numba/master:numba/_dispatcher.c
     {NULL}  /* Sentinel */
 };
 

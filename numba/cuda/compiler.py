@@ -683,12 +683,15 @@ class _Kernel(serialize.ReduceMixin):
         for t, v in zip(self.argument_types, args):
             self._prepare_args(t, v, stream, retr, kernelargs)
 
-        # Configure kernel
-        cu_func = cufunc.configure(griddim, blockdim,
-                                   stream=stream,
-                                   sharedmem=sharedmem)
+        stream_handle = stream and stream.handle or None
+
         # Invoke kernel
-        cu_func(*kernelargs)
+        driver.launch_kernel(cufunc.handle,
+                             *griddim,
+                             *blockdim,
+                             sharedmem,
+                             stream_handle,
+                             kernelargs)
 
         if self.debug:
             driver.device_to_host(ctypes.addressof(excval), excmem, excsz)
@@ -938,11 +941,11 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         '''
         Compile if necessary and invoke this kernel with *args*.
         '''
-        #argtypes = tuple(
-        #    [self.typingctx.resolve_argument_type(a) for a in args])
+        if self.specialized:
+            kernel = next(iter(self.overloads.values()))
+        else:
+            kernel = _dispatcher.Dispatcher._cuda_call(self, *args)
 
-        kernel = _dispatcher.Dispatcher._cuda_call(self, *args)
-        #kernel = self.compile(argtypes)
         kernel.launch(args, griddim, blockdim, stream, sharedmem)
 
     def _compile_for_args(self, *args, **kws):
