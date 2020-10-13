@@ -831,7 +831,6 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         self._can_compile = True
 
         # keyed by args
-        self.definitions = {}
         self.specializations = {}
 
         self.targetoptions = targetoptions
@@ -1015,38 +1014,46 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
 
     @property
     def definition(self):
+        warn('Use overloads instead of definition',
+             category=NumbaDeprecationWarning)
         # There is a single definition only when the dispatcher has been
         # specialized.
         if not self.specialized:
             raise ValueError("Dispatcher needs to be specialized to get the "
                              "single definition")
-        return next(iter(self.definitions.values()))
+        return next(iter(self.overloads.values()))
+
+    @property
+    def definitions(self):
+        warn('Use overloads instead of definitions',
+             category=NumbaDeprecationWarning)
+        return self.overloads
 
     @property
     def _func(self):
         if self.specialized:
-            return self.definition._func
+            warn('_func will always return a dict in future',
+                 category=NumbaDeprecationWarning)
+            return next(iter(self.overloads.values()))._func
         else:
-            return {sig: defn._func for sig, defn in self.definitions.items()}
+            return {sig: defn._func for sig, defn in self.overloads.items()}
 
     def compile(self, sig):
         '''
         Compile and bind to the current context a version of this kernel
         specialized for the given signature.
         '''
-        # Need to add overload here, I think. Not use self.definitions anymore.
         argtypes, return_type = sigutils.normalize_signature(sig)
         assert return_type is None or return_type == types.none
         if self.specialized:
-            return self.definition
+            return next(iter(self.overloads.values()))
         else:
-            kernel = self.definitions.get(argtypes)
+            kernel = self.overloads.get(argtypes)
         if kernel is None:
             if not self._can_compile:
                 raise RuntimeError("Compilation disabled")
             kernel = _Kernel(self.py_func, argtypes, link=self.link,
                              **self.targetoptions)
-            self.definitions[argtypes] = kernel
             # Inspired by _DispatcherBase.add_overload - another Stopgap.
             c_sig = [a._code for a in argtypes]
             self._cuda_insert(c_sig, kernel)
@@ -1067,12 +1074,14 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
             warn('passing compute_capability has no effect on the LLVM IR',
                  category=NumbaDeprecationWarning)
         if signature is not None:
-            return self.definitions[signature].inspect_llvm()
+            return self.overloads[signature].inspect_llvm()
         elif self.specialized:
-            return self.definition.inspect_llvm()
+            warn('inspect_llvm will always return a dict in future',
+                 category=NumbaDeprecationWarning)
+            return next(iter(self.overloads.values())).inspect_llvm()
         else:
             return dict((sig, defn.inspect_llvm())
-                        for sig, defn in self.definitions.items())
+                        for sig, defn in self.overloads.items())
 
     def inspect_asm(self, signature=None, compute_capability=None):
         '''
@@ -1083,12 +1092,14 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         '''
         cc = compute_capability or get_current_device().compute_capability
         if signature is not None:
-            return self.definitions[signature].inspect_asm(cc)
+            return self.overloads[signature].inspect_asm(cc)
         elif self.specialized:
-            return self.definition.inspect_asm(cc)
+            warn('inspect_asm will always return a dict in future',
+                 category=NumbaDeprecationWarning)
+            return next(iter(self.overloads.values())).inspect_asm(cc)
         else:
             return dict((sig, defn.inspect_asm(cc))
-                        for sig, defn in self.definitions.items())
+                        for sig, defn in self.overloads.items())
 
     def inspect_sass(self, signature=None, compute_capability=None):
         '''
@@ -1104,12 +1115,14 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
             warn('passing compute_capability has no effect on the SASS code',
                  category=NumbaDeprecationWarning)
         if signature is not None:
-            return self.definitions[signature].inspect_sass()
+            return self.overloads[signature].inspect_sass()
         elif self.specialized:
-            return self.definition.inspect_sass()
+            warn('inspect_sass will always return a dict in future',
+                 category=NumbaDeprecationWarning)
+            return next(iter(self.overloads.values())).inspect_sass()
         else:
             return dict((sig, defn.inspect_sass())
-                        for sig, defn in self.definitions.items())
+                        for sig, defn in self.overloads.items())
 
     def inspect_types(self, file=None):
         '''
@@ -1120,22 +1133,21 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         if file is None:
             file = sys.stdout
 
-        if self.specialized:
-            self.definition.inspect_types(file=file)
-        else:
-            for _, defn in self.definitions.items():
-                defn.inspect_types(file=file)
+        for _, defn in self.overloads.items():
+            defn.inspect_types(file=file)
 
     @property
     def ptx(self):
         if self.specialized:
-            return self.definition.ptx
+            warn('ptx will always return a dict in future',
+                 category=NumbaDeprecationWarning)
+            return next(iter(self.overloads.values())).ptx
         else:
             return dict((sig, defn.ptx)
-                        for sig, defn in self.definitions.items())
+                        for sig, defn in self.overloads.items())
 
     def bind(self):
-        for defn in self.definitions.values():
+        for defn in self.overloads.values():
             defn.bind()
 
     @classmethod
