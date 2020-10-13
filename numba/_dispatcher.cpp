@@ -267,7 +267,7 @@ Dispatcher_Insert(Dispatcher *self, PyObject *args)
 
 static
 PyObject*
-Dispatcher_cuda_set_arrayclass(DispatcherObject *self, PyObject *args) {
+Dispatcher_cuda_set_arrayclass(Dispatcher *self, PyObject *args) {
   PyObject *val;
 
   if (!PyArg_ParseTuple(args, "O", &val)) {
@@ -282,7 +282,7 @@ Dispatcher_cuda_set_arrayclass(DispatcherObject *self, PyObject *args) {
 
 static
 PyObject*
-Dispatcher_Cuda_Insert(DispatcherObject *self, PyObject *args)
+Dispatcher_Cuda_Insert(Dispatcher *self, PyObject *args)
 {
     PyObject *sigtup, *cfunc;
     int i, sigsz;
@@ -293,7 +293,7 @@ Dispatcher_Cuda_Insert(DispatcherObject *self, PyObject *args)
     }
 
     sigsz = PySequence_Fast_GET_SIZE(sigtup);
-    sig = malloc(sigsz * sizeof(int));
+    sig = new int[sigsz];
 
     for (i = 0; i < sigsz; ++i) {
         sig[i] = PyLong_AsLong(PySequence_Fast_GET_ITEM(sigtup, i));
@@ -304,14 +304,9 @@ Dispatcher_Cuda_Insert(DispatcherObject *self, PyObject *args)
      *
      * New comment: Incref here, but when should we decref? */
     Py_INCREF(cfunc);
-    dispatcher_add_defn(self->dispatcher, sig, (void*) cfunc);
+    self->addDefinition(sig, cfunc);
 
-    /* Add first definition */
-    if (!self->firstdef) {
-        self->firstdef = cfunc;
-    }
-
-    free(sig);
+    delete[] sig;
 
     Py_RETURN_NONE;
 }
@@ -473,7 +468,7 @@ compile_and_invoke(Dispatcher *self, PyObject *args, PyObject *kws, PyObject *lo
 
 static
 PyObject*
-compile_only(DispatcherObject *self, PyObject *args, PyObject *kws, PyObject *locals)
+compile_only(Dispatcher *self, PyObject *args, PyObject *kws, PyObject *locals)
 {
     /* Compile a new one */
     PyObject *cfa, *cfunc;
@@ -707,7 +702,7 @@ CLEANUP:
 }
 
 static PyObject*
-Dispatcher_cuda_call(DispatcherObject *self, PyObject *args, PyObject *kws)
+Dispatcher_cuda_call(Dispatcher *self, PyObject *args, PyObject *kws)
 {
     PyObject *tmptype, *retval = NULL;
     int *tys = NULL;
@@ -737,7 +732,7 @@ Dispatcher_cuda_call(DispatcherObject *self, PyObject *args, PyObject *kws)
     if (argct < (Py_ssize_t) (sizeof(prealloc) / sizeof(int)))
         tys = prealloc;
     else
-        tys = malloc(argct * sizeof(int));
+        tys = new int[argct];
 
     for (i = 0; i < argct; ++i) {
         tmptype = PySequence_Fast_GET_ITEM(args, i);
@@ -758,8 +753,8 @@ Dispatcher_cuda_call(DispatcherObject *self, PyObject *args, PyObject *kws)
 
     /* We only allow unsafe conversions if compilation of new specializations
        has been disabled. */
-    cfunc = dispatcher_resolve(self->dispatcher, tys, &matches,
-                               !self->can_compile, self->exact_match_required);
+    cfunc = self->resolve(tys, matches, !self->can_compile,
+                          self->exact_match_required);
 
     if (matches == 0 && !self->can_compile) {
         /*
@@ -774,9 +769,8 @@ Dispatcher_cuda_call(DispatcherObject *self, PyObject *args, PyObject *kws)
         }
         if (res > 0) {
             /* Retry with the newly registered conversions */
-            cfunc = dispatcher_resolve(self->dispatcher, tys, &matches,
-                                       !self->can_compile,
-                                       self->exact_match_required);
+            cfunc = self->resolve(tys, matches, !self->can_compile,
+                                  self->exact_match_required);
         }
     }
 
@@ -812,7 +806,7 @@ Dispatcher_cuda_call(DispatcherObject *self, PyObject *args, PyObject *kws)
 
 CLEANUP:
     if (tys != prealloc)
-        free(tys);
+        delete[] tys;
     Py_DECREF(args);
 
     return retval;
