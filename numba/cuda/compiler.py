@@ -604,19 +604,8 @@ class _Kernel(serialize.ReduceMixin):
                     cufunc=self._func, link=self.link, debug=self.debug,
                     call_helper=self.call_helper, extensions=self.extensions)
 
-    def __call__(self, *args, **kwargs):
-        assert not kwargs
-        griddim, blockdim = normalize_kernel_dimensions(self.griddim,
-                                                        self.blockdim)
-        self._kernel_call(args=args,
-                          griddim=griddim,
-                          blockdim=blockdim,
-                          stream=self.stream,
-                          sharedmem=self.sharedmem)
-
-    @property
-    def _func(self, cc):
-        #cc = get_current_device().compute_capability
+    def _func(self, cc=None):
+        cc = cc or get_current_device().compute_capability
         defn = self.definitions.get(cc, None)
         if defn is None:
             print(f"Compiling for {cc}")
@@ -661,14 +650,16 @@ class _Kernel(serialize.ReduceMixin):
         """
         Force binding to current CUDA context
         """
-        self._func.get()
+        cc = get_current_device().compute_capability
+        self._func(cc).get()
 
     @property
-    def ptx(self):
+    def ptx(self, cc=None):
         '''
         PTX code for this kernel.
         '''
-        return self._func.ptx.get().decode('utf8')
+        cc = cc or get_current_device().compute_capability
+        return self._func(cc).ptx.get().decode('utf8')
 
     @property
     def device(self):
@@ -677,17 +668,19 @@ class _Kernel(serialize.ReduceMixin):
         """
         return get_current_device()
 
-    def inspect_llvm(self):
+    def inspect_llvm(self, cc=None):
         '''
         Returns the LLVM IR for this kernel.
         '''
-        return str(self._func.ptx.llvmir)
+        cc = cc or get_current_device().compute_capability
+        return str(self._func(cc).ptx.llvmir)
 
-    def inspect_asm(self):
+    def inspect_asm(self, cc=None):
         '''
         Returns the PTX code for this kernel.
         '''
-        return self._func.ptx.get().decode('ascii')
+        cc = cc or get_current_device().compute_capability
+        return self._func(cc).ptx.get().decode('ascii')
 
     def inspect_sass(self, cc=None):
         '''
@@ -695,8 +688,10 @@ class _Kernel(serialize.ReduceMixin):
 
         Requires nvdisasm to be available on the PATH.
         '''
-        defn = self.definitions[cc]
-        return self._func.get_sass()
+        # FIXME: What is going on here?
+        cc = cc or get_current_device().compute_capability
+        #defn = self.definitions[cc]
+        return self._func(cc).get_sass()
 
     def inspect_types(self, file=None):
         '''
@@ -717,7 +712,8 @@ class _Kernel(serialize.ReduceMixin):
 
     def launch(self, args, griddim, blockdim, stream=0, sharedmem=0):
         # Prepare kernel
-        cufunc = self._func.get()
+        cc = get_current_device().compute_capability
+        cufunc = self._func(cc).get()
 
         if self.debug:
             excname = cufunc.name + "__errcode__"
@@ -1074,7 +1070,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
 
     @property
     def _func(self, signature=None, compute_capability=None):
-        cc = compute_capability or get_current_device().compute_capability
+        #cc = compute_capability or get_current_device().compute_capability
         if signature is not None:
             return self.definitions[signature]._func
         elif self.specialized:
@@ -1090,7 +1086,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         # Need to add overload here, I think. Not use self.definitions anymore.
         argtypes, return_type = sigutils.normalize_signature(sig)
         assert return_type is None or return_type == types.none
-        cc = get_current_device().compute_capability
+        #cc = get_current_device().compute_capability
         if self.specialized:
             return self.definition
         else:
@@ -1119,7 +1115,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         '''
         cc = compute_capability or get_current_device().compute_capability
         if signature is not None:
-            from pudb import set_trace; set_trace()
+            #from pudb import set_trace; set_trace()
             return self.definitions[(cc, signature)].inspect_llvm()
         elif self.specialized:
             return self.definition.inspect_llvm()
@@ -1151,9 +1147,9 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
 
         Requires nvdisasm to be available on the PATH.
         '''
-        cc = compute_capability or get_current_device().compute_capability
+        #cc = compute_capability or get_current_device().compute_capability
         if signature is not None:
-            from pudb import set_trace; set_trace()
+            #from pudb import set_trace; set_trace()
             return self.definitions[signature].inspect_sass()
         elif self.specialized:
             return self.definition.inspect_sass()
