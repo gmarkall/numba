@@ -528,23 +528,32 @@ class _Kernel(serialize.ReduceMixin):
                                                               args,
                                                               debug=self.debug)
 
-        llvm_module = lib._final_module
-        name = kernel.name
-        pretty_name = cres.fndesc.qualname
-        signature = cres.signature
-        type_annotation = cres.type_annotation
-        call_helper = cres.call_helper
-        max_registers = self.max_registers
+        self.initialize(llvm_module=lib._final_module,
+                        name=kernel.name,
+                        pretty_name=cres.fndesc.qualname,
+                        signature=cres.signature,
+                        type_annotation=cres.type_annotation,
+                        link=self.link,
+                        debug=self.debug,
+                        opt=self.opt,
+                        call_helper=cres.call_helper,
+                        fastmath=self.fastmath,
+                        extensions=self.extensions,
+                        max_registers=self.max_registers)
 
+    def initialize(self, llvm_module, name, pretty_name, signature,
+                   call_helper, link=(), debug=False, fastmath=False,
+                   type_annotation=None, extensions=[], max_registers=None,
+                   opt=True):
         # initialize CUfunction
         options = {
-            'debug': self.debug,
-            'fastmath': self.fastmath,
-            'opt': 3 if self.opt else 0
+            'debug': debug,
+            'fastmath': fastmath,
+            'opt': 3 if opt else 0
         }
 
         ptx = CachedPTX(pretty_name, str(llvm_module), options=options)
-        cufunc = CachedCUFunction(name, ptx, self.link, max_registers)
+        cufunc = CachedCUFunction(name, ptx, link, max_registers)
         # populate members
         self.entry_name = name
         self.signature = signature
