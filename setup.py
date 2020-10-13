@@ -57,24 +57,17 @@ class NumbaBuildExt(build_ext):
 
     def initialize_options(self):
         super().initialize_options()
-        # We build with -Werror and -Wall by default on Linux x86, to provide
-        # some level of checking without the burden of maintaining it for all
-        # platforms.
-        is_linux_x86 = (sys.platform == 'linux' and platform.machine()
-                        in ('i386', 'x86_64'))
-        self.werror = is_linux_x86
-        self.wall = is_linux_x86
-        # Building with debug symbols should generally work on Linux and OS X.
-        self.debug = sys.platform in ('linux', 'darwin')
-        # Optional build without optimization, to make debugging extensions
-        # easier.
+        self.werror = 0
+        self.wall = 0
         self.noopt = 0
 
     def run(self):
         extra_compile_args = []
         if self.noopt:
-            # Debugging is easier with an unoptimized binary
-            extra_compile_args.append('-O0')
+            if sys.platform == 'win32':
+                extra_compile_args.append('/Od')
+            else:
+                extra_compile_args.append('-O0')
         if self.werror:
             extra_compile_args.append('-Werror')
         if self.wall:
@@ -135,13 +128,11 @@ def get_ext_modules():
                                      'numba/_dynfunc.c'])
 
     ext_dispatcher = Extension(name="numba._dispatcher",
-                               sources=['numba/_dispatcher.c',
+                               sources=['numba/_dispatcher.cpp',
                                         'numba/_typeof.c',
                                         'numba/_hashtable.c',
-                                        'numba/_dispatcherimpl.cpp',
                                         'numba/core/typeconv/typeconv.cpp'],
                                depends=["numba/_pymodule.h",
-                                        "numba/_dispatcher.h",
                                         "numba/_typeof.h",
                                         "numba/_hashtable.h"],
                                **np_compile_args)
