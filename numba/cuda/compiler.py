@@ -1,3 +1,4 @@
+import collections
 import ctypes
 import inspect
 import os
@@ -16,7 +17,6 @@ from numba.core.compiler_lock import global_compiler_lock
 from numba.core.dispatcher import OmittedArg
 from numba.core.errors import NumbaDeprecationWarning
 from numba.core.typing.typeof import Purpose, typeof
-from collections import namedtuple, OrderedDict
 from warnings import warn
 import numba
 from .cudadrv.devices import get_context
@@ -492,18 +492,6 @@ class CachedCUFunction(serialize.ReduceMixin):
         return cls(entry_name, ptx, linking, max_registers)
 
 
-_kernel_def_fields = (
-    'entry_name',
-    'signature',
-    'type_annotation',
-    'func',
-    'call_helper'
-)
-
-
-_KernelDefinition = namedtuple("_KernelDefinition", _kernel_def_fields)
-
-
 class _Kernel(serialize.ReduceMixin):
     '''
     CUDA Kernel specialized for a given set of argument types. When called, this
@@ -525,8 +513,6 @@ class _Kernel(serialize.ReduceMixin):
         self.max_registers = max_registers
         self.opt = opt
 
-        self.definitions = {}
-
         cc = get_current_device().compute_capability
         self.compile(cc)
 
@@ -542,11 +528,13 @@ class _Kernel(serialize.ReduceMixin):
                                                               args,
                                                               debug=self.debug)
 
+        llvm_module = lib._final_module
         name = kernel.name
         pretty_name = cres.fndesc.qualname
         signature = cres.signature
         type_annotation = cres.type_annotation
         call_helper = cres.call_helper
+        max_registers = self.max_registers
 
         # initialize CUfunction
         options = {
@@ -555,17 +543,14 @@ class _Kernel(serialize.ReduceMixin):
             'opt': 3 if self.opt else 0
         }
 
-        ptx = CachedPTX(pretty_name, str(lib._final_module), options=options)
-        cufunc = CachedCUFunction(name, ptx, self.link, self.max_registers)
-
+        ptx = CachedPTX(pretty_name, str(llvm_module), options=options)
+        cufunc = CachedCUFunction(name, ptx, self.link, max_registers)
         # populate members
-        self.definitions[cc] = _KernelDefinition(
-            entry_name=name,
-            signature=signature,
-            type_annotation=type_annotation,
-            func=cufunc,
-            call_helper=call_helper
-        )
+        self.entry_name = name
+        self.signature = signature
+        self._type_annotation = type_annotation
+        self._func = cufunc
+        self.call_helper = call_helper
 
     @property
     def argument_types(self):
@@ -612,30 +597,6 @@ class _Kernel(serialize.ReduceMixin):
                           blockdim=blockdim,
                           stream=self.stream,
                           sharedmem=self.sharedmem)
-
-    @property
-    def _func(self):
-        cc = get_current_device().compute_capability
-        return self.definitions[cc].func
-
-    @property
-    def _type_annotation(self):
-        return next(iter(self.definitions.values())).type_annotation
-
-    @property
-    def entry_name(self):
-        cc = get_current_device().compute_capability
-        return self.definitions[cc].entry_name
-
-    @property
-    def call_helper(self):
-        cc = get_current_device().compute_capability
-        return self.definitions[cc].call_helper
-
-    @property
-    def signature(self):
-        cc = get_current_device().compute_capability
-        return self.definitions[cc].signature
 
     def bind(self):
         """
@@ -689,7 +650,7 @@ class _Kernel(serialize.ReduceMixin):
         if file is None:
             file = sys.stdout
 
-        print("%s %s" % (self.entry_name, self.argtypes), file=file)
+        print("%s %s" % (self.entry_name, self.argument_types), file=file)
         print('-' * 80, file=file)
         print(self._type_annotation, file=file)
         print('=' * 80, file=file)
@@ -709,7 +670,7 @@ class _Kernel(serialize.ReduceMixin):
         retr = []                       # hold functors for writeback
 
         kernelargs = []
-        for t, v in zip(self.argtypes, args):
+        for t, v in zip(self.argument_types, args):
             self._prepare_args(t, v, stream, retr, kernelargs)
 
         # Configure kernel
@@ -894,7 +855,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
 
         # A mapping of signatures to compile results
         # Stopgap for _DispatcherBase
-        self.overloads = OrderedDict()
+        self.overloads = collections.OrderedDict()
 
         _dispatcher.Dispatcher.__init__(self, self._tm.get_pointer(),
                                         arg_count, self._fold_args, argnames,
