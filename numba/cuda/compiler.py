@@ -61,8 +61,6 @@ def compile_cuda(pyfunc, return_type, args, debug=False, inline=False):
 
 def compile_kernel(pyfunc, args, link, debug=False, inline=False,
                    fastmath=False, extensions=[], max_registers=None, opt=True):
-    warn("compile_kernel is for internal use only",
-         category=NumbaDeprecationWarning)
     return _Kernel(pyfunc, args, link, debug=debug, inline=inline,
                    fastmath=fastmath, extensions=extensions,
                    max_registers=max_registers, opt=opt)
@@ -509,19 +507,11 @@ class _Kernel(serialize.ReduceMixin):
         self.argtypes = argtypes
         self.link = tuple(link)
         self.debug = debug
-        self.inline = inline
-        self.fastmath = fastmath
         self.extensions = extensions or []
-        self.max_registers = max_registers
-        self.opt = opt
-
-        self.compile()
-
-    def compile(self):
 
         cres = compile_cuda(self.py_func, types.void, self.argtypes,
                             debug=self.debug,
-                            inline=self.inline)
+                            inline=inline)
         fname = cres.fndesc.llvm_func_name
         args = cres.signature.args
         lib, kernel = cres.target_context.prepare_cuda_kernel(cres.library,
@@ -529,38 +519,24 @@ class _Kernel(serialize.ReduceMixin):
                                                               args,
                                                               debug=self.debug)
 
-        self.initialize(llvm_module=lib._final_module,
-                        name=kernel.name,
-                        pretty_name=cres.fndesc.qualname,
-                        signature=cres.signature,
-                        type_annotation=cres.type_annotation,
-                        link=self.link,
-                        debug=self.debug,
-                        opt=self.opt,
-                        call_helper=cres.call_helper,
-                        fastmath=self.fastmath,
-                        extensions=self.extensions,
-                        max_registers=self.max_registers)
-
-    def initialize(self, llvm_module, name, pretty_name, signature,
-                   call_helper, link=(), debug=False, fastmath=False,
-                   type_annotation=None, extensions=[], max_registers=None,
-                   opt=True):
         # initialize CUfunction
         options = {
-            'debug': debug,
+            'debug': self.debug,
             'fastmath': fastmath,
             'opt': 3 if opt else 0
         }
 
-        ptx = CachedPTX(pretty_name, str(llvm_module), options=options)
-        cufunc = CachedCUFunction(name, ptx, link, max_registers)
+        llvm_module = str(lib._final_module)
+        pretty_name = cres.fndesc.qualname
+        ptx = CachedPTX(pretty_name, llvm_module, options=options)
+        cufunc = CachedCUFunction(kernel.name, ptx, self.link, max_registers)
+
         # populate members
-        self.entry_name = name
-        self.signature = signature
-        self._type_annotation = type_annotation
+        self.entry_name = kernel.name
+        self.signature = cres.signature
+        self._type_annotation = cres.type_annotation
         self._func = cufunc
-        self.call_helper = call_helper
+        self.call_helper = cres.call_helper
 
     @property
     def argument_types(self):
@@ -594,7 +570,7 @@ class _Kernel(serialize.ReduceMixin):
         Thread, block and shared memory configuration are serialized.
         Stream information is discarded.
         """
-        return dict(name=self.entry_name, argtypes=self.argument_types,
+        return dict(name=self.entry_name, argtypes=self.argtypes,
                     cufunc=self._func, link=self.link, debug=self.debug,
                     call_helper=self.call_helper, extensions=self.extensions)
 
