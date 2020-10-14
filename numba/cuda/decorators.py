@@ -63,7 +63,7 @@ def jit(func_or_sig=None, argtypes=None, device=False, inline=False,
     if argtypes is not None:
         raise DeprecationError(_msg_deprecated_signature_arg.format('argtypes'))
 
-    if argtypes is not None:
+    if 'restypes' in kws:
         raise DeprecationError(_msg_deprecated_signature_arg.format('restypes'))
 
     if 'bind' in kws:
@@ -131,10 +131,12 @@ def jit(func_or_sig=None, argtypes=None, device=False, inline=False,
                                   targetoptions=targetoptions)
 
 
-def declare_device(name, restype=None, argtypes=None):
+def declare_device(name, sig, **kws):
     """
     Needs documentation and param name fixes.
     """
-    # Note: restype is actually a signature
-    argtypes, restype = sigutils.normalize_signature(restype)
+    if 'argtypes' in kws:
+        raise DeprecationError(_msg_deprecated_signature_arg.format('argtypes'))
+
+    argtypes, restype = sigutils.normalize_signature(sig)
     return declare_device_function(name, restype, argtypes)
