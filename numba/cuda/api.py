@@ -50,6 +50,7 @@ def from_cuda_array_interface(desc, owner=None, sync=True):
     if stream_ptr is not None:
         stream = external_stream(stream_ptr)
         if sync and config.CUDA_ARRAY_INTERFACE_SYNC:
+            print("\n\n***************** CAI fcai sync\n\n")
             stream.synchronize()
     else:
         stream = 0 # No "Numba default stream", not the CUDA default stream
@@ -85,7 +86,7 @@ def is_cuda_array(obj):
 
 
 @require_context
-def to_device(obj, stream=0, copy=True, to=None):
+def to_device(obj, stream=0, copy=True, to=None, sync=False):
     """to_device(obj, stream=0, copy=True, to=None)
 
     Allocate and transfer a numpy ndarray or structured scalar to the device.
@@ -116,10 +117,11 @@ def to_device(obj, stream=0, copy=True, to=None):
         hary = d_ary.copy_to_host(stream=stream)
     """
     if to is None:
-        to, new = devicearray.auto_device(obj, stream=stream, copy=copy)
+        to, new = devicearray.auto_device(obj, stream=stream, copy=copy,
+                                          sync=sync)
         return to
     if copy:
-        to.copy_to_device(obj, stream=stream)
+        to.copy_to_device(obj, stream=stream, sync=sync)
     return to
 
 

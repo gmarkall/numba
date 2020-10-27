@@ -198,7 +198,7 @@ class DeviceNDArrayBase(object):
             return self.gpu_data.device_ctypes_pointer
 
     @devices.require_context
-    def copy_to_device(self, ary, stream=0):
+    def copy_to_device(self, ary, stream=0, sync=False):
         """Copy `ary` to `self`.
 
         If `ary` is a CUDA memory, perform a device-to-device transfer.
@@ -210,6 +210,10 @@ class DeviceNDArrayBase(object):
 
         sentry_contiguous(self)
         stream = self._default_stream(stream)
+
+        if sync and stream != 0:
+            print("\n\n*************** Copy_to_device sync\n\n")
+            stream.synchronize()
 
         self_core, ary_core = array_core(self), array_core(ary)
         if _driver.is_device_memory(ary):
@@ -749,7 +753,7 @@ def sentry_contiguous(ary):
         raise ValueError(errmsg_contiguous_buffer)
 
 
-def auto_device(obj, stream=0, copy=True):
+def auto_device(obj, stream=0, copy=True, sync=False):
     """
     Create a DeviceRecord or DeviceArray like obj and optionally copy data from
     host to device. If obj already represents device memory, it is returned and
@@ -758,7 +762,7 @@ def auto_device(obj, stream=0, copy=True):
     if _driver.is_device_memory(obj):
         return obj, False
     elif hasattr(obj, '__cuda_array_interface__'):
-        return numba.cuda.as_cuda_array(obj), False
+        return numba.cuda.as_cuda_array(obj, sync=sync), False
     else:
         if isinstance(obj, np.void):
             devobj = from_record_like(obj, stream=stream)

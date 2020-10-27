@@ -12,7 +12,7 @@ class ArgHint(metaclass=abc.ABCMeta):
         self.value = value
 
     @abc.abstractmethod
-    def to_device(self, retr, stream=0):
+    def to_device(self, retr, stream=0, sync=False):
         """
         :param stream: a stream to use when copying data
         :param retr:
@@ -29,11 +29,9 @@ class ArgHint(metaclass=abc.ABCMeta):
 
 
 class In(ArgHint):
-    def to_device(self, retr, stream=0):
+    def to_device(self, retr, stream=0, sync=False):
         from .cudadrv.devicearray import auto_device
-        devary, _ = auto_device(
-            self.value,
-            stream=stream)
+        devary, _ = auto_device( self.value, stream=stream, sync=sync)
         # A dummy writeback functor to keep devary alive until the kernel
         # is called.
         retr.append(lambda: devary)
@@ -41,23 +39,19 @@ class In(ArgHint):
 
 
 class Out(ArgHint):
-    def to_device(self, retr, stream=0):
+    def to_device(self, retr, stream=0, sync=False):
         from .cudadrv.devicearray import auto_device
-        devary, conv = auto_device(
-            self.value,
-            copy=False,
-            stream=stream)
+        devary, conv = auto_device(self.value, copy=False, stream=stream,
+                                   sync=sync)
         if conv:
             retr.append(lambda: devary.copy_to_host(self.value, stream=stream))
         return devary
 
 
 class InOut(ArgHint):
-    def to_device(self, retr, stream=0):
+    def to_device(self, retr, stream=0, sync=False):
         from .cudadrv.devicearray import auto_device
-        devary, conv = auto_device(
-            self.value,
-            stream=stream)
+        devary, conv = auto_device( self.value, stream=stream, sync=sync)
         if conv:
             retr.append(lambda: devary.copy_to_host(self.value, stream=stream))
         return devary

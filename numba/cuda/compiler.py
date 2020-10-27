@@ -626,7 +626,7 @@ class _Kernel(serialize.ReduceMixin):
         print(self._type_annotation, file=file)
         print('=' * 80, file=file)
 
-    def launch(self, args, griddim, blockdim, stream=0, sharedmem=0):
+    def launch(self, args, griddim, blockdim, stream=0, sharedmem=0, sync=True):
         # Prepare kernel
         cufunc = self._func.get()
 
@@ -642,7 +642,7 @@ class _Kernel(serialize.ReduceMixin):
 
         kernelargs = []
         for t, v in zip(self.argument_types, args):
-            self._prepare_args(t, v, stream, retr, kernelargs)
+            self._prepare_args(t, v, stream, retr, kernelargs, sync)
 
         stream_handle = stream and stream.handle or None
 
@@ -692,7 +692,7 @@ class _Kernel(serialize.ReduceMixin):
         for wb in retr:
             wb()
 
-    def _prepare_args(self, ty, val, stream, retr, kernelargs):
+    def _prepare_args(self, ty, val, stream, retr, kernelargs, sync=True):
         """
         Convert arguments to ctypes and append to kernelargs
         """
@@ -706,7 +706,7 @@ class _Kernel(serialize.ReduceMixin):
                 retr=retr)
 
         if isinstance(ty, types.Array):
-            devary = wrap_arg(val).to_device(retr, stream)
+            devary = wrap_arg(val).to_device(retr, stream, sync)
 
             c_intp = ctypes.c_ssize_t
 
@@ -761,16 +761,17 @@ class _Kernel(serialize.ReduceMixin):
 
 
 class _KernelConfiguration:
-    def __init__(self, dispatcher, griddim, blockdim, stream, sharedmem):
+    def __init__(self, dispatcher, griddim, blockdim, stream, sharedmem, sync):
         self.dispatcher = dispatcher
         self.griddim = griddim
         self.blockdim = blockdim
         self.stream = stream
         self.sharedmem = sharedmem
+        self.sync = sync
 
     def __call__(self, *args):
         return self.dispatcher.call(args, self.griddim, self.blockdim,
-                                    self.stream, self.sharedmem)
+                                    self.stream, self.sharedmem, self.sync)
 
 
 class Dispatcher(serialize.ReduceMixin):
@@ -811,9 +812,10 @@ class Dispatcher(serialize.ReduceMixin):
             self.compile(sigs[0])
             self._can_compile = False
 
-    def configure(self, griddim, blockdim, stream=0, sharedmem=0):
+    def configure(self, griddim, blockdim, stream=0, sharedmem=0, sync=True):
         griddim, blockdim = normalize_kernel_dimensions(griddim, blockdim)
-        return _KernelConfiguration(self, griddim, blockdim, stream, sharedmem)
+        return _KernelConfiguration(self, griddim, blockdim, stream, sharedmem,
+                                    sync)
 
     def __getitem__(self, args):
         if len(args) not in [2, 3, 4]:
@@ -866,7 +868,7 @@ class Dispatcher(serialize.ReduceMixin):
         # An attempt to launch an unconfigured kernel
         raise ValueError(missing_launch_config_msg)
 
-    def call(self, args, griddim, blockdim, stream, sharedmem):
+    def call(self, args, griddim, blockdim, stream, sharedmem, sync=True):
         '''
         Compile if necessary and invoke this kernel with *args*.
         '''
@@ -876,7 +878,7 @@ class Dispatcher(serialize.ReduceMixin):
             argtypes = tuple([self.typingctx.resolve_argument_type(a)
                               for a in args])
             kernel = self.compile(argtypes)
-        kernel.launch(args, griddim, blockdim, stream, sharedmem)
+        kernel.launch(args, griddim, blockdim, stream, sharedmem, sync)
 
     def specialize(self, *args):
         '''
