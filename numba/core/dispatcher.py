@@ -324,6 +324,7 @@ class _DispatcherBase(_dispatcher.Dispatcher):
         Return the compiled function for the given signature.
         """
         args, return_type = sigutils.normalize_signature(sig)
+        from pudb import set_trace; set_trace()
         return self.overloads[tuple(args)].entry_point
 
     @property

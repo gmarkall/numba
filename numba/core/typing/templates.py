@@ -603,6 +603,7 @@ class _OverloadFunctionTemplate(AbstractTemplate):
         # no inlining required (else functions are being compiled which will
         # never be used as they are inlined)
         if not self._inline.is_never_inline:
+            from pudb import set_trace; set_trace()
             # need to run the compiler front end up to type inference to compute
             # a signature
             from numba.core import typed_passes, compiler
@@ -704,7 +705,7 @@ class _OverloadFunctionTemplate(AbstractTemplate):
             On failure, returns `(None, None)`.
 
         """
-        from numba import jit
+        from numba import cuda, jit
 
         # Get the overload implementation for the given types
         ovf_result = self._overload_func(*args, **kws)
@@ -733,11 +734,11 @@ class _OverloadFunctionTemplate(AbstractTemplate):
         if self._strict:
             self._validate_sigs(self._overload_func, pyfunc)
         # Make dispatcher
-        jitdecor = jit(nopython=True, **self._jit_options)
+        jitdecor = cuda.jit(device=True, **self._jit_options)
         disp = jitdecor(pyfunc)
         # Make sure that the implementation can be fully compiled
         disp_type = types.Dispatcher(disp)
-        disp_type.get_call_type(self.context, args, kws)
+        #disp_type.get_call_type(self.context, args, kws)
         if cache_key is not None:
             self._impl_cache[cache_key] = disp, args
         return disp, args

@@ -486,7 +486,7 @@ class InlineOverloads(FunctionPass):
     def __init__(self):
         FunctionPass.__init__(self)
 
-    _DEBUG = False
+    _DEBUG = True
 
     def run_pass(self, state):
         """Run inlining of overloads
@@ -630,6 +630,8 @@ class InlineOverloads(FunctionPass):
         return templates, sig, arg_typs, is_method
 
     def _do_work_expr(self, state, work_list, block, i, expr, inline_worker):
+
+        from pudb import set_trace; set_trace()
 
         def select_template(templates, args):
             if templates is None:

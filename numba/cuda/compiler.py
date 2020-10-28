@@ -177,9 +177,37 @@ class DeviceFunctionTemplate(serialize.ReduceMixin):
     def _reduce_states(self):
         return dict(py_func=self.py_func, debug=self.debug, inline=self.inline)
 
+    def get_call_template(self, args, kws):
+        """
+        Get a typing.ConcreteTemplate for this dispatcher and the given
+        *args* and *kws* types.  This allows to resolve the return type.
+
+        A (template, pysig, args, kws) tuple is returned.
+
+        Copied / modified from numba.core.dispatcher.Dispatcher.
+        """
+        pysig = utils.pysignature(self.py_func)
+        kws = {}
+        # Ensure an overload is available
+        #if self._can_compile:
+        self.compile(tuple(args))
+
+        # Create function type for typing
+        func_name = self.py_func.__name__
+        name = "CallTemplate({0})".format(func_name)
+        # The `key` isn't really used except for diagnosis here,
+        # so avoid keeping a reference to `cfunc`.
+        call_template = typing.make_concrete_template(
+            name, key=func_name, signatures=self.nopython_signatures)
+        return call_template, pysig, args, kws
+
     @classmethod
     def _rebuild(cls, py_func, debug, inline):
         return compile_device_template(py_func, debug=debug, inline=inline)
+
+    @property
+    def nopython_signatures(self):
+        return [cres.signature for cres in self._compileinfos.values()]
 
     def compile(self, args):
         """Compile the function for the given argument types.
@@ -189,12 +217,14 @@ class DeviceFunctionTemplate(serialize.ReduceMixin):
 
         Returns the `CompileResult`.
         """
+        from pudb import set_trace; set_trace()
         if args not in self._compileinfos:
             cres = compile_cuda(self.py_func, None, args, debug=self.debug,
                                 inline=self.inline)
             first_definition = not self._compileinfos
-            self._compileinfos[args] = cres
             libs = [cres.library]
+            cres = cres._replace(entry_point=self.py_func)
+            self._compileinfos[args] = cres
 
             if first_definition:
                 # First definition
@@ -207,6 +237,12 @@ class DeviceFunctionTemplate(serialize.ReduceMixin):
             cres = self._compileinfos[args]
 
         return cres
+
+    def get_overload(self, sig):
+        args, return_type = sigutils.normalize_signature(sig)
+        #cres = self._compileinfos[tuple(args)]
+        #from pudb import set_trace; set_trace
+        return self._compileinfos[tuple(args)].entry_point
 
     def inspect_llvm(self, args):
         """Returns the LLVM-IR text compiled for *args*.
