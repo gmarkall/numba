@@ -42,6 +42,11 @@ static PyObject *str_typeof_pyval = NULL;
 static PyObject *str_value = NULL;
 static PyObject *str_numba_type = NULL;
 
+static PyObject *devicendarraybase;
+
+void typeof_set_devicendarraybase(PyObject *val) {
+    devicendarraybase = val;
+}
 
 /*
  * Type fingerprint computation.
@@ -831,6 +836,65 @@ int typecode_arrayscalar(PyObject *dispatcher, PyObject* aryscalar) {
     return BASIC_TYPECODES[typecode];
 }
 
+static
+int typecode_devicendarray(PyObject *dispatcher, PyObject *ary)
+{
+    int typecode;
+    int dtype;
+    int ndim;
+    int layout = 0;
+
+    PyObject* flags = PyObject_GetAttrString(ary, "flags");
+    if (PyDict_GetItemString(flags, "C_CONTIGUOUS") == Py_True) {
+        layout = 1;
+    } else if (PyDict_GetItemString(flags, "F_CONTIGUOUS") == Py_True) {
+        layout = 2;
+    }
+
+    ndim = PyLong_AsLong(PyObject_GetAttrString(ary, "ndim"));
+
+    if (ndim <= 0 || ndim > N_NDIM) goto FALLBACK;
+
+    PyObject* dtype_obj = PyObject_GetAttrString(ary, "dtype");
+    int dtype_num = PyLong_AsLong(PyObject_GetAttrString(dtype_obj, "num"));
+    dtype = dtype_num_to_typecode(dtype_num);
+    if (dtype == -1) goto FALLBACK;
+
+    /* Fast path, using direct table lookup */
+    assert(layout < N_LAYOUT);
+    assert(ndim <= N_NDIM);
+    typecode = cached_arycode[ndim - 1][layout][dtype];
+
+    if (typecode == -1) {
+        /* First use of this table entry, so it requires populating */
+        typecode = typecode_fallback_keep_ref(dispatcher, (PyObject*)ary);
+        cached_arycode[ndim - 1][layout][dtype] = typecode;
+    }
+
+    return typecode;
+
+FALLBACK:
+    /* Slower path, for non-trivial array types */
+
+    // FIXME: Very slow, just always fingerprint
+    return typecode_using_fingerprint(dispatcher, (PyObject *) ary);
+
+    /* If this isn't a structured array then we can't use the cache */
+    if (dtype_num != NPY_VOID)
+        return typecode_using_fingerprint(dispatcher, (PyObject *) ary);
+
+    assert(0);
+
+//    /* Check type cache */
+//    typecode = get_cached_ndarray_typecode(ndim, layout, PyArray_DESCR(ary));
+//    if (typecode == -1) {
+//        /* First use of this type, use fallback and populate the cache */
+//        typecode = typecode_fallback_keep_ref(dispatcher, (PyObject*)ary);
+//        cache_ndarray_typecode(ndim, layout, PyArray_DESCR(ary), typecode);
+//    }
+//    return typecode;
+}
+
 int
 typeof_typecode(PyObject *dispatcher, PyObject *val)
 {
@@ -863,6 +927,9 @@ typeof_typecode(PyObject *dispatcher, PyObject *val)
     /* Array handling */
     else if (PyType_IsSubtype(tyobj, &PyArray_Type)) {
         return typecode_ndarray(dispatcher, (PyArrayObject*)val);
+    }
+    else if (PyType_IsSubtype(tyobj, (PyTypeObject*)(devicendarraybase))) {
+        return typecode_devicendarray(dispatcher, val);
     }
 
     return typecode_using_fingerprint(dispatcher, val);

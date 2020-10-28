@@ -265,6 +265,51 @@ Dispatcher_Insert(Dispatcher *self, PyObject *args)
     Py_RETURN_NONE;
 }
 
+static
+PyObject*
+Dispatcher_cuda_set_arrayclass(Dispatcher *self, PyObject *args) {
+  PyObject *val;
+
+  if (!PyArg_ParseTuple(args, "O", &val)) {
+    return NULL;
+  }
+
+  /* FIXME: Borrowed ref, but should be OK for testing */
+  typeof_set_devicendarraybase(val);
+
+  Py_RETURN_NONE;
+}
+
+static
+PyObject*
+Dispatcher_Cuda_Insert(Dispatcher *self, PyObject *args)
+{
+    PyObject *sigtup, *cfunc;
+    int i, sigsz;
+    int *sig;
+
+    if (!PyArg_ParseTuple(args, "OO", &sigtup, &cfunc)) {
+        return NULL;
+    }
+
+    sigsz = PySequence_Fast_GET_SIZE(sigtup);
+    sig = new int[sigsz];
+
+    for (i = 0; i < sigsz; ++i) {
+        sig[i] = PyLong_AsLong(PySequence_Fast_GET_ITEM(sigtup, i));
+    }
+
+    /* Old comment: The reference to cfunc is borrowed; this only works because
+     * the derived Python class also stores an (owned) reference to cfunc.
+     *
+     * New comment: Incref here, but when should we decref? */
+    Py_INCREF(cfunc);
+    self->addDefinition(sig, cfunc);
+
+    delete[] sig;
+
+    Py_RETURN_NONE;
+}
 
 static
 void explain_issue(PyObject *dispatcher, PyObject *args, PyObject *kws,
@@ -419,6 +464,22 @@ compile_and_invoke(Dispatcher *self, PyObject *args, PyObject *kws, PyObject *lo
     Py_DECREF(cfunc);
 
     return retval;
+}
+
+static
+PyObject*
+compile_only(Dispatcher *self, PyObject *args, PyObject *kws, PyObject *locals)
+{
+    /* Compile a new one */
+    PyObject *cfa, *cfunc;
+    cfa = PyObject_GetAttrString((PyObject*)self, "_compile_for_args");
+    if (cfa == NULL)
+        return NULL;
+
+    cfunc = PyObject_Call(cfa, args, kws);
+    Py_DECREF(cfa);
+
+    return cfunc;
 }
 
 static int
@@ -641,10 +702,128 @@ CLEANUP:
     return retval;
 }
 
+static PyObject*
+Dispatcher_cuda_call(Dispatcher *self, PyObject *args, PyObject *kws)
+{
+    PyObject *tmptype, *retval = NULL;
+    int *tys = NULL;
+    int argct;
+    int i;
+    int prealloc[24];
+    int matches;
+    PyObject *cfunc;
+    PyThreadState *ts = PyThreadState_Get();
+    PyObject *locals = NULL;
+
+    /* If compilation is enabled, ensure that an exact match is found and if
+     * not compile one */
+    int exact_match_required = self->can_compile ? 1 : self->exact_match_required;
+
+    if (ts->use_tracing && ts->c_profilefunc) {
+        locals = PyEval_GetLocals();
+        if (locals == NULL) {
+            goto CLEANUP;
+        }
+    }
+    if (self->fold_args) {
+        if (find_named_args(self, &args, &kws))
+            return NULL;
+    }
+    else
+        Py_INCREF(args);
+    /* Now we own a reference to args */
+
+    argct = PySequence_Fast_GET_SIZE(args);
+
+    if (argct < (Py_ssize_t) (sizeof(prealloc) / sizeof(int)))
+        tys = prealloc;
+    else
+        tys = new int[argct];
+
+    for (i = 0; i < argct; ++i) {
+        tmptype = PySequence_Fast_GET_ITEM(args, i);
+        tys[i] = typeof_typecode((PyObject *) self, tmptype);
+        if (tys[i] == -1) {
+            if (self->can_fallback){
+                /* We will clear the exception if fallback is allowed. */
+                PyErr_Clear();
+            } else {
+                goto CLEANUP;
+            }
+        }
+    }
+
+    /* We only allow unsafe conversions if compilation of new specializations
+       has been disabled. */
+    cfunc = self->resolve(tys, matches, !self->can_compile,
+                          exact_match_required);
+
+    if (matches == 0 && !self->can_compile) {
+        /*
+         * If we can't compile a new specialization, look for
+         * matching signatures for which conversions haven't been
+         * registered on the C++ TypeManager.
+         */
+        int res = search_new_conversions((PyObject *) self, args, kws);
+        if (res < 0) {
+            retval = NULL;
+            goto CLEANUP;
+        }
+        if (res > 0) {
+            /* Retry with the newly registered conversions */
+            cfunc = self->resolve(tys, matches, !self->can_compile,
+                                  exact_match_required);
+        }
+    }
+
+    if (matches == 1) {
+        /* Definition is found */
+        retval = cfunc; // = call_cfunc(self, cfunc, args, kws, locals);
+        Py_INCREF(retval);
+        goto CLEANUP;
+    } else if (matches == 0) {
+        /* No matching definition */
+        if (self->can_compile) {
+            retval = compile_only(self, args, kws, locals);
+            if (retval) {
+              Py_INCREF(retval);
+            }
+        } else if (self->fallbackdef) {
+            /* Have object fallback */
+            retval = call_cfunc(self, self->fallbackdef, args, kws, locals);
+        } else {
+            /* Raise TypeError */
+            explain_matching_error((PyObject *) self, args, kws);
+            retval = NULL;
+        }
+    } else if (self->can_compile) {
+        /* Ambiguous, but are allowed to compile */
+        retval = compile_only(self, args, kws, locals);
+        Py_INCREF(retval);
+    } else {
+        /* Ambiguous */
+        explain_ambiguous((PyObject *) self, args, kws);
+        retval = NULL;
+    }
+
+CLEANUP:
+    if (tys != prealloc)
+        delete[] tys;
+    Py_DECREF(args);
+
+    return retval;
+}
+
 static PyMethodDef Dispatcher_methods[] = {
     { "_clear", (PyCFunction)Dispatcher_clear, METH_NOARGS, NULL },
     { "_insert", (PyCFunction)Dispatcher_Insert, METH_VARARGS,
       "insert new definition"},
+    { "_cuda_insert", (PyCFunction)Dispatcher_Cuda_Insert, METH_VARARGS,
+      "insert new definition for CUDA kernel"},
+    { "_cuda_call", (PyCFunction)Dispatcher_cuda_call,
+      METH_VARARGS | METH_KEYWORDS, "CUDA call resolution" },
+    { "_cuda_set_arrayclass", (PyCFunction)Dispatcher_cuda_set_arrayclass,
+      METH_VARARGS, "set dispatcher base class for CUDA kernel" },
     { NULL },
 };
 
