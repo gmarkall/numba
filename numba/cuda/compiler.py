@@ -1011,8 +1011,6 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
     @property
     def _func(self):
         if self.specialized:
-            warn('_func will always return a dict in future',
-                 category=NumbaDeprecationWarning)
             return next(iter(self.overloads.values()))._func
         else:
             return {sig: defn._func for sig, defn in self.overloads.items()}
