@@ -789,8 +789,9 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
     created using the :func:`numba.cuda.jit` decorator.
     '''
 
-    # Whether to fold named arguments and default values. These are presently
-    # not supported on CUDA IIRC.
+    # Whether to fold named arguments and default values. default values are
+    # presently unsupported on CUDA, so we can leave this as False in all
+    # cases.
     _fold_args = False
 
     def __init__(self, py_func, sigs, targetoptions):
@@ -799,8 +800,11 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         self.link = targetoptions.pop('link', (),)
         self._can_compile = True
 
-        # keyed by args
+        # Specializations for given sets of argument types
         self.specializations = {}
+
+        # A mapping of signatures to compile results
+        self.overloads = collections.OrderedDict()
 
         self.targetoptions = targetoptions
 
@@ -819,7 +823,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         argnames = tuple(pysig.parameters)
         default_values = self.py_func.__defaults__ or ()
         defargs = tuple(OmittedArg(val) for val in default_values)
-        can_fallback = False # Fallback to object mode?
+        can_fallback = False # CUDA cannot fallback to object mode
 
         try:
             lastarg = list(pysig.parameters.values())[-1]
@@ -828,12 +832,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         else:
             has_stararg = lastarg.kind == lastarg.VAR_POSITIONAL
 
-        # Not clear when this is ever true anywhere in Numba
         exact_match_required = False
-
-        # A mapping of signatures to compile results
-        # Stopgap for _DispatcherBase
-        self.overloads = collections.OrderedDict()
 
         _dispatcher.Dispatcher.__init__(self, self._tm.get_pointer(),
                                         arg_count, self._fold_args, argnames,
@@ -913,15 +912,13 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         kernel.launch(args, griddim, blockdim, stream, sharedmem)
 
     def _compile_for_args(self, *args, **kws):
-        # Stopgap. Ideally we would move to using
-        # _DispatcherBase._compile_for_args.
+        # Based on _DispatcherBase._compile_for_args.
         assert not kws
         argtypes = [self.typeof_pyval(a) for a in args]
         return self.compile(tuple(argtypes))
 
     def _search_new_conversions(self, *args, **kws):
-        # Stopgap. need to move to using
-        # _DispatcherBase._search_new_conversions
+        # Based on _DispatcherBase._search_new_conversions
         assert not kws
         args = [self.typeof_pyval(a) for a in args]
         found = False
@@ -932,8 +929,8 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         return found
 
     def typeof_pyval(self, val):
-        # Stopgap. Need to move to _DispatcherBase.typeof_pyval
-        # Note this differs though because of the cuda array interface.
+        # Based on _DispatcherBase.typeof_pyval, but differs from it to support
+        # the CUDA Array Interface.
         try:
             return typeof(val, Purpose.argument)
         except ValueError:
@@ -944,7 +941,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
 
     @property
     def nopython_signatures(self):
-        # Stopgap from _DispatcherBase
+        # Based on _DispatcherBase.nopython_signatures
         return [kernel.signature for kernel in self.overloads.values()]
 
     def specialize(self, *args):
