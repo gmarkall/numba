@@ -666,6 +666,12 @@ CLEANUP:
     return retval;
 }
 
+/* Based on Dispatcher_call above, with the following differences:
+   1. It does not invoke the definition of the function.
+   2. It returns the definition, instead of a value returned by the function.
+
+   This is because CUDA functions are, at present, _Kernel objects rather than
+   compiled functions. */
 static PyObject*
 Dispatcher_cuda_call(Dispatcher *self, PyObject *args, PyObject *kws)
 {
@@ -742,7 +748,7 @@ Dispatcher_cuda_call(Dispatcher *self, PyObject *args, PyObject *kws)
 
     if (matches == 1) {
         /* Definition is found */
-        retval = cfunc; // = call_cfunc(self, cfunc, args, kws, locals);
+        retval = cfunc;
         Py_INCREF(retval);
         goto CLEANUP;
     } else if (matches == 0) {
