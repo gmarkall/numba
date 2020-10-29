@@ -872,25 +872,12 @@ int typecode_devicendarray(PyObject *dispatcher, PyObject *ary)
     return typecode;
 
 FALLBACK:
-    /* Slower path, for non-trivial array types */
+    /* Slower path, for non-trivial array types. At present this always uses
+       the fingerprinting to get the typecode. Future optimization might
+       implement a cache, but this would require some fast equivalent of
+       PyArray_DESCR for a device array. */
 
-    // FIXME: Very slow, just always fingerprint
     return typecode_using_fingerprint(dispatcher, (PyObject *) ary);
-
-    /* If this isn't a structured array then we can't use the cache */
-    if (dtype_num != NPY_VOID)
-        return typecode_using_fingerprint(dispatcher, (PyObject *) ary);
-
-    assert(0);
-
-//    /* Check type cache */
-//    typecode = get_cached_ndarray_typecode(ndim, layout, PyArray_DESCR(ary));
-//    if (typecode == -1) {
-//        /* First use of this type, use fallback and populate the cache */
-//        typecode = typecode_fallback_keep_ref(dispatcher, (PyObject*)ary);
-//        cache_ndarray_typecode(ndim, layout, PyArray_DESCR(ary), typecode);
-//    }
-//    return typecode;
 }
 
 int
