@@ -1018,7 +1018,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
                              **self.targetoptions)
             # Inspired by _DispatcherBase.add_overload - another Stopgap.
             c_sig = [a._code for a in argtypes]
-            self._cuda_insert(c_sig, kernel)
+            self._insert(c_sig, kernel, cuda=True)
             self.overloads[argtypes] = kernel
 
             kernel.bind()

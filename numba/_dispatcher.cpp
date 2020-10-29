@@ -228,19 +228,28 @@ Dispatcher_clear(Dispatcher *self, PyObject *args)
 
 static
 PyObject*
-Dispatcher_Insert(Dispatcher *self, PyObject *args)
+Dispatcher_Insert(Dispatcher *self, PyObject *args, PyObject *kwds)
 {
+    static char *keywords[] = {
+        (char*)"sig",
+        (char*)"func",
+        (char*)"objectmode",
+        (char*)"cuda",
+        NULL
+    };
+
     PyObject *sigtup, *cfunc;
     int i, sigsz;
     int *sig;
     int objectmode = 0;
+    int cuda = 0;
 
-    if (!PyArg_ParseTuple(args, "OO|i", &sigtup,
-                          &cfunc, &objectmode)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwds, "OO|ip", keywords, &sigtup,
+                                     &cfunc, &objectmode, &cuda)) {
         return NULL;
     }
 
-    if (!PyObject_TypeCheck(cfunc, &PyCFunction_Type) ) {
+    if (!cuda && !PyObject_TypeCheck(cfunc, &PyCFunction_Type) ) {
         PyErr_SetString(PyExc_TypeError, "must be builtin_function_or_method");
         return NULL;
     }
@@ -260,37 +269,6 @@ Dispatcher_Insert(Dispatcher *self, PyObject *args)
     if (!self->fallbackdef && objectmode){
         self->fallbackdef = cfunc;
     }
-
-    delete[] sig;
-
-    Py_RETURN_NONE;
-}
-
-static
-PyObject*
-Dispatcher_Cuda_Insert(Dispatcher *self, PyObject *args)
-{
-    PyObject *sigtup, *cfunc;
-    int i, sigsz;
-    int *sig;
-
-    if (!PyArg_ParseTuple(args, "OO", &sigtup, &cfunc)) {
-        return NULL;
-    }
-
-    sigsz = PySequence_Fast_GET_SIZE(sigtup);
-    sig = new int[sigsz];
-
-    for (i = 0; i < sigsz; ++i) {
-        sig[i] = PyLong_AsLong(PySequence_Fast_GET_ITEM(sigtup, i));
-    }
-
-    /* Old comment: The reference to cfunc is borrowed; this only works because
-     * the derived Python class also stores an (owned) reference to cfunc.
-     *
-     * New comment: Incref here, but when should we decref? */
-    Py_INCREF(cfunc);
-    self->addDefinition(sig, cfunc);
 
     delete[] sig;
 
@@ -835,10 +813,8 @@ import_devicearray(void)
 
 static PyMethodDef Dispatcher_methods[] = {
     { "_clear", (PyCFunction)Dispatcher_clear, METH_NOARGS, NULL },
-    { "_insert", (PyCFunction)Dispatcher_Insert, METH_VARARGS,
+    { "_insert", (PyCFunction)Dispatcher_Insert, METH_VARARGS | METH_KEYWORDS,
       "insert new definition"},
-    { "_cuda_insert", (PyCFunction)Dispatcher_Cuda_Insert, METH_VARARGS,
-      "insert new definition for CUDA kernel"},
     { "_cuda_call", (PyCFunction)Dispatcher_cuda_call,
       METH_VARARGS | METH_KEYWORDS, "CUDA call resolution" },
     { NULL },
