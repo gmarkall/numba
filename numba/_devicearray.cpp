@@ -1,5 +1,11 @@
 #include "_pymodule.h"
 
+/* Inlucde _devicearray., but make sure we don't get the definitions intended
+ * for consumers of the Device Array API.
+ */
+#define NUMBA_IN_DEVICEARRAY_CPP_
+#include "_devicearray.h"
+
 class DeviceArray {
     PyObject_HEAD
 };
@@ -16,7 +22,7 @@ DeviceArray_clear(DeviceArray *self)
     return 0;
 }
 
-static PyTypeObject DeviceArrayType = {
+PyTypeObject DeviceArrayType = {
     PyVarObject_HEAD_INIT(NULL, 0)
     "_devicearray.DeviceArray",                  /* tp_name */
     sizeof(DeviceArray),                         /* tp_basicsize */
@@ -72,12 +78,22 @@ static PyTypeObject DeviceArrayType = {
 #endif
 };
 
+/* CUDA device array API */
+static void *_DeviceArray_API[1] = {
+    (void*)&DeviceArrayType
+};
 
 MOD_INIT(_devicearray) {
-    PyObject *m;
+    PyObject *m, *d;
     MOD_DEF(m, "_devicearray", "No docs", NULL)
     if (m == NULL)
         return MOD_ERROR_VAL;
+
+    PyObject *c_api;
+    c_api = PyCapsule_New((void *)_DeviceArray_API, NULL, NULL);
+    if (c_api == NULL) {
+        return MOD_ERROR_VAL;
+    }
 
     DeviceArrayType.tp_new = PyType_GenericNew;
     if (PyType_Ready(&DeviceArrayType) < 0) {
@@ -85,6 +101,17 @@ MOD_INIT(_devicearray) {
     }
     Py_INCREF(&DeviceArrayType);
     PyModule_AddObject(m, "DeviceArray", (PyObject*)(&DeviceArrayType));
+
+    d = PyModule_GetDict(m);
+    if (d == NULL) {
+        return MOD_ERROR_VAL;
+    }
+
+    PyDict_SetItemString(d, "_DEVICEARRAY_API", c_api);
+    Py_DECREF(c_api);
+    if (PyErr_Occurred()) {
+        return MOD_ERROR_VAL;
+    }
 
     return MOD_SUCCESS_VAL(m);
 }

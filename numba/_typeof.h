@@ -9,8 +9,6 @@ extern PyObject *typeof_init(PyObject *self, PyObject *args);
 extern int typeof_typecode(PyObject *dispatcher, PyObject *val);
 extern PyObject *typeof_compute_fingerprint(PyObject *val);
 
-extern void typeof_set_devicendarraybase(PyObject *val);
-
 #ifdef __cplusplus
     }
 #endif

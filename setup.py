@@ -122,9 +122,10 @@ def get_ext_modules():
     # C API (include dirs, library dirs etc.)
     np_compile_args = np_misc.get_info('npymath')
 
-    ext_devicearray = Extension(name='numba.cuda.cudadrv._devicearray',
-                                sources=['numba/cuda/cudadrv/_devicearray.cpp'],
-                                depends=['numba/_pymodule.h'],
+    ext_devicearray = Extension(name='numba._devicearray',
+                                sources=['numba/_devicearray.cpp'],
+                                depends=['numba/_pymodule.h',
+                                         'numba/_devicearray.h'],
                                 include_dirs=['numba'])
 
     ext_dynfunc = Extension(name='numba._dynfunc',

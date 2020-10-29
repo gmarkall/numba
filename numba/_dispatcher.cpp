@@ -8,6 +8,7 @@
 #include "_typeof.h"
 #include "frameobject.h"
 #include "core/typeconv/typeconv.hpp"
+#include "_devicearray.h"
 
 /*
  * The following call_trace and call_trace_protected functions
@@ -263,21 +264,6 @@ Dispatcher_Insert(Dispatcher *self, PyObject *args)
     delete[] sig;
 
     Py_RETURN_NONE;
-}
-
-static
-PyObject*
-Dispatcher_cuda_set_arrayclass(Dispatcher *self, PyObject *args) {
-  PyObject *val;
-
-  if (!PyArg_ParseTuple(args, "O", &val)) {
-    return NULL;
-  }
-
-  /* FIXME: Borrowed ref, but should be OK for testing */
-  typeof_set_devicendarraybase(val);
-
-  Py_RETURN_NONE;
 }
 
 static
@@ -814,6 +800,39 @@ CLEANUP:
     return retval;
 }
 
+static int
+import_devicearray(void)
+{
+    PyObject *devicearray = PyImport_ImportModule("numba._devicearray");
+    PyObject *c_api = NULL;
+
+    if (devicearray == NULL) {
+        return -1;
+    }
+
+    c_api = PyObject_GetAttrString(devicearray, "_DEVICEARRAY_API");
+    Py_DECREF(devicearray);
+    if (c_api == NULL) {
+        PyErr_SetString(PyExc_AttributeError, "_DEVICEARRAY_API not found");
+        return -1;
+    }
+
+    if (!PyCapsule_CheckExact(c_api)) {
+        PyErr_SetString(PyExc_RuntimeError, "_DEVICEARRAY_API is not PyCapsule object");
+        Py_DECREF(c_api);
+        return -1;
+    }
+
+    DeviceArray_API = (void**)PyCapsule_GetPointer(c_api, NULL);
+    Py_DECREF(c_api);
+    if (DeviceArray_API == NULL) {
+        PyErr_SetString(PyExc_RuntimeError, "_DEVICEARRAY_API is NULL pointer");
+        return -1;
+    }
+
+    return 0;
+}
+
 static PyMethodDef Dispatcher_methods[] = {
     { "_clear", (PyCFunction)Dispatcher_clear, METH_NOARGS, NULL },
     { "_insert", (PyCFunction)Dispatcher_Insert, METH_VARARGS,
@@ -822,8 +841,6 @@ static PyMethodDef Dispatcher_methods[] = {
       "insert new definition for CUDA kernel"},
     { "_cuda_call", (PyCFunction)Dispatcher_cuda_call,
       METH_VARARGS | METH_KEYWORDS, "CUDA call resolution" },
-    { "_cuda_set_arrayclass", (PyCFunction)Dispatcher_cuda_set_arrayclass,
-      METH_VARARGS, "set dispatcher base class for CUDA kernel" },
     { NULL },
 };
 
@@ -907,6 +924,12 @@ static PyMethodDef ext_methods[] = {
 
 
 MOD_INIT(_dispatcher) {
+    if (import_devicearray() < 0) {
+      PyErr_Print();
+      PyErr_SetString(PyExc_ImportError, "numba._devicearray failed to import");
+      return MOD_ERROR_VAL;
+    }
+
     PyObject *m;
     MOD_DEF(m, "_dispatcher", "No docs", ext_methods)
     if (m == NULL)

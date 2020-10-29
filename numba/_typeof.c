@@ -7,6 +7,7 @@
 #include "_numba_common.h"
 #include "_typeof.h"
 #include "_hashtable.h"
+#include "_devicearray.h"
 
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include <numpy/ndarrayobject.h>
@@ -42,11 +43,8 @@ static PyObject *str_typeof_pyval = NULL;
 static PyObject *str_value = NULL;
 static PyObject *str_numba_type = NULL;
 
-static PyObject *devicendarraybase;
-
-void typeof_set_devicendarraybase(PyObject *val) {
-    devicendarraybase = val;
-}
+/* CUDA device array API */
+void **DeviceArray_API;
 
 /*
  * Type fingerprint computation.
@@ -928,7 +926,7 @@ typeof_typecode(PyObject *dispatcher, PyObject *val)
     else if (PyType_IsSubtype(tyobj, &PyArray_Type)) {
         return typecode_ndarray(dispatcher, (PyArrayObject*)val);
     }
-    else if (PyType_IsSubtype(tyobj, (PyTypeObject*)(devicendarraybase))) {
+    else if (PyType_IsSubtype(tyobj, &DeviceArrayType)) {
         return typecode_devicendarray(dispatcher, val);
     }
 

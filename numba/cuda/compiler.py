@@ -856,8 +856,6 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
             self.compile(sigs[0])
             self._can_compile = False
 
-        self._cuda_set_arrayclass(DeviceNDArrayBase)
-
     def configure(self, griddim, blockdim, stream=0, sharedmem=0):
         griddim, blockdim = normalize_kernel_dimensions(griddim, blockdim)
         return _KernelConfiguration(self, griddim, blockdim, stream, sharedmem)
