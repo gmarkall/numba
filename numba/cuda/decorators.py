@@ -73,59 +73,96 @@ def jit(func_or_sig=None, device=False, inline=False, link=[], debug=None,
     debug = config.CUDA_DEBUGINFO_DEFAULT if debug is None else debug
     fastmath = kws.get('fastmath', False)
 
-    if sigutils.is_signature(func_or_sig):
-        if config.ENABLE_CUDASIM:
-            def jitwrapper(func):
-                return FakeCUDAKernel(func, device=device, fastmath=fastmath,
-                                      debug=debug)
-            return jitwrapper
+    if func_or_sig is None:
+        # Use case: keyword args but no signature, e.g.:
+        #
+        #     @cuda.jit(debug=True)
+        #     def f(...):
 
+        if config.ENABLE_CUDASIM:
+            def autojitwrapper(func):
+                return FakeCUDAKernel(func, device=device,
+                                      fastmath=fastmath, debug=debug)
+        else:
+            def autojitwrapper(func):
+                return jit(func, device=device, debug=debug, opt=opt, **kws)
+
+        return autojitwrapper
+
+    elif callable(func_or_sig):
+        # Use case: No args to jit decorator, or used as a function. e.g.:
+        #
+        #     @cuda.jit
+        #     def f(...):
+        #
+        # or:
+        #
+        #     def f(...):
+        #         ...
+        #
+        #     cfunc = cuda.jit(f)
+
+        if config.ENABLE_CUDASIM:
+            return FakeCUDAKernel(func_or_sig, device=device,
+                                  fastmath=fastmath, debug=debug)
+        elif device:
+            return jitdevice(func_or_sig, debug=debug, opt=opt, **kws)
+        else:
+            targetoptions = kws.copy()
+            targetoptions['debug'] = debug
+            targetoptions['opt'] = opt
+            targetoptions['link'] = link
+            sigs = None
+            return Dispatcher(func_or_sig, sigs,
+                              targetoptions=targetoptions)
+
+    elif sigutils.is_signature(func_or_sig):
+        # Use case: one signature passed. E.g.:
+        #
+        #     @cuda.jit(void(float32[::1])
+        #     def f(...):
+
+        sigs = [func_or_sig]
+
+    else:
+        # Use case: multiple signatures passed. E.g.:
+        #
+        #     @cuda.jit([void(float32[::1], void(float64[::1])])
+        #     def f(...):
+
+        if not isinstance(func_or_sig, list):
+            msg = 'Expected function, signature, or list of signatures'
+            raise TypeError(msg)
+
+        sigs = func_or_sig
+
+    if config.ENABLE_CUDASIM:
+        def jitwrapper(func):
+            return FakeCUDAKernel(func, device=device, fastmath=fastmath,
+                                  debug=debug)
+        return jitwrapper
+
+    for sig in sigs:
         argtypes, restype = sigutils.normalize_signature(func_or_sig)
 
         if restype and not device and restype != types.void:
             raise TypeError("CUDA kernel must have void return type.")
 
-        def kernel_jit(func):
-            targetoptions = kws.copy()
-            targetoptions['debug'] = debug
-            targetoptions['link'] = link
-            targetoptions['opt'] = opt
-            return Dispatcher(func, [func_or_sig], targetoptions=targetoptions)
+    def kernel_jit(func):
+        targetoptions = kws.copy()
+        targetoptions['debug'] = debug
+        targetoptions['link'] = link
+        targetoptions['opt'] = opt
+        return Dispatcher(func, sigs, targetoptions=targetoptions)
 
-        def device_jit(func):
-            return compile_device(func, restype, argtypes, inline=inline,
-                                  debug=debug)
+    def device_jit(func):
+        return compile_device(func, restype, argtypes, inline=inline,
+                              debug=debug)
 
-        if device:
-            return device_jit
-        else:
-            return kernel_jit
+    if device:
+        return device_jit
     else:
-        if func_or_sig is None:
-            if config.ENABLE_CUDASIM:
-                def autojitwrapper(func):
-                    return FakeCUDAKernel(func, device=device,
-                                          fastmath=fastmath, debug=debug)
-            else:
-                def autojitwrapper(func):
-                    return jit(func, device=device, debug=debug, opt=opt, **kws)
-
-            return autojitwrapper
-        # func_or_sig is a function
-        else:
-            if config.ENABLE_CUDASIM:
-                return FakeCUDAKernel(func_or_sig, device=device,
-                                      fastmath=fastmath, debug=debug)
-            elif device:
-                return jitdevice(func_or_sig, debug=debug, opt=opt, **kws)
-            else:
-                targetoptions = kws.copy()
-                targetoptions['debug'] = debug
-                targetoptions['opt'] = opt
-                targetoptions['link'] = link
-                sigs = None
-                return Dispatcher(func_or_sig, sigs,
-                                  targetoptions=targetoptions)
+        return kernel_jit
 
 
 def declare_device(name, sig):
