@@ -1,5 +1,6 @@
 #include "_pymodule.h"
 #include "dlpack/dlpack.h"
+#include "object.h"
 
 /* Include _devicearray., but make sure we don't get the definitions intended
  * for consumers of the Device Array API.
@@ -7,7 +8,7 @@
 #define NUMBA_IN_DEVICEARRAY_CPP_
 #include "_devicearray.h"
 
-class DeviceArray {
+struct DeviceArray {
     PyObject_HEAD
 };
 
@@ -32,30 +33,88 @@ DeviceArray_managed_tensor_deleter(DLManagedTensor *managed_tensor)
 static void
 DeviceArray_capsule_destructor(PyObject *capsule)
 {
+  printf("In destructor\n");
   DLManagedTensor *dlMTensor = (DLManagedTensor *)PyCapsule_GetPointer(capsule, "dltensor");
-  dlMTensor->deleter(dlMTensor);
+  if (dlMTensor) {
+    printf("deleting unconsumed capsule\n");
+    dlMTensor->deleter(dlMTensor);
+  } else {
+    printf("Capsule already consumed\n");
+    // PyCapsule_GetPointer has set an error indicator
+    PyErr_Clear();
+  }
 }
 
+void display(DLManagedTensor a) {
+  puts("On C side:");
+  int i;
+  int ndim = a.dl_tensor.ndim;
+  printf("data = %p\n", a.dl_tensor.data);
+  printf("ctx = (device_type = %d, device_id = %d)\n",
+          (int) a.dl_tensor.ctx.device_type,
+          (int) a.dl_tensor.ctx.device_id);
+  printf("dtype = (code = %d, bits = %d, lanes = %d)\n",
+          (int) a.dl_tensor.dtype.code,
+          (int) a.dl_tensor.dtype.bits,
+          (int) a.dl_tensor.dtype.lanes);
+  printf("ndim = %d\n",
+          (int) a.dl_tensor.ndim);
+  printf("shape = (");
+  for (i = 0; i < ndim; ++i) {
+    if (i != 0) {
+      printf(", ");
+    }
+    printf("%d", (int) a.dl_tensor.shape[i]);
+  }
+  printf(")\n");
+  printf("strides = (");
+  for (i = 0; i < ndim; ++i) {
+    if (i != 0) {
+      printf(", ");
+    }
+    printf("%d", (int) a.dl_tensor.strides[i]);
+  }
+  printf(")\n");
+}
+
+
 static PyObject*
-DeviceArray_to_dlpack(DeviceArray *self, PyObject *args)
+DeviceArray_to_dlpack(PyObject *self, PyObject *args)
 {
-  int64_t *shape = new int64_t;
-  int64_t *strides = new int64_t;
+  int ndim = PyLong_AsLong(PyObject_GetAttrString(self, "ndim"));
+  int64_t *shape = new int64_t[ndim];
+  int64_t *strides = new int64_t[ndim];
+
+  PyObject *py_shape = PyObject_GetAttrString(self, "shape");
+  // TODO: Actual strides
+  //PyObject *py_strides = PyObject_GetAttrString(self, "strides");
+
+  for (auto i = 0; i < ndim; i++) {
+    shape[i] = PyLong_AsLong(PyTuple_GetItem(py_shape, i));
+    strides[i] = 1; //PyLong_AsLong(PyTuple_GetItem(py_strides, i));
+  }
+
+  PyObject *gpu_data = PyObject_GetAttrString(self, "gpu_data");
+  PyObject *mem = PyObject_GetAttrString(gpu_data, "_mem");
+  PyObject *handle = PyObject_GetAttrString(mem, "handle");
+  uintptr_t ptr = PyLong_AsLongLong(PyObject_GetAttrString(handle, "value"));
 
   DLManagedTensor *managed_tensor = new DLManagedTensor;
-  managed_tensor->dl_tensor.data = 0x0;
+  managed_tensor->dl_tensor.data = (void*)ptr;
   managed_tensor->dl_tensor.byte_offset = 0;
   managed_tensor->dl_tensor.ctx.device_type = kDLGPU;
   managed_tensor->dl_tensor.ctx.device_id = 0;
   managed_tensor->dl_tensor.dtype.code = kDLFloat;
   managed_tensor->dl_tensor.dtype.bits = 64;
   managed_tensor->dl_tensor.dtype.lanes = 1;
-  managed_tensor->dl_tensor.ndim = 1;
+  managed_tensor->dl_tensor.ndim = ndim;
   managed_tensor->dl_tensor.shape = shape;
   managed_tensor->dl_tensor.strides = strides;
   managed_tensor->deleter = DeviceArray_managed_tensor_deleter;
 
-  return PyCapsule_New((void *)managed_tensor, "datensor", DeviceArray_capsule_destructor);
+  display(*managed_tensor);
+
+  return PyCapsule_New((void *)managed_tensor, "dltensor", DeviceArray_capsule_destructor);
 }
 
 static PyMethodDef DeviceArray_methods[] = {

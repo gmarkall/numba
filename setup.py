@@ -126,7 +126,8 @@ def get_ext_modules():
                                 sources=['numba/_devicearray.cpp'],
                                 depends=['numba/_pymodule.h',
                                          'numba/_devicearray.h'],
-                                include_dirs=['numba'])
+                                include_dirs=['numba',
+                                              '/home/gmarkall/miniconda3/envs/numbatorch/include'])
 
     ext_dynfunc = Extension(name='numba._dynfunc',
                             sources=['numba/_dynfuncmod.c'],
