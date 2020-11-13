@@ -1,4 +1,5 @@
 #include "_pymodule.h"
+#include "dlpack/dlpack.h"
 
 /* Include _devicearray., but make sure we don't get the definitions intended
  * for consumers of the Device Array API.
@@ -21,6 +22,47 @@ DeviceArray_clear(DeviceArray *self)
 {
     return 0;
 }
+
+static void
+DeviceArray_managed_tensor_deleter(DLManagedTensor *managed_tensor)
+{
+  printf("In deleter!\n");
+}
+
+static void
+DeviceArray_capsule_destructor(PyObject *capsule)
+{
+  DLManagedTensor *dlMTensor = (DLManagedTensor *)PyCapsule_GetPointer(capsule, "dltensor");
+  dlMTensor->deleter(dlMTensor);
+}
+
+static PyObject*
+DeviceArray_to_dlpack(DeviceArray *self, PyObject *args)
+{
+  int64_t *shape = new int64_t;
+  int64_t *strides = new int64_t;
+
+  DLManagedTensor *managed_tensor = new DLManagedTensor;
+  managed_tensor->dl_tensor.data = 0x0;
+  managed_tensor->dl_tensor.byte_offset = 0;
+  managed_tensor->dl_tensor.ctx.device_type = kDLGPU;
+  managed_tensor->dl_tensor.ctx.device_id = 0;
+  managed_tensor->dl_tensor.dtype.code = kDLFloat;
+  managed_tensor->dl_tensor.dtype.bits = 64;
+  managed_tensor->dl_tensor.dtype.lanes = 1;
+  managed_tensor->dl_tensor.ndim = 1;
+  managed_tensor->dl_tensor.shape = shape;
+  managed_tensor->dl_tensor.strides = strides;
+  managed_tensor->deleter = DeviceArray_managed_tensor_deleter;
+
+  return PyCapsule_New((void *)managed_tensor, "datensor", DeviceArray_capsule_destructor);
+}
+
+static PyMethodDef DeviceArray_methods[] = {
+    { "to_dlpack", (PyCFunction)DeviceArray_to_dlpack, METH_NOARGS, NULL },
+    { NULL },
+};
+
 
 PyTypeObject DeviceArrayType = {
     PyVarObject_HEAD_INIT(NULL, 0)
@@ -51,7 +93,7 @@ PyTypeObject DeviceArrayType = {
     0,                                           /* tp_weaklistoffset */
     0,                                           /* tp_iter */
     0,                                           /* tp_iternext */
-    0,                                           /* tp_methods */
+    DeviceArray_methods,                         /* tp_methods */
     0,                                           /* tp_members */
     0,                                           /* tp_getset */
     0,                                           /* tp_base */
