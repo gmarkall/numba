@@ -21,3 +21,21 @@ print(t_x)
 del dlp
 
 del x
+
+# Output:
+#
+# 0x7fdbf5400000
+# On C side:
+# data = 0x7fdbf5400000
+# ctx = (device_type = 2, device_id = 0)
+# dtype = (code = 2, bits = 64, lanes = 1)
+# ndim = 2
+# shape = (2, 5)
+# strides = (5, 1)
+# <capsule object "dltensor" at 0x7fdc8d79d480>
+# 2 torch.Size([2, 5])
+# tensor([[0., 1., 2., 3., 4.],
+#         [5., 6., 7., 8., 9.]], device='cuda:0', dtype=torch.float64)
+# In destructor
+# Capsule already consumed
+# In deleter!
