@@ -1,4 +1,6 @@
 #include "_pymodule.h"
+#include "abstract.h"
+#include "ceval.h"
 #include "dlpack/dlpack.h"
 #include "object.h"
 
@@ -28,6 +30,9 @@ static void
 DeviceArray_managed_tensor_deleter(DLManagedTensor *managed_tensor)
 {
   printf("In deleter!\n");
+  Py_DECREF(managed_tensor->manager_ctx);
+  delete[] managed_tensor->dl_tensor.shape;
+  delete[] managed_tensor->dl_tensor.strides;
 }
 
 static void
@@ -86,17 +91,42 @@ DeviceArray_to_dlpack(PyObject *self, PyObject *args)
   int64_t *strides = new int64_t[ndim];
 
   PyObject *py_shape = PyObject_GetAttrString(self, "shape");
-  // TODO: Actual strides
-  //PyObject *py_strides = PyObject_GetAttrString(self, "strides");
+  PyObject *py_strides = PyObject_GetAttrString(self, "strides");
+  int itemsize = PyLong_AsLong(PyObject_GetAttrString(
+        PyObject_GetAttrString(self, "dtype"),
+        "itemsize"));
 
   for (auto i = 0; i < ndim; i++) {
     shape[i] = PyLong_AsLong(PyTuple_GetItem(py_shape, i));
-    strides[i] = 1; //PyLong_AsLong(PyTuple_GetItem(py_strides, i));
+    strides[i] = PyLong_AsLong(PyTuple_GetItem(py_strides, i)) / itemsize;
   }
 
   PyObject *gpu_data = PyObject_GetAttrString(self, "gpu_data");
-  PyObject *mem = PyObject_GetAttrString(gpu_data, "_mem");
+  if (!gpu_data)
+    return nullptr;
+
+  PyObject *numba = PyImport_ImportModule("numba");
+  PyObject *cuda = PyObject_GetAttrString(numba, "cuda");
+  PyObject *cudadrv = PyObject_GetAttrString(cuda, "cudadrv");
+  PyObject *driver = PyObject_GetAttrString(cudadrv, "driver");
+  PyObject *MemoryPointer = PyObject_GetAttrString(driver, "MemoryPointer");
+
+  // If we have an OwnedPointer (e.g. from Numba's memory manager) we need to
+  // get the underlying memory. If we have a MemoryPointer (from RMM's EMM
+  // plugin) then that's already what we need.
+  PyObject *mem;
+  if (PyObject_IsInstance(gpu_data, MemoryPointer))
+    mem = gpu_data;
+  else
+    mem = PyObject_GetAttrString(gpu_data, "_mem");
+
+  if (!mem)
+    return nullptr;
+
   PyObject *handle = PyObject_GetAttrString(mem, "handle");
+  if (!handle)
+    return nullptr;
+
   uintptr_t ptr = PyLong_AsLongLong(PyObject_GetAttrString(handle, "value"));
 
   DLManagedTensor *managed_tensor = new DLManagedTensor;
@@ -111,8 +141,11 @@ DeviceArray_to_dlpack(PyObject *self, PyObject *args)
   managed_tensor->dl_tensor.shape = shape;
   managed_tensor->dl_tensor.strides = strides;
   managed_tensor->deleter = DeviceArray_managed_tensor_deleter;
+  managed_tensor->manager_ctx = self;
 
   display(*managed_tensor);
+
+  Py_INCREF(self);
 
   return PyCapsule_New((void *)managed_tensor, "dltensor", DeviceArray_capsule_destructor);
 }
