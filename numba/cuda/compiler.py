@@ -1,5 +1,6 @@
 import collections
 import ctypes
+import functools
 import inspect
 import os
 import subprocess
@@ -20,6 +21,7 @@ from numba.core.typing.typeof import Purpose, typeof
 from warnings import warn
 import numba
 from .cudadrv.devices import get_context
+from .cudadrv.libs import get_cudalib
 from .cudadrv import nvvm, driver
 from .errors import missing_launch_config_msg, normalize_kernel_dimensions
 from .api import get_current_device
@@ -498,13 +500,12 @@ class _Kernel(serialize.ReduceMixin):
     '''
 
     @global_compiler_lock
-    def __init__(self, py_func, argtypes, link, debug=False, inline=False,
+    def __init__(self, py_func, argtypes, link=None, debug=False, inline=False,
                  fastmath=False, extensions=None, max_registers=None, opt=True):
         super().__init__()
 
         self.py_func = py_func
         self.argtypes = argtypes
-        self.link = tuple(link)
         self.debug = debug
         self.extensions = extensions or []
 
@@ -528,6 +529,17 @@ class _Kernel(serialize.ReduceMixin):
         llvm_module = str(lib._final_module)
         pretty_name = cres.fndesc.qualname
         ptx = CachedPTX(pretty_name, llvm_module, options=options)
+
+        if not link:
+            link = []
+
+        # A kernel needs cooperative launch if grid_sync is being used.
+        self.cooperative = 'cudaCGGetIntrinsicHandle' in ptx.llvmir
+        # We need to link against cudadevrt if grid sync is being used.
+        if self.cooperative:
+            link.append(get_cudalib('cudadevrt', static=True))
+
+        self.link = link
         cufunc = CachedCUFunction(kernel.name, ptx, self.link, max_registers)
 
         # populate members
@@ -542,8 +554,8 @@ class _Kernel(serialize.ReduceMixin):
         return tuple(self.signature.args)
 
     @classmethod
-    def _rebuild(cls, name, argtypes, cufunc, link, debug, call_helper,
-                 extensions):
+    def _rebuild(cls, cooperative, name, argtypes, cufunc, link, debug,
+                 call_helper, extensions):
         """
         Rebuild an instance.
         """
@@ -551,6 +563,7 @@ class _Kernel(serialize.ReduceMixin):
         # invoke parent constructor
         super(cls, instance).__init__()
         # populate members
+        instance.cooperative = cooperative
         instance.entry_name = name
         instance.argument_types = tuple(argtypes)
         instance.link = tuple(link)
@@ -569,9 +582,10 @@ class _Kernel(serialize.ReduceMixin):
         Thread, block and shared memory configuration are serialized.
         Stream information is discarded.
         """
-        return dict(name=self.entry_name, argtypes=self.argtypes,
-                    cufunc=self._func, link=self.link, debug=self.debug,
-                    call_helper=self.call_helper, extensions=self.extensions)
+        return dict(cooperative=self.cooperative, name=self.entry_name,
+                    argtypes=self.argtypes, cufunc=self._func, link=self.link,
+                    debug=self.debug, call_helper=self.call_helper,
+                    extensions=self.extensions)
 
     def bind(self):
         """
@@ -630,6 +644,28 @@ class _Kernel(serialize.ReduceMixin):
         print(self._type_annotation, file=file)
         print('=' * 80, file=file)
 
+    def max_cooperative_grid_blocks(self, blockdim, dynsmemsize=0):
+        '''
+        Calculates the maximum number of blocks that can be launched for this
+        kernel in a cooperative grid in the current context, for the given block
+        and dynamic shared memory sizes.
+
+        :param blockdim: Block dimensions, either as a scalar for a 1D block, or
+                         a tuple for 2D or 3D blocks.
+        :param dynsmemsize: Dynamic shared memory size in bytes.
+        :return: The maximum number of blocks in the grid.
+        '''
+        ctx = get_context()
+        cufunc = self._func.get()
+
+        if isinstance(blockdim, tuple):
+            blockdim = functools.reduce(lambda x, y: x * y, blockdim)
+        active_per_sm = ctx.get_active_blocks_per_multiprocessor(cufunc,
+                                                                 blockdim,
+                                                                 dynsmemsize)
+        sm_count = ctx.device.MULTIPROCESSOR_COUNT
+        return active_per_sm * sm_count
+
     def launch(self, args, griddim, blockdim, stream=0, sharedmem=0):
         # Prepare kernel
         cufunc = self._func.get()
@@ -656,7 +692,8 @@ class _Kernel(serialize.ReduceMixin):
                              *blockdim,
                              sharedmem,
                              stream_handle,
-                             kernelargs)
+                             kernelargs,
+                             cooperative=self.cooperative)
 
         if self.debug:
             driver.device_to_host(ctypes.addressof(excval), excmem, excsz)
