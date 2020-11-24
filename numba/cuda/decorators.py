@@ -163,7 +163,7 @@ def convert_types(restype, argtypes):
     return restype, argtypes
 
 
-def jit_module(**kwargs):
+def jit_module(module=None, **kwargs):
     """ Automatically ``jit``-wraps functions defined in a Python module. By
     default, wrapped functions are treated as device functions rather than
     kernels - pass ``device=False`` to treat functions as kernels.
@@ -185,9 +185,10 @@ def jit_module(**kwargs):
     if 'device' not in kwargs:
         kwargs['device'] = True
 
-    # Get the module jit_module is being called from
-    frame = inspect.stack()[1]
-    module = inspect.getmodule(frame[0])
+    if module is None:
+        # Get the module jit_module is being called from
+        frame = inspect.stack()[1]
+        module = inspect.getmodule(frame[0])
     # Replace functions in module with jit-wrapped versions
     for name, obj in module.__dict__.items():
         if inspect.isfunction(obj) and inspect.getmodule(obj) == module:
