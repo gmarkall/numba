@@ -1,4 +1,5 @@
 import numpy as np
+from itertools import product
 from numba.cuda.cudadrv import driver
 from numba import cuda
 from numba.cuda.testing import unittest, ContextResettingTestCase
@@ -46,11 +47,10 @@ class TestHostAlloc(ContextResettingTestCase):
         self.assertTrue(sum(ary != 0) == 0)
 
     def test_views_arrays(self):
-        for ary_samp in [x(2, dtype=np.uint32)
-                         for x in
-                         (cuda.mapped_array,
-                          cuda.pinned_array,
-                          cuda.device_array)]:
+        array_types = cuda.mapped_array, cuda.pinned_array, cuda.device_array
+        dtypes = np.int32, np.uint32
+        for arrtype, dtype in product(array_types, dtypes):
+            ary_samp = arrtype(2, dtype=dtype)
             ary_samp[:] = 0
             ary_v = ary_samp.view('u1')
             ary_v[1] = 1
