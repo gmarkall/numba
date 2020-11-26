@@ -1,9 +1,14 @@
+import inspect
+import logging
+
 from numba.core import types, config, sigutils
 from numba.core.errors import DeprecationError
 from .compiler import (compile_device, declare_device_function, Dispatcher,
                        compile_device_template)
 from .simulator.kernel import FakeCUDAKernel
 
+
+_logger = logging.getLogger(__name__)
 
 _msg_deprecated_signature_arg = ("Deprecated keyword argument `{0}`. "
                                  "Signatures should be passed as the first "
@@ -140,3 +145,46 @@ def jit(func_or_sig=None, device=False, inline=False, link=[], debug=None,
 def declare_device(name, sig):
     argtypes, restype = sigutils.normalize_signature(sig)
     return declare_device_function(name, restype, argtypes)
+
+
+def convert_types(restype, argtypes):
+    # eval type string
+    if sigutils.is_signature(restype):
+        argtypes, restype = sigutils.normalize_signature(restype)
+
+    return restype, argtypes
+
+
+def jit_module(module=None, **kwargs):
+    """ Automatically ``jit``-wraps functions defined in a Python module. By
+    default, wrapped functions are treated as device functions rather than
+    kernels - pass ``device=False`` to treat functions as kernels.
+
+    Note that ``jit_module`` should be called following the declaration of all
+    functions to be jitted. This function may be called multiple times within
+    a module with different options, and any new function declarations since
+    the previous ``jit_module`` call will be wrapped with the options provided
+    to the current call to ``jit_module``.
+
+    Note that only functions which are defined in the module ``jit_module`` is
+    called from are considered for automatic jit-wrapping.  See the Numba
+    documentation for more information about what can/cannot be jitted.
+
+    :param kwargs: Keyword arguments to pass to ``jit`` such as ``device``
+                   or ``opt``.
+
+    """
+    if 'device' not in kwargs:
+        kwargs['device'] = True
+
+    if module is None:
+        # Get the module jit_module is being called from
+        frame = inspect.stack()[1]
+        module = inspect.getmodule(frame[0])
+    # Replace functions in module with jit-wrapped versions
+    for name, obj in module.__dict__.items():
+        if inspect.isfunction(obj) and inspect.getmodule(obj) == module:
+            _logger.debug("Auto decorating function {} from module {} with jit "
+                          "and options: {}".format(obj, module.__name__,
+                                                   kwargs))
+            module.__dict__[name] = jit(obj, **kwargs)
