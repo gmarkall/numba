@@ -416,18 +416,21 @@ class Array(Buffer):
     """
 
     def __init__(self, dtype, ndim, layout, readonly=False, name=None,
-                 aligned=True):
+                 aligned=True, masked=False):
         if readonly:
             self.mutable = False
         if (not aligned or
             (isinstance(dtype, Record) and not dtype.aligned)):
             self.aligned = False
+        self.masked = masked
         if name is None:
             type_name = "array"
             if not self.mutable:
                 type_name = "readonly " + type_name
             if not self.aligned:
                 type_name = "unaligned " + type_name
+            if self.masked:
+                type_name = "masked " + type_name
             name = "%s(%s, %sd, %s)" % (type_name, dtype, ndim, layout)
         super(Array, self).__init__(dtype, ndim, layout, name=name)
 
@@ -435,10 +438,12 @@ class Array(Buffer):
     def mangling_args(self):
         args = [self.dtype, self.ndim, self.layout,
                 'mutable' if self.mutable else 'readonly',
-                'aligned' if self.aligned else 'unaligned']
+                'aligned' if self.aligned else 'unaligned',
+                'masked' if self.masked else 'unmasked']
         return self.__class__.__name__, args
 
-    def copy(self, dtype=None, ndim=None, layout=None, readonly=None):
+    def copy(self, dtype=None, ndim=None, layout=None, readonly=None,
+             masked=None):
         if dtype is None:
             dtype = self.dtype
         if ndim is None:
@@ -447,19 +452,23 @@ class Array(Buffer):
             layout = self.layout
         if readonly is None:
             readonly = not self.mutable
+        if masked is None:
+            masked = self.masked
         return Array(dtype=dtype, ndim=ndim, layout=layout, readonly=readonly,
-                     aligned=self.aligned)
+                     aligned=self.aligned, masked=masked)
 
     @property
     def key(self):
-        return self.dtype, self.ndim, self.layout, self.mutable, self.aligned
+        return (self.dtype, self.ndim, self.layout, self.mutable, self.aligned,
+                self.masked)
 
     def unify(self, typingctx, other):
         """
         Unify this with the *other* Array.
         """
-        # If other is array and the ndim matches
-        if isinstance(other, Array) and other.ndim == self.ndim:
+        # If other is array and the ndim and masked matches
+        if (isinstance(other, Array) and other.ndim == self.ndim and
+            other.masked == self.masked):
             # If dtype matches or other.dtype is undefined (inferred)
             if other.dtype == self.dtype or not other.dtype.is_precise():
                 if self.layout == other.layout:
@@ -469,14 +478,14 @@ class Array(Buffer):
                 readonly = not (self.mutable and other.mutable)
                 aligned = self.aligned and other.aligned
                 return Array(dtype=self.dtype, ndim=self.ndim, layout=layout,
-                             readonly=readonly, aligned=aligned)
+                             readonly=readonly, aligned=aligned, masked=masked)
 
     def can_convert_to(self, typingctx, other):
         """
         Convert this Array to the *other*.
         """
         if (isinstance(other, Array) and other.ndim == self.ndim
-            and other.dtype == self.dtype):
+            and other.dtype == self.dtype and other.masked == self.masked):
             if (other.layout in ('A', self.layout)
                 and (self.mutable or not other.mutable)
                 and (self.aligned or not other.aligned)):
@@ -576,7 +585,3 @@ class NestedArray(Array):
     @property
     def key(self):
         return self.dtype, self.shape
-
-class MaskedArray(Array):
-
-    def __init__(self, dtype, shape) # was just here thinking about the typing

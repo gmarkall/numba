@@ -55,6 +55,7 @@ def require_cuda_ndarray(obj):
     if not is_cuda_ndarray(obj):
         raise ValueError('require an cuda ndarray object')
 
+
 class DeviceMaskedArray:
     """An on-GPU masked array representation."""
 
@@ -80,7 +81,34 @@ class DeviceMaskedArray:
 
     @property
     def _numba_type_(self):
-        return types.Masked(self.data._numba_type_)
+        ty = self.data._numba_type_.copy(masked=True)
+        print(ty)
+        return ty
+
+    @property
+    def size(self):
+        return self.data.size
+
+    @property
+    def dtype(self):
+        return self.data.dtype
+
+    @property
+    def device_ctypes_pointer(self):
+        return self.data.device_ctypes_pointer
+
+    @property
+    def ndim(self):
+        return self.data.ndim
+
+    @property
+    def shape(self):
+        return self.data.shape
+
+    @property
+    def strides(self):
+        return self.data.strides
+
 
 class DeviceNDArrayBase(_devicearray.DeviceArray):
     """A on GPU NDArray representation

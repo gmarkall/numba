@@ -15,6 +15,8 @@ else:
 class TestCudaArray(CUDATestCase):
 
     def test_masked_gpu_array(self):
+        np.random.seed(1)
+
         h_arr = np.random.random(10)
 
         h_mask_1 = np.random.randint(2, size=10, dtype='bool')
