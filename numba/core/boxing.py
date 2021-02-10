@@ -474,9 +474,15 @@ def unbox_array(typ, obj, c):
 
     failed = c.builder.or_(
         cgutils.is_not_null(c.builder, errcode),
-        c.builder.or_(cgutils.is_not_null(c.builder, mask_errcode),
-                      itemsize_mismatch),
+        itemsize_mismatch,
     )
+
+    if typ.masked:
+        failed = c.builder.or_(
+            cgutils.is_not_null(c.builder, mask_errcode),
+            failed
+        )
+
     # Handle error
     with c.builder.if_then(failed, likely=False):
         c.pyapi.err_set_string("PyExc_TypeError",
