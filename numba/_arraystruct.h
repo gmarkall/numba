@@ -12,6 +12,7 @@ typedef struct {
     npy_intp nitems;
     npy_intp itemsize;
     void *data;
+    void *mask;
 
     npy_intp shape_and_strides[];
 } arystruct_t;

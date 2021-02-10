@@ -177,7 +177,7 @@ def normalize_indices(context, builder, index_types, indices):
 
 
 def populate_array(array, data, shape, strides, itemsize, meminfo,
-                   parent=None):
+                   parent=None, mask=None):
     """
     Helper function for populating array structures.
     This avoids forgetting to set fields.
@@ -213,6 +213,12 @@ def populate_array(array, data, shape, strides, itemsize, meminfo,
             datamodel.get_type('parent')))
     else:
         attrs['parent'] = parent
+    # Set `mask` attribute
+    if mask is None:
+        attrs['mask'] = Constant.null(context.get_value_type(
+            datamodel.get_type('mask')))
+    else:
+        attrs['mask'] = mask
     # Calc num of items from shape
     nitems = context.get_constant(types.intp, 1)
     unpacked_shape = cgutils.unpack_tuple(builder, shape, shape.type.count)

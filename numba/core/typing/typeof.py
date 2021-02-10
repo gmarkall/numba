@@ -236,7 +236,9 @@ def _typeof_ndarray(val, c):
         raise ValueError("Unsupported array dtype: %s" % (val.dtype,))
     layout = numpy_support.map_layout(val)
     readonly = not val.flags.writeable
-    return types.Array(dtype, val.ndim, layout, readonly=readonly)
+    masked = hasattr(val, 'mask')
+    return types.Array(dtype, val.ndim, layout, readonly=readonly,
+                       masked=masked)
 
 
 @typeof_impl.register(types.NumberClass)

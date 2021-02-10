@@ -442,6 +442,8 @@ def unbox_array(typ, obj, c):
     # TODO check matching dtype.
     #      currently, mismatching dtype will still work and causes
     #      potential memory corruption
+
+    # from pudb import set_trace; set_trace()
     nativearycls = c.context.make_array(typ)
     nativeary = nativearycls(c.context, c.builder)
     aryptr = nativeary._getpointer()
@@ -451,6 +453,9 @@ def unbox_array(typ, obj, c):
         errcode = c.pyapi.nrt_adapt_ndarray_from_python(obj, ptr)
     else:
         errcode = c.pyapi.numba_array_adaptor(obj, ptr)
+
+    if typ.masked:
+        mask_errcode = c.pyapi.numba_mask_adaptor(obj, ptr)
 
     # TODO: here we have minimal typechecking by the itemsize.
     #       need to do better
@@ -469,7 +474,8 @@ def unbox_array(typ, obj, c):
 
     failed = c.builder.or_(
         cgutils.is_not_null(c.builder, errcode),
-        itemsize_mismatch,
+        c.builder.or_(cgutils.is_not_null(c.builder, mask_errcode),
+                      itemsize_mismatch),
     )
     # Handle error
     with c.builder.if_then(failed, likely=False):

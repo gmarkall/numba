@@ -335,6 +335,29 @@ numba_adapt_ndarray(PyObject *obj, arystruct_t* arystruct) {
 }
 
 NUMBA_EXPORT_FUNC(int)
+numba_adapt_mask(PyObject *obj, arystruct_t* arystruct) {
+
+    if (!PyArray_Check(obj)) {
+        return -1;
+    }
+
+    PyObject* mask_obj = PyObject_GetAttrString(obj, "_mask");
+    if (mask_obj == NULL) {
+        return -1;
+    }
+
+    if (!PyArray_Check(mask_obj)) {
+        Py_DECREF(mask_obj);
+        return -1;
+    }
+
+    PyArrayObject *maskary = (PyArrayObject*)mask_obj;
+    arystruct->mask = PyArray_DATA(maskary);
+    Py_DECREF(mask_obj);
+    return 0;
+}
+
+NUMBA_EXPORT_FUNC(int)
 numba_get_buffer(PyObject *obj, Py_buffer *buf)
 {
     /* Ask for shape and strides, but no suboffsets */
