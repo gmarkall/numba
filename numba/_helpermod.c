@@ -72,6 +72,7 @@ build_c_helpers_dict(void)
     declmethod(signbitf);
     declmethod(complex_adaptor);
     declmethod(adapt_ndarray);
+    declmethod(adapt_mask);
     declmethod(ndarray_new);
     declmethod(extract_record_data);
     declmethod(get_buffer);
