@@ -13,7 +13,7 @@ class CUDACodeLibrary(CodeLibrary):
     def __init__(self, codegen, name):
         super().__init__(codegen, name)
         self._module = None
-        self._linked_modules = []
+        self._linking_libraries = []
 
     def get_llvm_str(self):
         return str(self._module)
@@ -37,9 +37,7 @@ class CUDACodeLibrary(CodeLibrary):
         # won't be able to finalize again after adding new ones
         self._raise_if_finalized()
 
-        for mod in library.modules:
-            if mod not in self._linked_modules:
-                self._linked_modules.append(mod)
+        self._linking_libraries.append(library)
 
     def get_function(self, name):
         for fn in self._module.functions:
@@ -49,7 +47,8 @@ class CUDACodeLibrary(CodeLibrary):
 
     @property
     def modules(self):
-        return [self._module] + self._linked_modules
+        return [self._module] + [mod for lib in self._linking_libraries
+                                 for mod in lib.modules]
 
     def finalize(self):
         # Unlike the CPUCodeLibrary, we don't invoke the binding layer here -
@@ -69,8 +68,8 @@ class CUDACodeLibrary(CodeLibrary):
         #
         # See also discussion on PR #890:
         # https://github.com/numba/numba/pull/890
-        for mod in self._linked_modules:
-            for fn in mod.functions:
+        for library in self._linking_libraries:
+            for fn in library._module.functions:
                 if not fn.is_declaration and fn.linkage != 'external':
                     fn.linkage = 'linkonce_odr'
 
