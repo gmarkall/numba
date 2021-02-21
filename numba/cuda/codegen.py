@@ -2,7 +2,7 @@ from llvmlite import binding as ll
 from llvmlite.llvmpy import core as lc
 
 from numba.core.codegen import Codegen, CodeLibrary
-from .cudadrv import nvvm
+from .cudadrv import devices, nvvm
 
 
 CUDA_TRIPLE = 'nvptx64-nvidia-cuda'
@@ -19,9 +19,13 @@ class CUDACodeLibrary(CodeLibrary):
         return str(self._module)
 
     def get_asm_str(self):
-        # Return nothing: we can only dump assembly code when it is later
-        # generated (in numba.cuda.compiler).
-        return None
+        # Give PTX for current device for now.
+        cc = devices.get_context().device.compute_capability
+        arch = nvvm.get_arch_option(*cc)
+        # Need to select opt level at some point.
+        opt = 3
+        ptx = nvvm.llvm_to_ptx(str(self._module), arch=arch, opt=opt)
+        return ptx.decode().strip('\x00').strip()
 
     def add_ir_module(self, mod):
         self._raise_if_finalized()
