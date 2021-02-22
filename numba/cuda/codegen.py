@@ -19,36 +19,53 @@ class CUDACodeLibrary(CodeLibrary):
     def __init__(self, codegen, name):
         super().__init__(codegen, name)
         self._module = None
-        self._linking_libraries = []
+        self._linking_libraries = set()
+        self._linking_files = set()
 
     def get_llvm_str(self):
         return str(self._module)
 
     def get_asm_str(self, cc=None, opt=None, options=None):
+        return "\n\n".join(self.get_asm(self, cc=cc, opt=opt, options=options))
+
+    def get_asm(self, cc=None, opt=None, options=None):
         cc = cc or config.CUDA_DEFAULT_PTX_CC
         arch = nvvm.get_arch_option(*cc)
         if opt is None:
             opt = 3
         if options is None:
             options = {}
-        ptx = nvvm.llvm_to_ptx(str(self._module), arch=arch, opt=opt, **options)
-        return ptx.decode().strip('\x00').strip()
-
-    def get_cubin(self):
-        devices.get_context()
-        linker = driver.Linker()
-        linker.add_ptx(self.get_asm_str().encode())
+        asm = []
         for lib in self._linking_libraries:
-            linker.add_ptx(lib.get_asm_str().encode())
-        #for path in self.linking:
-        #    linker.add_file_guess_ext(path)
+            asm.extend(lib.get_asm())
+        ptx = nvvm.llvm_to_ptx(str(self._module), arch=arch, opt=opt, **options)
+        asm.append(ptx.decode().strip('\x00').strip())
+        return asm
+
+    def get_cubin(self, max_registers=None):
+        # XXX: Needs caching for compute target
+        devices.get_context()
+        linker = driver.Linker(max_registers=max_registers)
+        for ptx in self.get_asm():
+            linker.add_ptx(ptx.encode())
+        for path in self._linking_files:
+            linker.add_file_guess_ext(path)
         cubin, size = linker.complete()
         compile_info = linker.info_log
         print(compile_info)
         # We take a copy of the cubin because it's owned by the linker
         cubin_ptr = ctypes.cast(cubin, ctypes.POINTER(ctypes.c_char))
-        cubin_data = np.ctypeslib.as_array(cubin_ptr, shape=(size,)).copy()
-        return cubin_data
+        owned_cubin = bytes(np.ctypeslib.as_array(cubin_ptr, shape=(size,)))
+        #from pudb import set_trace; set_trace()
+        return owned_cubin
+
+    def get_cufunc(self, entry_name, max_registers=None):
+        # XXX: Needs caching for device and for function
+        cubin = self.get_cubin(max_registers=max_registers)
+        ctx = devices.get_context()
+        module = ctx.create_module_image(cubin)
+        return module.get_function(entry_name)
+
 
     def add_ir_module(self, mod):
         self._raise_if_finalized()
@@ -64,7 +81,10 @@ class CUDACodeLibrary(CodeLibrary):
         # won't be able to finalize again after adding new ones
         self._raise_if_finalized()
 
-        self._linking_libraries.append(library)
+        self._linking_libraries.add(library)
+
+    def add_linking_file(self, filepath):
+        self._linking_files.add(filepath)
 
     def get_function(self, name):
         for fn in self._module.functions:

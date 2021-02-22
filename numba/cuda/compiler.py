@@ -33,6 +33,33 @@ from .api import get_current_device
 from .args import wrap_arg
 
 
+import sys
+
+
+def trace_calls(frame, event, arg):
+    if event != "call":
+        return
+    co = frame.f_code
+    func_name = co.co_name
+    if func_name == "write":
+        # Ignore write() calls from print statements
+        return
+    func_line_no = frame.f_lineno
+    func_filename = co.co_filename
+    caller = frame.f_back
+    caller_line_no = caller.f_lineno
+    caller_filename = caller.f_code.co_filename
+    print(
+        "Call to %s on line %s of %s from line %s of %s"
+        % (func_name, func_line_no, func_filename, caller_line_no,
+           caller_filename)
+    )
+    return
+
+
+#sys.settrace(trace_calls)
+
+
 @register_pass(mutates_CFG=True, analysis_only=False)
 class CUDABackend(LoweringPass):
 
@@ -153,6 +180,7 @@ def compile_ptx(pyfunc, args, debug=False, device=False, fastmath=False,
     :return: (ptx, resty): The PTX code and inferred return type
     :rtype: tuple
     """
+    raise RuntimeError('temporarily blocked whilst testing')
     cres = compile_cuda(pyfunc, None, args, debug=debug)
     resty = cres.signature.return_type
     if device:
@@ -482,7 +510,7 @@ class CachedCUFunction(serialize.ReduceMixin):
     Uses device ID as key for cache.
     """
 
-    def __init__(self, entry_name, ptx, linking, max_registers):
+    def __init__(self, entry_name, ptx, linking, max_registers, codelib):
         self.entry_name = entry_name
         self.ptx = ptx
         self.linking = linking
@@ -490,33 +518,40 @@ class CachedCUFunction(serialize.ReduceMixin):
         self.ccinfos = {}
         self.cubins = {}
         self.max_registers = max_registers
+        self.codelib = codelib
+        for filepath in linking:
+            codelib.add_linking_file(filepath)
 
     def get(self):
         cuctx = get_context()
         device = cuctx.device
         cufunc = self.cache.get(device.id)
         if cufunc is None:
-            ptx = self.ptx.get()
+            #ptx = self.ptx.get()
 
             # Link
-            linker = driver.Linker(max_registers=self.max_registers)
-            linker.add_ptx(ptx)
-            for path in self.linking:
-                linker.add_file_guess_ext(path)
-            cubin, size = linker.complete()
-            compile_info = linker.info_log
-            module = cuctx.create_module_image(cubin)
+            #linker = driver.Linker(max_registers=self.max_registers)
+            #linker.add_ptx(ptx)
+            #for path in self.linking:
+            #    linker.add_file_guess_ext(path)
+            #cubin, size = linker.complete()
+            #compile_info = linker.info_log
+            cubin = self.codelib.get_cubin(max_registers=self.max_registers)
+            #module = cuctx.create_module_image(cubin)
 
             # Load
-            cufunc = module.get_function(self.entry_name)
+            #cufunc = module.get_function(self.entry_name)
+            cufunc = self.codelib.get_cufunc(self.entry_name,
+                                             max_registers=self.max_registers)
 
             # Populate caches
             self.cache[device.id] = cufunc
-            self.ccinfos[device.id] = compile_info
+            # XXX: Need to keep the compile_info somwhere
+            #self.ccinfos[device.id] = compile_info
             # We take a copy of the cubin because it's owned by the linker
-            cubin_ptr = ctypes.cast(cubin, ctypes.POINTER(ctypes.c_char))
-            cubin_data = np.ctypeslib.as_array(cubin_ptr, shape=(size,)).copy()
-            self.cubins[device.id] = cubin_data
+            #cubin_ptr = ctypes.cast(cubin, ctypes.POINTER(ctypes.c_char))
+            #cubin_data = np.ctypeslib.as_array(cubin_ptr, shape=(size,)).copy()
+            self.cubins[device.id] = cubin # (was cubin_data)
         return cufunc
 
     def get_sass(self):
@@ -600,7 +635,8 @@ class _Kernel(serialize.ReduceMixin):
         if self.cooperative:
             link.append(get_cudalib('cudadevrt', static=True))
 
-        cufunc = CachedCUFunction(kernel.name, ptx, link, max_registers)
+        cufunc = CachedCUFunction(kernel.name, ptx, link, max_registers,
+                                  codelib=lib)
 
         # populate members
         self.entry_name = kernel.name

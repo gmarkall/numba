@@ -60,6 +60,7 @@ def transpose(a, b=None):
     blocks = int(b.shape[0] / tile_height + 1), int(b.shape[1] / tile_width + 1)
     # one thread per tile element
     threads = tile_height, tile_width
+    print(blocks, threads)
     kernel[blocks, threads, stream](a, b)
 
     return b
