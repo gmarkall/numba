@@ -156,13 +156,12 @@ def compile_ptx(pyfunc, args, debug=False, device=False, fastmath=False,
     cres = compile_cuda(pyfunc, None, args, debug=debug)
     resty = cres.signature.return_type
     if device:
-        llvm_modules = cres.library.modules
+        lib = cres.library
     else:
         fname = cres.fndesc.llvm_func_name
         tgt = cres.target_context
         lib, kernel = tgt.prepare_cuda_kernel(cres.library, fname,
                                               cres.signature.args, debug=debug)
-        llvm_modules = lib.modules
 
     options = {
         'debug': debug,
@@ -171,10 +170,8 @@ def compile_ptx(pyfunc, args, debug=False, device=False, fastmath=False,
 
     cc = cc or config.CUDA_DEFAULT_PTX_CC
     opt = 3 if opt else 0
-    arch = nvvm.get_arch_option(*cc)
-    llvmir = [str(mod) for mod in llvm_modules]
-    ptx = nvvm.llvm_to_ptx(llvmir, opt=opt, arch=arch, **options)
-    return ptx.decode('utf-8'), resty
+    ptx = lib.get_asm_str(cc=cc, opt=opt, options=options)
+    return ptx, resty
 
 
 def compile_ptx_for_current_device(pyfunc, args, debug=False, device=False,

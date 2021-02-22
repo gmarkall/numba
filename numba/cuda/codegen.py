@@ -1,13 +1,19 @@
 from llvmlite import binding as ll
 from llvmlite.llvmpy import core as lc
 
+from numba.core import config
 from numba.core.codegen import Codegen, CodeLibrary
-from .cudadrv import devices, nvvm
+from .cudadrv import devices, driver, nvvm
+
+import ctypes
+import numpy as np
 
 
 CUDA_TRIPLE = 'nvptx64-nvidia-cuda'
 
 
+# Should the code library provide for multiple CCs? Or create one code library
+# per CC?
 class CUDACodeLibrary(CodeLibrary):
 
     def __init__(self, codegen, name):
@@ -18,14 +24,31 @@ class CUDACodeLibrary(CodeLibrary):
     def get_llvm_str(self):
         return str(self._module)
 
-    def get_asm_str(self):
-        # Give PTX for current device for now.
-        cc = devices.get_context().device.compute_capability
+    def get_asm_str(self, cc=None, opt=None, options=None):
+        cc = cc or config.CUDA_DEFAULT_PTX_CC
         arch = nvvm.get_arch_option(*cc)
-        # Need to select opt level at some point.
-        opt = 3
-        ptx = nvvm.llvm_to_ptx(str(self._module), arch=arch, opt=opt)
+        if opt is None:
+            opt = 3
+        if options is None:
+            options = {}
+        ptx = nvvm.llvm_to_ptx(str(self._module), arch=arch, opt=opt, **options)
         return ptx.decode().strip('\x00').strip()
+
+    def get_cubin(self):
+        devices.get_context()
+        linker = driver.Linker()
+        linker.add_ptx(self.get_asm_str().encode())
+        for lib in self._linking_libraries:
+            linker.add_ptx(lib.get_asm_str().encode())
+        #for path in self.linking:
+        #    linker.add_file_guess_ext(path)
+        cubin, size = linker.complete()
+        compile_info = linker.info_log
+        print(compile_info)
+        # We take a copy of the cubin because it's owned by the linker
+        cubin_ptr = ctypes.cast(cubin, ctypes.POINTER(ctypes.c_char))
+        cubin_data = np.ctypeslib.as_array(cubin_ptr, shape=(size,)).copy()
+        return cubin_data
 
     def add_ir_module(self, mod):
         self._raise_if_finalized()
@@ -72,10 +95,10 @@ class CUDACodeLibrary(CodeLibrary):
         #
         # See also discussion on PR #890:
         # https://github.com/numba/numba/pull/890
-        for library in self._linking_libraries:
-            for fn in library._module.functions:
-                if not fn.is_declaration and fn.linkage != 'external':
-                    fn.linkage = 'linkonce_odr'
+        #for library in self._linking_libraries:
+        #    for fn in library._module.functions:
+        #        if not fn.is_declaration and fn.linkage != 'external':
+        #            fn.linkage = 'linkonce_odr'
 
         self._finalized = True
 
