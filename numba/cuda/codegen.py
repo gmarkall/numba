@@ -19,7 +19,7 @@ class CUDACodeLibrary(CodeLibrary):
     def __init__(self, codegen, name):
         super().__init__(codegen, name)
         self._module = None
-        self._linking_libraries = []
+        self._linking_libraries = set()
 
     def get_llvm_str(self):
         return str(self._module)
@@ -66,7 +66,7 @@ class CUDACodeLibrary(CodeLibrary):
         # won't be able to finalize again after adding new ones
         self._raise_if_finalized()
 
-        self._linking_libraries.append(library)
+        self._linking_libraries.add(library)
 
     def get_function(self, name):
         for fn in self._module.functions:
