@@ -444,37 +444,6 @@ class ForAll(object):
             return tpb
 
 
-class CachedPTX(object):
-    """A PTX cache that uses compute capability as a cache key
-    """
-    def __init__(self, name, llvmir, options):
-        self.name = name
-        self.llvmir = llvmir
-        self.cache = {}
-        self._extra_options = options.copy()
-
-    def get(self, cc=None):
-        """
-        Get PTX for the current active context.
-        """
-        if not cc:
-            cuctx = get_context()
-            device = cuctx.device
-            cc = device.compute_capability
-
-        ptx = self.cache.get(cc)
-        if ptx is None:
-            arch = nvvm.get_arch_option(*cc)
-            ptx = nvvm.llvm_to_ptx(self.llvmir, arch=arch,
-                                   **self._extra_options)
-            self.cache[cc] = ptx
-            if config.DUMP_ASSEMBLY:
-                print(("ASSEMBLY %s" % self.name).center(80, '-'))
-                print(ptx.decode('utf-8'))
-                print('=' * 80)
-        return ptx
-
-
 class CachedCUFunction(serialize.ReduceMixin):
     """
     Get or compile CUDA function for the current active context
@@ -501,15 +470,6 @@ class CachedCUFunction(serialize.ReduceMixin):
         device = cuctx.device
         cufunc = self.cache.get(device.id)
         if cufunc is None:
-            # ptx = self.ptx.get()
-
-            # Link
-            #linker = driver.Linker(max_registers=self.max_registers)
-            #linker.add_ptx(ptx)
-            #for path in self.linking:
-            #    linker.add_file_guess_ext(path)
-            #cubin, size = linker.complete()
-            #compile_info = linker.info_log
             cubin, compile_info = \
                 self.codelib.get_cubin(max_registers=self.max_registers,
                                        nvvm_options=self.nvvm_options)
@@ -521,9 +481,6 @@ class CachedCUFunction(serialize.ReduceMixin):
             # Populate caches
             self.cache[device.id] = cufunc
             self.ccinfos[device.id] = compile_info
-            # We take a copy of the cubin because it's owned by the linker
-            #cubin_ptr = ctypes.cast(cubin, ctypes.POINTER(ctypes.c_char))
-            #cubin_data = np.ctypeslib.as_array(cubin_ptr, shape=(size,)).copy()
             self.cubins[device.id] = cubin
         return cufunc
 
@@ -592,18 +549,11 @@ class _Kernel(serialize.ReduceMixin):
             'opt': 3 if opt else 0
         }
 
-        llvm_ir = [str(mod) for mod in lib.modules]
-        pretty_name = cres.fndesc.qualname
-        ptx = CachedPTX(pretty_name, llvm_ir, options=options)
-
         if not link:
             link = []
 
         # A kernel needs cooperative launch if grid_sync is being used.
-        self.cooperative = False
-        for ir in ptx.llvmir:
-            if 'cudaCGGetIntrinsicHandle' in ir:
-                self.cooperative = True
+        self.cooperative = 'cudaCGGetIntrinsicHandle' in lib.get_asm_str()
         # We need to link against cudadevrt if grid sync is being used.
         if self.cooperative:
             link.append(get_cudalib('cudadevrt', static=True))

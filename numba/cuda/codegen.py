@@ -24,15 +24,31 @@ class CUDACodeLibrary(CodeLibrary):
         # XXX: Won't be able to serialize if we have linking files
         self._linking_files = set()
 
+        # Caches
+        # PTX cache keyed by CC
+        self._ptx_cache = {}
+
     def get_llvm_str(self):
         return str(self._module)
 
+    # XXX: Need to make sure we can't fill the PTX cache here without getting a
+    # cubin first, because its the cubin that has the nvvm options.
+    # Alternatively, should configure a code library with nvvm options
+    # immediately.
     def get_asm_str(self, cc=None, opt=None, options=None):
         #from pudb import set_trace; set_trace()
         if not cc:
             ctx = devices.get_context()
             device = ctx.device
             cc = device.compute_capability
+
+        ptx = self._ptx_cache.get(cc, None)
+        if ptx:
+            print("PTX CACHE HIT", self.name)
+            return ptx
+        else:
+            print("PTX CACHE MISS", self.name)
+
         arch = nvvm.get_arch_option(*cc)
         if opt is None:
             opt = 3
@@ -52,6 +68,8 @@ class CUDACodeLibrary(CodeLibrary):
             print(ptx)
             print('=' * 80)
 
+        self._ptx_cache[cc] = ptx
+
         return ptx
 
     def get_cubin(self, max_registers=None, nvvm_options=None):
@@ -65,7 +83,6 @@ class CUDACodeLibrary(CodeLibrary):
         device = ctx.device
         cc = device.compute_capability
         ptx = self.get_asm_str(cc=cc, options=nvvm_options)
-        #print(ptx)
         linker.add_ptx(ptx.encode())
         #for lib in self._linking_libraries:
         #    linker.add_ptx(lib.get_asm_str().encode())
@@ -73,7 +90,6 @@ class CUDACodeLibrary(CodeLibrary):
             linker.add_file_guess_ext(path)
         cubin, size = linker.complete()
         compile_info = linker.info_log
-        #print(compile_info)
         # We take a copy of the cubin because it's owned by the linker
         cubin_ptr = ctypes.cast(cubin, ctypes.POINTER(ctypes.c_char))
         cubin_data = bytes(np.ctypeslib.as_array(cubin_ptr, shape=(size,)))
