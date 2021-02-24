@@ -31,7 +31,9 @@ class CUDACodeLibrary(CodeLibrary):
             opt = 3
         if options is None:
             options = {}
-        ptx = nvvm.llvm_to_ptx(str(self._module), arch=arch, opt=opt, **options)
+        # XXX: Non-debug path - debug path requires separate compilation, TBC
+        irs = [str(mod) for mod in self.modules]
+        ptx = nvvm.llvm_to_ptx(irs, arch=arch, opt=opt, **options)
         return ptx.decode().strip('\x00').strip()
 
     def get_cubin(self):
@@ -95,10 +97,10 @@ class CUDACodeLibrary(CodeLibrary):
         #
         # See also discussion on PR #890:
         # https://github.com/numba/numba/pull/890
-        #for library in self._linking_libraries:
-        #    for fn in library._module.functions:
-        #        if not fn.is_declaration and fn.linkage != 'external':
-        #            fn.linkage = 'linkonce_odr'
+        for library in self._linking_libraries:
+            for fn in library._module.functions:
+                if not fn.is_declaration and fn.linkage != 'external':
+                    fn.linkage = 'linkonce_odr'
 
         self._finalized = True
 
