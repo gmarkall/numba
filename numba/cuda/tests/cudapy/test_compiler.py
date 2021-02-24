@@ -15,7 +15,6 @@ class TestCompileToPTX(unittest.TestCase):
 
         args = (float32[:], float32[:], float32[:])
         ptx, resty = compile_ptx(f, args)
-        print(ptx)
 
         # Kernels should not have a func_retval parameter
         self.assertNotIn('func_retval', ptx)
