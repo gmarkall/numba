@@ -15,6 +15,17 @@ def simple_cuda(A, B):
 @skip_on_cudasim('Simulator does not produce debug dumps')
 class TestDebugOutput(CUDATestCase):
 
+    def compile_simple_cuda_safe(self):
+        cfunc = cuda.jit((float64[:], float64[:]))(simple_cuda)
+        # Call compiled function (to ensure PTX is generated)
+        # and sanity-check results.
+        A = np.linspace(0, 1, 10).astype(np.float64)
+        B = np.zeros_like(A)
+        cfunc[1, 10](A, B)
+        self.assertTrue(np.allclose(A + 1.5, B))
+
+
+
     def compile_simple_cuda(self):
         with captured_stderr() as err:
             with captured_stdout() as out:

@@ -127,7 +127,7 @@ class CUDATargetContext(BaseContext):
 
         Returns the new code library and the wrapper function.
         """
-        library = self.codegen().create_library('')
+        library = self.codegen().create_library(f'{codelib.name}_kernel_')
         library.add_linking_library(codelib)
         wrapper = self.generate_kernel_wrapper(library, fname, argtypes,
                                                debug=debug)

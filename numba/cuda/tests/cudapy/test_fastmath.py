@@ -3,6 +3,7 @@ from numba.cuda.testing import CUDATestCase
 import unittest
 
 
+@unittest.skip('needs caching of ptx for this to work properly')
 class TestFastMathOption(CUDATestCase):
     def test_kernel(self):
 

@@ -482,29 +482,37 @@ class CachedCUFunction(serialize.ReduceMixin):
     Uses device ID as key for cache.
     """
 
-    def __init__(self, entry_name, ptx, linking, max_registers):
+    def __init__(self, entry_name, codelib, linking, max_registers,
+                 nvvm_options):
         self.entry_name = entry_name
-        self.ptx = ptx
+        self.codelib = codelib
         self.linking = linking
         self.cache = {}
         self.ccinfos = {}
         self.cubins = {}
         self.max_registers = max_registers
+        self.nvvm_options = nvvm_options
+
+        for filepath in linking:
+            codelib.add_linking_file(filepath)
 
     def get(self):
         cuctx = get_context()
         device = cuctx.device
         cufunc = self.cache.get(device.id)
         if cufunc is None:
-            ptx = self.ptx.get()
+            # ptx = self.ptx.get()
 
             # Link
-            linker = driver.Linker(max_registers=self.max_registers)
-            linker.add_ptx(ptx)
-            for path in self.linking:
-                linker.add_file_guess_ext(path)
-            cubin, size = linker.complete()
-            compile_info = linker.info_log
+            #linker = driver.Linker(max_registers=self.max_registers)
+            #linker.add_ptx(ptx)
+            #for path in self.linking:
+            #    linker.add_file_guess_ext(path)
+            #cubin, size = linker.complete()
+            #compile_info = linker.info_log
+            cubin, compile_info = \
+                self.codelib.get_cubin(max_registers=self.max_registers,
+                                       nvvm_options=self.nvvm_options)
             module = cuctx.create_module_image(cubin)
 
             # Load
@@ -514,9 +522,9 @@ class CachedCUFunction(serialize.ReduceMixin):
             self.cache[device.id] = cufunc
             self.ccinfos[device.id] = compile_info
             # We take a copy of the cubin because it's owned by the linker
-            cubin_ptr = ctypes.cast(cubin, ctypes.POINTER(ctypes.c_char))
-            cubin_data = np.ctypeslib.as_array(cubin_ptr, shape=(size,)).copy()
-            self.cubins[device.id] = cubin_data
+            #cubin_ptr = ctypes.cast(cubin, ctypes.POINTER(ctypes.c_char))
+            #cubin_data = np.ctypeslib.as_array(cubin_ptr, shape=(size,)).copy()
+            self.cubins[device.id] = cubin
         return cufunc
 
     def get_sass(self):
@@ -600,7 +608,8 @@ class _Kernel(serialize.ReduceMixin):
         if self.cooperative:
             link.append(get_cudalib('cudadevrt', static=True))
 
-        cufunc = CachedCUFunction(kernel.name, ptx, link, max_registers)
+        cufunc = CachedCUFunction(kernel.name, lib, link, max_registers,
+                                  nvvm_options=options)
 
         # populate members
         self.entry_name = kernel.name
@@ -659,7 +668,7 @@ class _Kernel(serialize.ReduceMixin):
         '''
         PTX code for this kernel.
         '''
-        return self._func.ptx.get().decode('utf8')
+        return self._func.codelib.get_asm_str()
 
     @property
     def device(self):
@@ -679,13 +688,13 @@ class _Kernel(serialize.ReduceMixin):
         '''
         Returns the LLVM IR for this kernel.
         '''
-        return "\n\n".join([str(ir) for ir in self._func.ptx.llvmir])
+        return self._func.codelib.get_asm_str() #"\n\n".join([str(ir) for ir in self._func.ptx.llvmir])
 
     def inspect_asm(self, cc):
         '''
         Returns the PTX code for this kernel.
         '''
-        return self._func.ptx.get(cc).decode('ascii')
+        return self._func.codelib.get_asm_str(cc=cc)
 
     def inspect_sass(self):
         '''
