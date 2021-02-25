@@ -415,64 +415,6 @@ class ForAll(object):
             return tpb
 
 
-class CachedCUFunction(serialize.ReduceMixin):
-    """
-    Get or compile CUDA function for the current active context
-
-    Uses device ID as key for cache.
-    """
-
-    def __init__(self, entry_name, codelib, linking, max_registers,
-                 nvvm_options):
-        self.entry_name = entry_name
-        self.codelib = codelib
-        self.linking = linking
-        self.max_registers = max_registers
-        self.nvvm_options = nvvm_options
-
-        for filepath in linking:
-            codelib.add_linking_file(filepath)
-
-    def get(self):
-        return self.codelib.get_cufunc(self.entry_name,
-                                       max_registers=self.max_registers,
-                                       nvvm_options=self.nvvm_options)
-
-    def get_sass(self):
-        self.get()  # trigger compilation
-        device = get_context().device
-        cc = device.compute_capability
-        return disassemble_cubin(self.codelib.get_cubin(cc))
-
-    def get_info(self):
-        self.get()  # trigger compilation
-        cuctx = get_context()
-        device = cuctx.device
-        cc = device.compute_capability
-        return self.codelib.get_compileinfo(cc)
-
-    def _reduce_states(self):
-        """
-        Reduce the instance for serialization.
-        Pre-compiled PTX code string is serialized inside the `ptx` (CachedPTX).
-        Loaded CUfunctions are discarded. They are recreated when unserialized.
-        """
-        if self.linking:
-            msg = ('cannot pickle CUDA kernel function with additional '
-                   'libraries to link against')
-            raise RuntimeError(msg)
-        return dict(entry_name=self.entry_name, codelib=self.codelib,
-                    linking=self.linking, max_registers=self.max_registers,
-                    nvvm_options=self.nvvm_options)
-
-    @classmethod
-    def _rebuild(cls, entry_name, codelib, linking, max_registers, nvvm_options):
-        """
-        Rebuild an instance.
-        """
-        return cls(entry_name, codelib, linking, max_registers, nvvm_options)
-
-
 class _Kernel(serialize.ReduceMixin):
     '''
     CUDA Kernel specialized for a given set of argument types. When called, this
