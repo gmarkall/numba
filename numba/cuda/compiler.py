@@ -3,9 +3,7 @@ import ctypes
 import functools
 import inspect
 import os
-import subprocess
 import sys
-import tempfile
 
 import numpy as np
 

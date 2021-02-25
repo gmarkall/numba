@@ -24,8 +24,6 @@ class TestDebugOutput(CUDATestCase):
         cfunc[1, 10](A, B)
         self.assertTrue(np.allclose(A + 1.5, B))
 
-
-
     def compile_simple_cuda(self):
         with captured_stderr() as err:
             with captured_stdout() as out:
