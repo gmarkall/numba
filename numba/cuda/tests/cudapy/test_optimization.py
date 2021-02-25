@@ -18,7 +18,6 @@ def device_func(x, y, z):
 removed_by_opt = ( '__local_depot0', 'call.uni', 'st.param.b64')
 
 
-@unittest.skip('needs proper caching of ptx')
 @skip_on_cudasim('Simulator does not optimize code')
 class TestOptimization(CUDATestCase):
     def test_eager_opt(self):

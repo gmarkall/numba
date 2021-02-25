@@ -164,11 +164,12 @@ def compile_ptx(pyfunc, args, debug=False, device=False, fastmath=False,
     options = {
         'debug': debug,
         'fastmath': fastmath,
+        'opt': 3 if opt else 0
     }
 
     cc = cc or config.CUDA_DEFAULT_PTX_CC
-    opt = 3 if opt else 0
-    ptx = lib.get_asm_str(cc=cc, opt=opt, options=options)
+    lib.set_nvvm_options(options)
+    ptx = lib.get_asm_str(cc=cc)
     return ptx, resty
 
 
@@ -448,6 +449,11 @@ class _Kernel(serialize.ReduceMixin):
         if not link:
             link = []
 
+        # Ideally these would be added on initialization of the code library
+        lib.set_max_registers(max_registers)
+        lib.set_nvvm_options(options)
+        lib.set_entry_name(kernel.name)
+
         # A kernel needs cooperative launch if grid_sync is being used.
         self.cooperative = 'cudaCGGetIntrinsicHandle' in lib.get_asm_str()
         # We need to link against cudadevrt if grid sync is being used.
@@ -456,9 +462,6 @@ class _Kernel(serialize.ReduceMixin):
 
         for filepath in link:
             lib.add_linking_file(filepath)
-        lib.set_max_registers(max_registers)
-        lib.set_nvvm_options(options)
-        lib.set_entry_name(kernel.name)
 
         # populate members
         self.entry_name = kernel.name # XXX: needed?

@@ -92,7 +92,7 @@ class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
     # cubin first, because its the cubin that has the nvvm options.
     # Alternatively, should configure a code library with nvvm options
     # immediately.
-    def get_asm_str(self, cc=None, opt=None, options=None):
+    def get_asm_str(self, cc=None):
         # XXX: NVVM options should use those set by set_nvvm_options
         if not cc:
             ctx = devices.get_context()
@@ -104,11 +104,10 @@ class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
             return ptx
 
         arch = nvvm.get_arch_option(*cc)
-        if opt is None:
-            opt = 3
-        if options is None:
-            options = {}
-        options['opt'] = opt
+        # XXX: Not a great pattern, opt should be set for code library
+        options = self._nvvm_options.copy()
+        if options.get('opt', None):
+            options['opt'] = 3
         options['arch'] = arch
 
         # XXX: Non-debug path - debug path requires separate compilation, TBC
@@ -137,7 +136,7 @@ class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
         if cubin:
             return cubin
 
-        ptx = self.get_asm_str(cc=cc, options=nvvm_options)
+        ptx = self.get_asm_str(cc=cc)
         linker = driver.Linker(max_registers=self._max_registers)
         linker.add_ptx(ptx.encode())
         for path in self._linking_files:
