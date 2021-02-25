@@ -83,6 +83,8 @@ class TestCudaCooperativeGroups(CUDATestCase):
         # this_grid should have been determined to be cooperative
         for key, defn in this_grid.definitions.items():
             self.assertTrue(defn.cooperative)
+        # XXX: Why no definitions? Spotted during testing.
+        #      Should check for cudadevrt in link too?
 
     @skip_on_cudasim("Simulator does not implement linking")
     def test_false_cooperative_doesnt_link_cudadevrt(self):
@@ -96,7 +98,7 @@ class TestCudaCooperativeGroups(CUDATestCase):
 
         for key, defn in no_sync.definitions.items():
             self.assertFalse(defn.cooperative)
-            for link in defn._func.linking:
+            for link in defn._codelibrary._linking_files:
                 self.assertNotIn('cudadevrt', link)
 
     @skip_unless_cc_60

@@ -184,35 +184,6 @@ def compile_ptx_for_current_device(pyfunc, args, debug=False, device=False,
                        fastmath=fastmath, cc=cc, opt=True)
 
 
-def disassemble_cubin(cubin):
-    # nvdisasm only accepts input from a file, so we need to write out to a
-    # temp file and clean up afterwards.
-    fd = None
-    fname = None
-    try:
-        fd, fname = tempfile.mkstemp()
-        with open(fname, 'wb') as f:
-            f.write(cubin)
-
-        try:
-            cp = subprocess.run(['nvdisasm', fname], check=True,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE)
-        except FileNotFoundError as e:
-            if e.filename == 'nvdisasm':
-                msg = ("nvdisasm is required for SASS inspection, and has not "
-                       "been found.\n\nYou may need to install the CUDA "
-                       "toolkit and ensure that it is available on your "
-                       "PATH.\n")
-                raise RuntimeError(msg)
-        return cp.stdout.decode('utf-8')
-    finally:
-        if fd is not None:
-            os.close(fd)
-        if fname is not None:
-            os.unlink(fname)
-
-
 class DeviceFunctionTemplate(serialize.ReduceMixin):
     """Unmaterialized device function
     """
@@ -435,7 +406,7 @@ class ForAll(object):
         else:
             ctx = get_context()
             kwargs = dict(
-                func=kernel._func.get(),
+                func=kernel._codelibrary.get_cufunc(),
                 b2d_func=0,     # dynamic-shared memory is constant to blksz
                 memsize=self.sharedmem,
                 blocksizelimit=1024,
@@ -543,23 +514,26 @@ class _Kernel(serialize.ReduceMixin):
         if self.cooperative:
             link.append(get_cudalib('cudadevrt', static=True))
 
-        cufunc = CachedCUFunction(kernel.name, lib, link, max_registers,
-                                  nvvm_options=options)
+        for filepath in link:
+            lib.add_linking_file(filepath)
+        lib.set_max_registers(max_registers)
+        lib.set_nvvm_options(options)
+        lib.set_entry_name(kernel.name)
 
         # populate members
-        self.entry_name = kernel.name
+        self.entry_name = kernel.name # XXX: needed?
         self.signature = cres.signature
         self._type_annotation = cres.type_annotation
-        self._func = cufunc
+        self._codelibrary = lib
         self.call_helper = cres.call_helper
-        self.link = link
+        self.link = link # XXX needed?
 
     @property
     def argument_types(self):
         return tuple(self.signature.args)
 
     @classmethod
-    def _rebuild(cls, cooperative, name, argtypes, cufunc, link, debug,
+    def _rebuild(cls, cooperative, name, argtypes, codelibrary, link, debug,
                  call_helper, extensions):
         """
         Rebuild an instance.
@@ -573,7 +547,7 @@ class _Kernel(serialize.ReduceMixin):
         instance.argument_types = tuple(argtypes)
         instance.link = tuple(link)
         instance._type_annotation = None
-        instance._func = cufunc
+        instance._codelibrary = codelibrary
         instance.debug = debug
         instance.call_helper = call_helper
         instance.extensions = extensions
@@ -588,22 +562,22 @@ class _Kernel(serialize.ReduceMixin):
         Stream information is discarded.
         """
         return dict(cooperative=self.cooperative, name=self.entry_name,
-                    argtypes=self.argtypes, cufunc=self._func, link=self.link,
-                    debug=self.debug, call_helper=self.call_helper,
-                    extensions=self.extensions)
+                    argtypes=self.argtypes, codelibrary=self.codelibrary,
+                    link=self.link, debug=self.debug,
+                    call_helper=self.call_helper, extensions=self.extensions)
 
     def bind(self):
         """
         Force binding to current CUDA context
         """
-        self._func.get()
+        self._codelibrary.get_cufunc()
 
     @property
     def ptx(self):
         '''
         PTX code for this kernel.
         '''
-        return self._func.codelib.get_asm_str()
+        return self._codelibrary.get_asm_str()
 
     @property
     def device(self):
@@ -617,19 +591,19 @@ class _Kernel(serialize.ReduceMixin):
         '''
         The number of registers used by each thread for this kernel.
         '''
-        return self._func.get().attrs.regs
+        return self._codelibrary.get_cufunc().attrs.regs
 
     def inspect_llvm(self):
         '''
         Returns the LLVM IR for this kernel.
         '''
-        return self._func.codelib.get_asm_str() #"\n\n".join([str(ir) for ir in self._func.ptx.llvmir])
+        return self._codelibrary.get_asm_str()
 
     def inspect_asm(self, cc):
         '''
         Returns the PTX code for this kernel.
         '''
-        return self._func.codelib.get_asm_str(cc=cc)
+        return self._codelibrary.get_asm_str(cc=cc)
 
     def inspect_sass(self):
         '''
@@ -637,7 +611,7 @@ class _Kernel(serialize.ReduceMixin):
 
         Requires nvdisasm to be available on the PATH.
         '''
-        return self._func.get_sass()
+        return self._codelibrary.get_sass()
 
     def inspect_types(self, file=None):
         '''
@@ -668,7 +642,7 @@ class _Kernel(serialize.ReduceMixin):
         :return: The maximum number of blocks in the grid.
         '''
         ctx = get_context()
-        cufunc = self._func.get()
+        cufunc = self._codelibrary.get_cufunc()
 
         if isinstance(blockdim, tuple):
             blockdim = functools.reduce(lambda x, y: x * y, blockdim)
@@ -680,7 +654,7 @@ class _Kernel(serialize.ReduceMixin):
 
     def launch(self, args, griddim, blockdim, stream=0, sharedmem=0):
         # Prepare kernel
-        cufunc = self._func.get()
+        cufunc = self._codelibrary.get_cufunc()
 
         if self.debug:
             excname = cufunc.name + "__errcode__"
@@ -1058,6 +1032,12 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         warn('Use overloads instead of definitions',
              category=NumbaDeprecationWarning)
         return self.overloads
+
+    @property
+    def _codelibrary(self):
+        if not self.specialized:
+            raise RuntimeError('CodeLibrary only available when specialized')
+        return next(iter(self.overloads.values()))._codelibrary
 
     @property
     def _func(self):

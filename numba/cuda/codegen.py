@@ -1,20 +1,52 @@
 from llvmlite import binding as ll
 from llvmlite.llvmpy import core as lc
 
-from numba.core import config
+from numba.core import config, serialize
 from numba.core.codegen import Codegen, CodeLibrary
 from .cudadrv import devices, driver, nvvm
 
 import ctypes
 import numpy as np
+import os
+import subprocess
+import tempfile
 
 
 CUDA_TRIPLE = 'nvptx64-nvidia-cuda'
 
 
+def disassemble_cubin(cubin):
+    # nvdisasm only accepts input from a file, so we need to write out to a
+    # temp file and clean up afterwards.
+    fd = None
+    fname = None
+    try:
+        fd, fname = tempfile.mkstemp()
+        with open(fname, 'wb') as f:
+            f.write(cubin)
+
+        try:
+            cp = subprocess.run(['nvdisasm', fname], check=True,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE)
+        except FileNotFoundError as e:
+            if e.filename == 'nvdisasm':
+                msg = ("nvdisasm is required for SASS inspection, and has not "
+                       "been found.\n\nYou may need to install the CUDA "
+                       "toolkit and ensure that it is available on your "
+                       "PATH.\n")
+                raise RuntimeError(msg)
+        return cp.stdout.decode('utf-8')
+    finally:
+        if fd is not None:
+            os.close(fd)
+        if fname is not None:
+            os.unlink(fname)
+
+
 # Should the code library provide for multiple CCs? Or create one code library
 # per CC?
-class CUDACodeLibrary(CodeLibrary):
+class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
 
     def __init__(self, codegen, name):
         #from pudb import set_trace; set_trace()
@@ -34,6 +66,26 @@ class CUDACodeLibrary(CodeLibrary):
         # cufunc cache: device id -> cufunc
         self._cufunc_cache = {}
 
+        # Options set later
+        self._max_registers = None
+        self._nvvm_options = None
+        self._entry_name = None
+
+    def set_nvvm_options(self, options):
+        if self._nvvm_options is not None:
+            raise RuntimeError("Cannot set NVVM options more than once")
+        self._nvvm_options = options.copy()
+
+    def set_max_registers(self, max_registers):
+        if self._max_registers is not None:
+            raise RuntimeError("Cannot set max registers more than once")
+        self._max_registers = max_registers
+
+    def set_entry_name(self, entry_name):
+        if self._entry_name is not None:
+            raise RuntimeError("Cannot set entry name more than once")
+        self._entry_name = entry_name
+
     def get_llvm_str(self):
         return str(self._module)
 
@@ -42,6 +94,7 @@ class CUDACodeLibrary(CodeLibrary):
     # Alternatively, should configure a code library with nvvm options
     # immediately.
     def get_asm_str(self, cc=None, opt=None, options=None):
+        # XXX: NVVM options should use those set by set_nvvm_options
         #from pudb import set_trace; set_trace()
         if not cc:
             ctx = devices.get_context()
@@ -78,7 +131,8 @@ class CUDACodeLibrary(CodeLibrary):
 
         return ptx
 
-    def get_cubin(self, max_registers=None, nvvm_options=None):
+    def get_cubin(self):
+        nvvm_options = self._nvvm_options
         if nvvm_options is None:
             nvvm_options = {}
         # XXX: Need caching for compute target
@@ -96,7 +150,7 @@ class CUDACodeLibrary(CodeLibrary):
             print("CUBIN CACHE MISS")
 
         ptx = self.get_asm_str(cc=cc, options=nvvm_options)
-        linker = driver.Linker(max_registers=max_registers)
+        linker = driver.Linker(max_registers=self._max_registers)
         linker.add_ptx(ptx.encode())
         #for lib in self._linking_libraries:
         #    linker.add_ptx(lib.get_asm_str().encode())
@@ -111,7 +165,10 @@ class CUDACodeLibrary(CodeLibrary):
         self._compileinfo_cache[cc] = compileinfo
         return cubin
 
-    def get_cufunc(self, entry_name, max_registers=None, nvvm_options=None):
+    def get_cufunc(self):
+        if self._entry_name is None:
+            raise RuntimeError('Entry name needs setting first')
+
         ctx = devices.get_context()
         device = ctx.device
 
@@ -119,12 +176,11 @@ class CUDACodeLibrary(CodeLibrary):
         if cufunc:
             return cufunc
 
-        cubin = self.get_cubin(max_registers=max_registers,
-                               nvvm_options=nvvm_options)
+        cubin = self.get_cubin()
         module = ctx.create_module_image(cubin)
 
         # Load
-        cufunc = module.get_function(entry_name)
+        cufunc = module.get_function(self._entry_name)
 
         # Populate caches
         self._cufunc_cache[device.id] = cufunc
@@ -136,6 +192,9 @@ class CUDACodeLibrary(CodeLibrary):
             return self._compileinfo_cache[cc]
         except KeyError:
             raise KeyError(f'No compileinfo for CC {cc}')
+
+    def get_sass(self):
+        return disassemble_cubin(self.get_cubin())
 
     def add_ir_module(self, mod):
         self._raise_if_finalized()
@@ -191,6 +250,29 @@ class CUDACodeLibrary(CodeLibrary):
                     fn.linkage = 'linkonce_odr'
 
         self._finalized = True
+
+    def _reduce_states(self):
+        """
+        Reduce the instance for serialization.
+        Loaded CUfunctions are discarded. They are recreated when unserialized.
+        """
+        if self._linking_files:
+            msg = ('cannot pickle CUDACodeLibrary function with additional '
+                   'libraries to link against')
+            raise RuntimeError(msg)
+        # XXX: TBC
+        #return dict(entry_name=self.entry_name, codelib=self.codelib,
+        #            linking=self.linking, max_registers=self.max_registers,
+        #            nvvm_options=self.nvvm_options)
+
+    @classmethod
+    def _rebuild(cls, entry_name, codelib, linking, max_registers,
+                 nvvm_options):
+        """
+        Rebuild an instance.
+        """
+        # XXX: TBC
+        #return cls(entry_name, codelib, linking, max_registers, nvvm_options)
 
 
 class JITCUDACodegen(Codegen):
