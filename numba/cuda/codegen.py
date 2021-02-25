@@ -27,8 +27,10 @@ class CUDACodeLibrary(CodeLibrary):
         # Caches
         # PTX cache keyed by CC: cc -> ptx string
         self._ptx_cache = {}
-        # cubin cache: cc -> (cubin, compile_info)
+        # cubin cache: cc -> cubin
         self._cubin_cache = {}
+        # compileinfo cache: cc -> compileinfo
+        self._compileinfo_cache = {}
 
     def get_llvm_str(self):
         return str(self._module)
@@ -84,10 +86,10 @@ class CUDACodeLibrary(CodeLibrary):
         device = ctx.device
         cc = device.compute_capability
 
-        cubin, compile_info = self._cubin_cache.get(cc, (None, None))
+        cubin = self._cubin_cache.get(cc, None)
         if cubin:
             print("CUBIN CACHE HIT")
-            return cubin, compile_info
+            return cubin
         else:
             print("CUBIN CACHE MISS")
 
@@ -98,13 +100,20 @@ class CUDACodeLibrary(CodeLibrary):
         #    linker.add_ptx(lib.get_asm_str().encode())
         for path in self._linking_files:
             linker.add_file_guess_ext(path)
-        cubin, size = linker.complete()
-        compile_info = linker.info_log
+        cubin_buf, size = linker.complete()
+        compileinfo = linker.info_log
         # We take a copy of the cubin because it's owned by the linker
-        cubin_ptr = ctypes.cast(cubin, ctypes.POINTER(ctypes.c_char))
-        cubin_data = bytes(np.ctypeslib.as_array(cubin_ptr, shape=(size,)))
-        self._cubin_cache[cc] = (cubin_data, compile_info)
-        return cubin_data, compile_info
+        cubin_ptr = ctypes.cast(cubin_buf, ctypes.POINTER(ctypes.c_char))
+        cubin = bytes(np.ctypeslib.as_array(cubin_ptr, shape=(size,)))
+        self._cubin_cache[cc] = cubin
+        self._compileinfo_cache[cc] = compileinfo
+        return cubin
+
+    def get_compileinfo(self, cc):
+        try:
+            return self._compileinfo_cache[cc]
+        except KeyError:
+            raise KeyError(f'No compileinfo for CC {cc}')
 
     def add_ir_module(self, mod):
         self._raise_if_finalized()

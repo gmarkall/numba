@@ -457,8 +457,6 @@ class CachedCUFunction(serialize.ReduceMixin):
         self.codelib = codelib
         self.linking = linking
         self.cache = {}
-        self.ccinfos = {}
-        self.cubins = {}
         self.max_registers = max_registers
         self.nvvm_options = nvvm_options
 
@@ -470,9 +468,8 @@ class CachedCUFunction(serialize.ReduceMixin):
         device = cuctx.device
         cufunc = self.cache.get(device.id)
         if cufunc is None:
-            cubin, compile_info = \
-                self.codelib.get_cubin(max_registers=self.max_registers,
-                                       nvvm_options=self.nvvm_options)
+            cubin = self.codelib.get_cubin(max_registers=self.max_registers,
+                                           nvvm_options=self.nvvm_options)
             module = cuctx.create_module_image(cubin)
 
             # Load
@@ -480,21 +477,19 @@ class CachedCUFunction(serialize.ReduceMixin):
 
             # Populate caches
             self.cache[device.id] = cufunc
-            self.ccinfos[device.id] = compile_info
-            self.cubins[device.id] = cubin
         return cufunc
 
     def get_sass(self):
         self.get()  # trigger compilation
         device = get_context().device
-        return disassemble_cubin(self.cubins[device.id])
+        cc = device.compute_capability
+        return disassemble_cubin(self.codelib.get_cubin(cc))
 
     def get_info(self):
-        self.get()   # trigger compilation
         cuctx = get_context()
         device = cuctx.device
-        ci = self.ccinfos[device.id]
-        return ci
+        cc = device.compute_capability
+        return self.codelib.get_compileinfo(cc)
 
     def _reduce_states(self):
         """
