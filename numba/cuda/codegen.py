@@ -31,6 +31,8 @@ class CUDACodeLibrary(CodeLibrary):
         self._cubin_cache = {}
         # compileinfo cache: cc -> compileinfo
         self._compileinfo_cache = {}
+        # cufunc cache: device id -> cufunc
+        self._cufunc_cache = {}
 
     def get_llvm_str(self):
         return str(self._module)
@@ -108,6 +110,26 @@ class CUDACodeLibrary(CodeLibrary):
         self._cubin_cache[cc] = cubin
         self._compileinfo_cache[cc] = compileinfo
         return cubin
+
+    def get_cufunc(self, entry_name, max_registers=None, nvvm_options=None):
+        ctx = devices.get_context()
+        device = ctx.device
+
+        cufunc = self._cufunc_cache.get(device.id, None)
+        if cufunc:
+            return cufunc
+
+        cubin = self.get_cubin(max_registers=max_registers,
+                               nvvm_options=nvvm_options)
+        module = ctx.create_module_image(cubin)
+
+        # Load
+        cufunc = module.get_function(entry_name)
+
+        # Populate caches
+        self._cufunc_cache[device.id] = cufunc
+
+        return cufunc
 
     def get_compileinfo(self, cc):
         try:

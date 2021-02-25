@@ -456,7 +456,6 @@ class CachedCUFunction(serialize.ReduceMixin):
         self.entry_name = entry_name
         self.codelib = codelib
         self.linking = linking
-        self.cache = {}
         self.max_registers = max_registers
         self.nvvm_options = nvvm_options
 
@@ -464,20 +463,9 @@ class CachedCUFunction(serialize.ReduceMixin):
             codelib.add_linking_file(filepath)
 
     def get(self):
-        cuctx = get_context()
-        device = cuctx.device
-        cufunc = self.cache.get(device.id)
-        if cufunc is None:
-            cubin = self.codelib.get_cubin(max_registers=self.max_registers,
-                                           nvvm_options=self.nvvm_options)
-            module = cuctx.create_module_image(cubin)
-
-            # Load
-            cufunc = module.get_function(self.entry_name)
-
-            # Populate caches
-            self.cache[device.id] = cufunc
-        return cufunc
+        return self.codelib.get_cufunc(self.entry_name,
+                                       max_registers=self.max_registers,
+                                       nvvm_options=self.nvvm_options)
 
     def get_sass(self):
         self.get()  # trigger compilation
@@ -486,6 +474,7 @@ class CachedCUFunction(serialize.ReduceMixin):
         return disassemble_cubin(self.codelib.get_cubin(cc))
 
     def get_info(self):
+        self.get()  # trigger compilation
         cuctx = get_context()
         device = cuctx.device
         cc = device.compute_capability
@@ -501,15 +490,16 @@ class CachedCUFunction(serialize.ReduceMixin):
             msg = ('cannot pickle CUDA kernel function with additional '
                    'libraries to link against')
             raise RuntimeError(msg)
-        return dict(entry_name=self.entry_name, ptx=self.ptx,
-                    linking=self.linking, max_registers=self.max_registers)
+        return dict(entry_name=self.entry_name, codelib=self.codelib,
+                    linking=self.linking, max_registers=self.max_registers,
+                    nvvm_options=self.nvvm_options)
 
     @classmethod
-    def _rebuild(cls, entry_name, ptx, linking, max_registers):
+    def _rebuild(cls, entry_name, codelib, linking, max_registers, nvvm_options):
         """
         Rebuild an instance.
         """
-        return cls(entry_name, ptx, linking, max_registers)
+        return cls(entry_name, codelib, linking, max_registers, nvvm_options)
 
 
 class _Kernel(serialize.ReduceMixin):
