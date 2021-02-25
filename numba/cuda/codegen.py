@@ -49,7 +49,6 @@ def disassemble_cubin(cubin):
 class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
 
     def __init__(self, codegen, name):
-        #from pudb import set_trace; set_trace()
         super().__init__(codegen, name)
         self._module = None
         self._linking_libraries = set()
@@ -95,7 +94,6 @@ class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
     # immediately.
     def get_asm_str(self, cc=None, opt=None, options=None):
         # XXX: NVVM options should use those set by set_nvvm_options
-        #from pudb import set_trace; set_trace()
         if not cc:
             ctx = devices.get_context()
             device = ctx.device
@@ -103,10 +101,7 @@ class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
 
         ptx = self._ptx_cache.get(cc, None)
         if ptx:
-            print("PTX CACHE HIT", self.name)
             return ptx
-        else:
-            print("PTX CACHE MISS", self.name)
 
         arch = nvvm.get_arch_option(*cc)
         if opt is None:
@@ -121,7 +116,6 @@ class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
         ptx = nvvm.llvm_to_ptx(irs, **options)
         ptx = ptx.decode().strip('\x00').strip()
 
-        #from pudb import set_trace; set_trace()
         if config.DUMP_ASSEMBLY:
             print(("ASSEMBLY %s" % self._name).center(80, '-'))
             print(ptx)
@@ -135,29 +129,22 @@ class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
         nvvm_options = self._nvvm_options
         if nvvm_options is None:
             nvvm_options = {}
-        # XXX: Need caching for compute target
-        #from pudb import set_trace; set_trace()
         ctx = devices.get_context()
-        # XXX: Need caching of PTX
         device = ctx.device
         cc = device.compute_capability
 
         cubin = self._cubin_cache.get(cc, None)
         if cubin:
-            print("CUBIN CACHE HIT")
             return cubin
-        else:
-            print("CUBIN CACHE MISS")
 
         ptx = self.get_asm_str(cc=cc, options=nvvm_options)
         linker = driver.Linker(max_registers=self._max_registers)
         linker.add_ptx(ptx.encode())
-        #for lib in self._linking_libraries:
-        #    linker.add_ptx(lib.get_asm_str().encode())
         for path in self._linking_files:
             linker.add_file_guess_ext(path)
         cubin_buf, size = linker.complete()
         compileinfo = linker.info_log
+
         # We take a copy of the cubin because it's owned by the linker
         cubin_ptr = ctypes.cast(cubin_buf, ctypes.POINTER(ctypes.c_char))
         cubin = bytes(np.ctypeslib.as_array(cubin_ptr, shape=(size,)))
