@@ -68,7 +68,6 @@ class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
         super().__init__(codegen, name)
         self._module = None
         self._linking_libraries = set()
-        # XXX: Won't be able to serialize if we have linking files
         self._linking_files = set()
 
         # Caches
@@ -91,7 +90,6 @@ class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
         return str(self._module)
 
     def get_asm_str(self, cc=None):
-        # XXX: NVVM options should use those set by set_nvvm_options
         if not cc:
             ctx = devices.get_context()
             device = ctx.device
@@ -102,13 +100,9 @@ class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
             return ptx
 
         arch = nvvm.get_arch_option(*cc)
-        # XXX: Not a great pattern, opt should be set for code library
         options = self._nvvm_options.copy()
-        if options.get('opt', None):
-            options['opt'] = 3
         options['arch'] = arch
 
-        # XXX: Non-debug path - debug path requires separate compilation, TBC
         irs = [str(mod) for mod in self.modules]
         ptx = nvvm.llvm_to_ptx(irs, **options)
         ptx = ptx.decode().strip('\x00').strip()
