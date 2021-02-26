@@ -130,12 +130,12 @@ class CUDATargetContext(BaseContext):
 
         Parameters:
 
-        codelib: The CodeLibrary containing the device function to wrap in a
-        kernel call.
-        func_name: The mangled name of the device function.
-        argtypes: An iterable of the types of arguments to the kernel.
-        debug: Whether to compile with debug.
-        nvvm_options: Dict of NVVM options used when compiling the new library.
+        codelib:       The CodeLibrary containing the device function to wrap
+                       in a kernel call.
+        func_name:     The mangled name of the device function.
+        argtypes:      An iterable of the types of arguments to the kernel.
+        debug:         Whether to compile with debug.
+        nvvm_options:  Dict of NVVM options used when compiling the new library.
         max_registers: The max_registers argument for the code library.
         """
         kernel_name = itanium_mangler.prepend_namespace(func_name, ns='cudapy')
