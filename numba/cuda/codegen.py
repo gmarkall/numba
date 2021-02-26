@@ -46,38 +46,46 @@ def disassemble_cubin(cubin):
 
 class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
     """
-    The CUDACodeLibrary generates PTX and cubins for multiple different compute
-    capabilities. It loads cubins to multiple devices, which may be of
-    different compute capabilities.
+    The CUDACodeLibrary generates PTX, SASS, cubins for multiple different
+    compute capabilities. It also loads cubins to multiple devices (via
+    get_cufunc), which may be of different compute capabilities.
     """
 
     def __init__(self, codegen, name, entry_name=None, max_registers=None,
                  nvvm_options=None):
         """
         codegen:
-            the codegen
+            Codegen object.
         name:
-            the name of the function in the source
+            Name of the function in the source.
         entry_name:
-            the name of the kernel function in the binary
+            Name of the kernel function in the binary, if this is a global
+            kernel and not a device function.
         max_registers:
-            max_registers option for linking
+            The maximum register usage to aim for when linking.
         nvvm_options:
-            options for nvvm
+                Dict of options to pass to NVVM.
         """
         super().__init__(codegen, name)
+
+        # The llvmlite module for this library.
         self._module = None
+        # CodeLibrary objects that will be "linked" into this library. The
+        # modules within them are compiled from NVVM IR to PTX along with the
+        # IR from this module - in that sense they are "linked" by NVVM at PTX
+        # generation time, rather than at link time.
         self._linking_libraries = set()
+        # Files to link with the generated PTX. These are linked using the
+        # Driver API at link time.
         self._linking_files = set()
 
-        # Caches
-        # PTX cache keyed by CC: cc -> ptx string
+        # Maps CC -> PTX string
         self._ptx_cache = {}
-        # cubin cache: cc -> cubin
+        # Maps CC -> cubin
         self._cubin_cache = {}
-        # compileinfo cache: cc -> compileinfo
-        self._compileinfo_cache = {}
-        # cufunc cache: device id -> cufunc
+        # Maps CC -> linker info output for cubin
+        self._linkerinfo_cache = {}
+        # Maps Device numeric ID -> cufunc
         self._cufunc_cache = {}
 
         self._max_registers = max_registers
@@ -116,13 +124,11 @@ class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
 
         return ptx
 
-    def get_cubin(self):
-        nvvm_options = self._nvvm_options
-        if nvvm_options is None:
-            nvvm_options = {}
-        ctx = devices.get_context()
-        device = ctx.device
-        cc = device.compute_capability
+    def get_cubin(self, cc=None):
+        if cc is None:
+            ctx = devices.get_context()
+            device = ctx.device
+            cc = device.compute_capability
 
         cubin = self._cubin_cache.get(cc, None)
         if cubin:
@@ -134,13 +140,13 @@ class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
         for path in self._linking_files:
             linker.add_file_guess_ext(path)
         cubin_buf, size = linker.complete()
-        compileinfo = linker.info_log
 
         # We take a copy of the cubin because it's owned by the linker
         cubin_ptr = ctypes.cast(cubin_buf, ctypes.POINTER(ctypes.c_char))
         cubin = bytes(np.ctypeslib.as_array(cubin_ptr, shape=(size,)))
         self._cubin_cache[cc] = cubin
-        self._compileinfo_cache[cc] = compileinfo
+        self._linkerinfo_cache[cc] = linker.info_log
+
         return cubin
 
     def get_cufunc(self):
@@ -156,7 +162,7 @@ class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
         if cufunc:
             return cufunc
 
-        cubin = self.get_cubin()
+        cubin = self.get_cubin(cc=device.compute_capability)
         module = ctx.create_module_image(cubin)
 
         # Load
@@ -167,14 +173,14 @@ class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
 
         return cufunc
 
-    def get_compileinfo(self, cc):
+    def get_linkerinfo(self, cc):
         try:
-            return self._compileinfo_cache[cc]
+            return self._linkerinfo_cache[cc]
         except KeyError:
-            raise KeyError(f'No compileinfo for CC {cc}')
+            raise KeyError(f'No linkerinfo for CC {cc}')
 
-    def get_sass(self):
-        return disassemble_cubin(self.get_cubin())
+    def get_sass(self, cc=None):
+        return disassemble_cubin(self.get_cubin(cc=cc))
 
     def add_ir_module(self, mod):
         self._raise_if_finalized()
@@ -233,26 +239,49 @@ class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
 
     def _reduce_states(self):
         """
-        Reduce the instance for serialization.
-        Loaded CUfunctions are discarded. They are recreated when unserialized.
+        Reduce the instance for serialization. We retain the PTX and cubins,
+        but loaded functions are discarded. They are recreated when needed
+        after unserialization.
         """
         if self._linking_files:
             msg = ('cannot pickle CUDACodeLibrary function with additional '
                    'libraries to link against')
             raise RuntimeError(msg)
-        # XXX: TBC
-        #return dict(entry_name=self.entry_name, codelib=self.codelib,
-        #            linking=self.linking, max_registers=self.max_registers,
-        #            nvvm_options=self.nvvm_options)
+        return dict(
+            codegen=self._codegen,
+            name=self.name,
+            entry_name=self._entry_name,
+            module=self._module,
+            linking_libraries=self._linking_libraries,
+            ptx_cache=self._ptx_cache,
+            cubin_cache=self._cubin_cache,
+            linkerinfo_cache=self._linkerinfo_cache,
+            max_registers=self._max_registers,
+            nvvm_options=self._nvvm_options
+        )
 
     @classmethod
-    def _rebuild(cls, entry_name, codelib, linking, max_registers,
+    def _rebuild(cls, codegen, name, entry_name, module, linking_libraries,
+                 ptx_cache, cubin_cache, linkerinfo_cache, max_registers,
                  nvvm_options):
         """
         Rebuild an instance.
         """
-        # XXX: TBC
-        #return cls(entry_name, codelib, linking, max_registers, nvvm_options)
+        instance = cls.__new__(cls)
+        CodeLibrary.__init__(instance, codegen, name)
+        instance._entry_name = entry_name
+
+        instance._module = module
+        instance._linking_libraries = linking_libraries
+        instance._linking_files = set()
+
+        instance._ptx_cache = ptx_cache
+        instance._cubin_cache = cubin_cache
+        instance._linkerinfo_cache = linkerinfo_cache
+        instance._cufunc_cache = {}
+
+        instance._max_registers = max_registers
+        instance._nvvm_options = nvvm_options
 
 
 class JITCUDACodegen(Codegen):
