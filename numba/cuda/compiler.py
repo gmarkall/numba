@@ -438,8 +438,11 @@ class ForAll(object):
         # Else, ask the driver to give a good config
         else:
             ctx = get_context()
+            # Kernel is specialized, so there's only one definition - get it so
+            # we can get the cufunc from the code library
+            defn = next(iter(kernel.overloads.values()))
             kwargs = dict(
-                func=kernel._codelibrary.get_cufunc(),
+                func=defn._codelibrary.get_cufunc(),
                 b2d_func=0,     # dynamic-shared memory is constant to blksz
                 memsize=self.sharedmem,
                 blocksizelimit=1024,
@@ -1003,12 +1006,6 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         warn('Use overloads instead of definitions',
              category=NumbaDeprecationWarning)
         return self.overloads
-
-    @property
-    def _codelibrary(self):
-        if not self.specialized:
-            raise RuntimeError('CodeLibrary only available when specialized')
-        return next(iter(self.overloads.values()))._codelibrary
 
     def get_regs_per_thread(self, signature=None):
         '''
