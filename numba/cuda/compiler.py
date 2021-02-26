@@ -65,6 +65,11 @@ class CUDABackend(LoweringPass):
 
 @register_pass(mutates_CFG=False, analysis_only=False)
 class CreateLibrary(LoweringPass):
+    """
+    Create a CUDACodeLibrary for the NativeLowering pass to populate. The
+    NativeLowering pass will create a code library if none exists, but we need
+    to set it up with nvvm_options from the flags if they are present.
+    """
 
     _name = "create_library"
 
@@ -189,7 +194,6 @@ def compile_ptx(pyfunc, args, debug=False, device=False, fastmath=False,
                         nvvm_options=nvvm_options)
     resty = cres.signature.return_type
     if device:
-        # XXX: Didn't get nvvm_options into compilation early enough
         lib = cres.library
     else:
         fname = cres.fndesc.llvm_func_name
@@ -490,12 +494,11 @@ class _Kernel(serialize.ReduceMixin):
             lib.add_linking_file(filepath)
 
         # populate members
-        self.entry_name = kernel.name # XXX: needed?
+        self.entry_name = kernel.name
         self.signature = cres.signature
         self._type_annotation = cres.type_annotation
         self._codelibrary = lib
         self.call_helper = cres.call_helper
-        self.link = link # XXX needed?
 
     @property
     def argument_types(self):
@@ -514,7 +517,6 @@ class _Kernel(serialize.ReduceMixin):
         instance.cooperative = cooperative
         instance.entry_name = name
         instance.argument_types = tuple(argtypes)
-        instance.link = tuple(link)
         instance._type_annotation = None
         instance._codelibrary = codelibrary
         instance.debug = debug
@@ -532,8 +534,8 @@ class _Kernel(serialize.ReduceMixin):
         """
         return dict(cooperative=self.cooperative, name=self.entry_name,
                     argtypes=self.argtypes, codelibrary=self.codelibrary,
-                    link=self.link, debug=self.debug,
-                    call_helper=self.call_helper, extensions=self.extensions)
+                    debug=self.debug, call_helper=self.call_helper,
+                    extensions=self.extensions)
 
     def bind(self):
         """
