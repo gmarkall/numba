@@ -80,11 +80,9 @@ class TestCudaCooperativeGroups(CUDATestCase):
     def test_sync_group_is_cooperative(self):
         A = np.full(1, fill_value=np.nan)
         sync_group[1, 1](A)
-        # this_grid should have been determined to be cooperative
-        for key, defn in this_grid.definitions.items():
+        # sync_group should have been determined to be cooperative
+        for key, defn in sync_group.definitions.items():
             self.assertTrue(defn.cooperative)
-        # XXX: Why no definitions? Spotted during testing.
-        #      Should check for cudadevrt in link too?
 
     @skip_on_cudasim("Simulator does not implement linking")
     def test_false_cooperative_doesnt_link_cudadevrt(self):
