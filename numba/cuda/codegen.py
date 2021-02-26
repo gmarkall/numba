@@ -129,7 +129,7 @@ class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
             return cubin
 
         ptx = self.get_asm_str(cc=cc)
-        linker = driver.Linker(max_registers=self._max_registers)
+        linker = driver.Linker(max_registers=self._max_registers, cc=cc)
         linker.add_ptx(ptx.encode())
         for path in self._linking_files:
             linker.add_file_guess_ext(path)
