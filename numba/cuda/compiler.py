@@ -1010,13 +1010,6 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
             raise RuntimeError('CodeLibrary only available when specialized')
         return next(iter(self.overloads.values()))._codelibrary
 
-    @property
-    def _func(self):
-        if self.specialized:
-            return next(iter(self.overloads.values()))._func
-        else:
-            return {sig: defn._func for sig, defn in self.overloads.items()}
-
     def get_regs_per_thread(self, signature=None):
         '''
         Returns the number of registers used by each thread in this kernel for

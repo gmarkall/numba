@@ -268,7 +268,7 @@ class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
         Rebuild an instance.
         """
         instance = cls.__new__(cls)
-        CodeLibrary.__init__(instance, codegen, name)
+        super(cls, instance).__init__(codegen, name)
         instance._entry_name = entry_name
 
         instance._module = module
