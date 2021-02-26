@@ -44,11 +44,27 @@ def disassemble_cubin(cubin):
             os.unlink(fname)
 
 
-# Should the code library provide for multiple CCs? Or create one code library
-# per CC?
 class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
+    """
+    The CUDACodeLibrary generates PTX and cubins for multiple different compute
+    capabilities. It loads cubins to multiple devices, which may be of
+    different compute capabilities.
+    """
 
-    def __init__(self, codegen, name):
+    def __init__(self, codegen, name, entry_name=None, max_registers=None,
+                 nvvm_options=None):
+        """
+        codegen:
+            the codegen
+        name:
+            the name of the function in the source
+        entry_name:
+            the name of the kernel function in the binary
+        max_registers:
+            max_registers option for linking
+        nvvm_options:
+            options for nvvm
+        """
         super().__init__(codegen, name)
         self._module = None
         self._linking_libraries = set()
@@ -65,33 +81,15 @@ class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
         # cufunc cache: device id -> cufunc
         self._cufunc_cache = {}
 
-        # Options set later
-        self._max_registers = None
-        self._nvvm_options = None
-        self._entry_name = None
-
-    def set_nvvm_options(self, options):
-        if self._nvvm_options is not None:
-            raise RuntimeError("Cannot set NVVM options more than once")
-        self._nvvm_options = options.copy()
-
-    def set_max_registers(self, max_registers):
-        if self._max_registers is not None:
-            raise RuntimeError("Cannot set max registers more than once")
         self._max_registers = max_registers
-
-    def set_entry_name(self, entry_name):
-        if self._entry_name is not None:
-            raise RuntimeError("Cannot set entry name more than once")
+        if nvvm_options is None:
+            nvvm_options = {}
+        self._nvvm_options = nvvm_options
         self._entry_name = entry_name
 
     def get_llvm_str(self):
         return str(self._module)
 
-    # XXX: Need to make sure we can't fill the PTX cache here without getting a
-    # cubin first, because its the cubin that has the nvvm options.
-    # Alternatively, should configure a code library with nvvm options
-    # immediately.
     def get_asm_str(self, cc=None):
         # XXX: NVVM options should use those set by set_nvvm_options
         if not cc:
@@ -153,7 +151,9 @@ class CUDACodeLibrary(CodeLibrary, serialize.ReduceMixin):
 
     def get_cufunc(self):
         if self._entry_name is None:
-            raise RuntimeError('Entry name needs setting first')
+            msg = "Missing entry_name - are you trying to get the cufunc " \
+                  "for a device function?"
+            raise RuntimeError(msg)
 
         ctx = devices.get_context()
         device = ctx.device

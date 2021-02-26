@@ -13,7 +13,7 @@ from numba.core import (types, typing, utils, funcdesc, serialize, config,
                         compiler, sigutils)
 from numba.core.typeconv.rules import default_type_manager
 from numba.core.compiler import (CompilerBase, DefaultPassBuilder,
-                                 compile_result)
+                                 compile_result, Flags)
 from numba.core.compiler_lock import global_compiler_lock
 from numba.core.compiler_machinery import (LoweringPass, PassManager,
                                            register_pass)
@@ -29,6 +29,10 @@ from .cudadrv import nvvm, driver
 from .errors import missing_launch_config_msg, normalize_kernel_dimensions
 from .api import get_current_device
 from .args import wrap_arg
+
+
+class CUDAFlags(Flags):
+    OPTIONS = { **Flags.OPTIONS, **{'nvvm_options': None}}
 
 
 @register_pass(mutates_CFG=True, analysis_only=False)
@@ -59,6 +63,25 @@ class CUDABackend(LoweringPass):
         return True
 
 
+@register_pass(mutates_CFG=False, analysis_only=False)
+class CreateLibrary(LoweringPass):
+
+    _name = "create_library"
+
+    def __init__(self):
+        LoweringPass.__init__(self)
+
+    def run_pass(self, state):
+        codegen = state.targetctx.codegen()
+        name = state.func_id.func_qualname
+        nvvm_options = state.flags.nvvm_options
+        state.library = codegen.create_library(name, nvvm_options=nvvm_options)
+        # Enable object caching upfront so that the library can be serialized.
+        state.library.enable_object_caching()
+
+        return True
+
+
 class CUDACompiler(CompilerBase):
     def define_pipelines(self):
         dpb = DefaultPassBuilder
@@ -83,6 +106,7 @@ class CUDACompiler(CompilerBase):
                     "ensure IR is legal prior to lowering")
 
         # lower
+        pm.add_pass(CreateLibrary, "create library")
         pm.add_pass(NativeLowering, "native lowering")
         pm.add_pass(CUDABackend, "cuda backend")
 
@@ -91,12 +115,13 @@ class CUDACompiler(CompilerBase):
 
 
 @global_compiler_lock
-def compile_cuda(pyfunc, return_type, args, debug=False, inline=False):
+def compile_cuda(pyfunc, return_type, args, debug=False, inline=False,
+                 nvvm_options=None):
     from .descriptor import cuda_target
     typingctx = cuda_target.typingctx
     targetctx = cuda_target.targetctx
 
-    flags = compiler.Flags()
+    flags = CUDAFlags()
     # Do not compile (generate native code), just lower (to LLVM)
     flags.set('no_compile')
     flags.set('no_cpython_wrapper')
@@ -105,6 +130,9 @@ def compile_cuda(pyfunc, return_type, args, debug=False, inline=False):
         flags.set('debuginfo')
     if inline:
         flags.set('forceinline')
+    if nvvm_options:
+        flags.set('nvvm_options', nvvm_options)
+
     # Run compilation pipeline
     cres = compiler.compile_extra(typingctx=typingctx,
                                   targetctx=targetctx,
@@ -151,24 +179,26 @@ def compile_ptx(pyfunc, args, debug=False, device=False, fastmath=False,
     :return: (ptx, resty): The PTX code and inferred return type
     :rtype: tuple
     """
-    cres = compile_cuda(pyfunc, None, args, debug=debug)
-    resty = cres.signature.return_type
-    if device:
-        lib = cres.library
-    else:
-        fname = cres.fndesc.llvm_func_name
-        tgt = cres.target_context
-        lib, kernel = tgt.prepare_cuda_kernel(cres.library, fname,
-                                              cres.signature.args, debug=debug)
-
-    options = {
+    nvvm_options = {
         'debug': debug,
         'fastmath': fastmath,
         'opt': 3 if opt else 0
     }
 
+    cres = compile_cuda(pyfunc, None, args, debug=debug,
+                        nvvm_options=nvvm_options)
+    resty = cres.signature.return_type
+    if device:
+        # XXX: Didn't get nvvm_options into compilation early enough
+        lib = cres.library
+    else:
+        fname = cres.fndesc.llvm_func_name
+        tgt = cres.target_context
+        lib, kernel = tgt.prepare_cuda_kernel(cres.library, fname,
+                                              cres.signature.args, debug,
+                                              nvvm_options)
+
     cc = cc or config.CUDA_DEFAULT_PTX_CC
-    lib.set_nvvm_options(options)
     ptx = lib.get_asm_str(cc=cc)
     return ptx, resty
 
@@ -435,24 +465,20 @@ class _Kernel(serialize.ReduceMixin):
                             inline=inline)
         fname = cres.fndesc.llvm_func_name
         args = cres.signature.args
-        lib, kernel = cres.target_context.prepare_cuda_kernel(cres.library,
-                                                              fname,
-                                                              args,
-                                                              debug=self.debug)
 
-        options = {
+        nvvm_options = {
             'debug': self.debug,
             'fastmath': fastmath,
             'opt': 3 if opt else 0
         }
 
+        tgt_ctx = cres.target_context
+        lib, kernel = tgt_ctx.prepare_cuda_kernel(cres.library, fname, args,
+                                                  debug, nvvm_options,
+                                                  max_registers)
+
         if not link:
             link = []
-
-        # Ideally these would be added on initialization of the code library
-        lib.set_max_registers(max_registers)
-        lib.set_nvvm_options(options)
-        lib.set_entry_name(kernel.name)
 
         # A kernel needs cooperative launch if grid_sync is being used.
         self.cooperative = 'cudaCGGetIntrinsicHandle' in lib.get_asm_str()
