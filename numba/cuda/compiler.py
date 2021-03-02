@@ -646,14 +646,36 @@ class _Kernel(serialize.ReduceMixin):
 
         stream_handle = stream and stream.handle or None
 
-        # Invoke kernel
-        driver.launch_kernel(cufunc.handle,
-                             *griddim,
-                             *blockdim,
-                             sharedmem,
-                             stream_handle,
-                             kernelargs,
-                             cooperative=self.cooperative)
+        # Compile launcher
+
+        gx, gy, gz = griddim
+        bx, by, bz = blockdim
+
+        param_vals = []
+        for arg in kernelargs:
+            if driver.is_device_memory(arg):
+                ptr = driver.device_ctypes_pointer(arg)
+                param_vals.append(ctypes.addressof(ptr))
+            else:
+                param_vals.append(ctypes.addressof(arg))
+
+        params = (ctypes.c_void_p * len(param_vals))(*param_vals)
+
+        if self.cooperative:
+            driver.driver.cuLaunchCooperativeKernel(cufunc.handle,
+                                                    gx, gy, gz,
+                                                    bx, by, bz,
+                                                    sharedmem,
+                                                    stream_handle,
+                                                    params)
+        else:
+            driver.driver.cuLaunchKernel(cufunc.handle,
+                                         gx, gy, gz,
+                                         bx, by, bz,
+                                         sharedmem,
+                                         stream_handle,
+                                         params,
+                                         None)
 
         if self.debug:
             driver.device_to_host(ctypes.addressof(excval), excmem, excsz)
