@@ -1033,10 +1033,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         '''
         argtypes, return_type = sigutils.normalize_signature(sig)
         assert return_type is None or return_type == types.none
-        if self.specialized:
-            return next(iter(self.overloads.values()))
-        else:
-            kernel = self.overloads.get(argtypes)
+        kernel = self.overloads.get(argtypes)
         if kernel is None:
             if not self._can_compile:
                 raise RuntimeError("Compilation disabled")
