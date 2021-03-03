@@ -628,11 +628,15 @@ class _Kernel(serialize.ReduceMixin):
 
     def compile_launcher(self, handle):
         from numba import njit, uint32
-        from numba.types import voidptr
-        from numba.cuda.cudadrv.drvapi import API_PROTOTYPES
-        from pudb import set_trace; set_trace()
-        argtypes = API_PROTOTYPES['cuLaunchKernel'][1:]
+        #from numba.types import voidptr
+        #from numba.cuda.cudadrv.drvapi import API_PROTOTYPES
+        #from pudb import set_trace; set_trace()
+        #argtypes = API_PROTOTYPES['cuLaunchKernel'][1:]
         drv_launch = driver.driver.lib['cuLaunchKernel']
+        c_uint64 = ctypes.c_uint64
+        c_uint = ctypes.c_uint
+        argtypes = (c_uint64, c_uint, c_uint, c_uint, c_uint, c_uint, c_uint,
+                    c_uint, c_uint64, c_uint64, c_uint64)
         drv_launch.argtypes = argtypes
 
         func_ptr = handle
@@ -642,7 +646,7 @@ class _Kernel(serialize.ReduceMixin):
             return drv_launch(func_ptr, uint32(gx), uint32(gy), uint32(gz),
                               uint32(bx), uint32(by), uint32(bz),
                               uint32(sharedmem),
-                              voidptr(stream), voidptr(params), voidptr(None))
+                              stream, params, 0)
 
         return launcher
 
@@ -664,7 +668,7 @@ class _Kernel(serialize.ReduceMixin):
         for t, v in zip(self.argument_types, args):
             self._prepare_args(t, v, stream, retr, kernelargs)
 
-        stream_handle = stream and stream.handle or 0
+        stream_handle = stream and stream.handle.value or 0
 
         # Launch kernel
 
@@ -690,9 +694,10 @@ class _Kernel(serialize.ReduceMixin):
                                                     params)
         else:
             # Compile launcher
-            launcher = self.compile_launcher(cufunc.handle)
+            launcher = self.compile_launcher(cufunc.handle.value)
             ret = launcher(gx, gy, gz, bx, by, bz, sharedmem,
-                           stream_handle.value, ctypes.addressof(params))
+                           stream_handle,
+                           ctypes.addressof(params))
             print(ret)
             #driver.driver.cuLaunchKernel(cufunc.handle,
             #                             gx, gy, gz,
