@@ -81,6 +81,11 @@ def _typeof_ctypes_function(val, c):
         return make_function_type(val)
 
 
+@typeof_impl.register(ctypes.c_void_p)
+def _typeof_ctypes_void_p(val, c):
+    return types.voidptr
+
+
 @typeof_impl.register(type)
 def _typeof_type(val, c):
     """

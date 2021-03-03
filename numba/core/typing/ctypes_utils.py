@@ -38,6 +38,7 @@ def from_ctypes(ctypeobj):
     """
     Convert the given ctypes type to a Numba type.
     """
+    #from pudb import set_trace; set_trace()
     if ctypeobj is None:
         # Special case for the restype of void-returning functions
         return types.none
@@ -56,6 +57,7 @@ def from_ctypes(ctypeobj):
     ty = _convert_internal(ctypeobj)
     if ty is None:
         raise TypeError("Unsupported ctypes type: %s" % ctypeobj)
+    print(ty)
     return ty
 
 

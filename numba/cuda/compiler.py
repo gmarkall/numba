@@ -626,6 +626,26 @@ class _Kernel(serialize.ReduceMixin):
         sm_count = ctx.device.MULTIPROCESSOR_COUNT
         return active_per_sm * sm_count
 
+    def compile_launcher(self, handle):
+        from numba import njit, uint32
+        from numba.types import voidptr
+        from numba.cuda.cudadrv.drvapi import API_PROTOTYPES
+        from pudb import set_trace; set_trace()
+        argtypes = API_PROTOTYPES['cuLaunchKernel'][1:]
+        drv_launch = driver.driver.lib['cuLaunchKernel']
+        drv_launch.argtypes = argtypes
+
+        func_ptr = handle
+
+        @njit
+        def launcher(gx, gy, gz, bx, by, bz, sharedmem, stream, params):
+            return drv_launch(func_ptr, uint32(gx), uint32(gy), uint32(gz),
+                              uint32(bx), uint32(by), uint32(bz),
+                              uint32(sharedmem),
+                              voidptr(stream), voidptr(params), voidptr(None))
+
+        return launcher
+
     def launch(self, args, griddim, blockdim, stream=0, sharedmem=0):
         # Prepare kernel
         cufunc = self._codelibrary.get_cufunc()
@@ -644,9 +664,9 @@ class _Kernel(serialize.ReduceMixin):
         for t, v in zip(self.argument_types, args):
             self._prepare_args(t, v, stream, retr, kernelargs)
 
-        stream_handle = stream and stream.handle or None
+        stream_handle = stream and stream.handle or 0
 
-        # Compile launcher
+        # Launch kernel
 
         gx, gy, gz = griddim
         bx, by, bz = blockdim
@@ -669,13 +689,18 @@ class _Kernel(serialize.ReduceMixin):
                                                     stream_handle,
                                                     params)
         else:
-            driver.driver.cuLaunchKernel(cufunc.handle,
-                                         gx, gy, gz,
-                                         bx, by, bz,
-                                         sharedmem,
-                                         stream_handle,
-                                         params,
-                                         None)
+            # Compile launcher
+            launcher = self.compile_launcher(cufunc.handle)
+            ret = launcher(gx, gy, gz, bx, by, bz, sharedmem,
+                           stream_handle.value, ctypes.addressof(params))
+            print(ret)
+            #driver.driver.cuLaunchKernel(cufunc.handle,
+            #                             gx, gy, gz,
+            #                             bx, by, bz,
+            #                             sharedmem,
+            #                             stream_handle,
+            #                             params,
+            #                             None)
 
         if self.debug:
             driver.device_to_host(ctypes.addressof(excval), excmem, excsz)
