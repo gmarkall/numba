@@ -112,8 +112,12 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         options['arch'] = arch
 
         irs = [str(mod) for mod in self.modules]
-        ptx = nvvm.llvm_to_ptx(irs, **options)
-        ptx = ptx.decode().strip('\x00').strip()
+        if options.get('debug', False):
+            ptx = [nvvm.llvm_to_ptx(ir, **options) for ir in irs]
+            ptx = [x.decode().strip('\x00').strip() for x in ptx]
+        else:
+            ptx = nvvm.llvm_to_ptx(irs, **options)
+            ptx = ptx.decode().strip('\x00').strip()
 
         if config.DUMP_ASSEMBLY:
             print(("ASSEMBLY %s" % self._name).center(80, '-'))
@@ -136,7 +140,11 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
 
         ptx = self.get_asm_str(cc=cc)
         linker = driver.Linker(max_registers=self._max_registers, cc=cc)
-        linker.add_ptx(ptx.encode())
+        if self._nvvm_options.get('debug', False):
+            for x in ptx:
+                linker.add_ptx(x.encode())
+        else:
+            linker.add_ptx(ptx.encode())
         for path in self._linking_files:
             linker.add_file_guess_ext(path)
         cubin_buf, size = linker.complete()
@@ -232,7 +240,8 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         # https://github.com/numba/numba/pull/890
         for library in self._linking_libraries:
             for fn in library._module.functions:
-                if not fn.is_declaration:
+                if (not fn.is_declaration and
+                        not self._nvvm_options.get('debug', False)):
                     fn.linkage = 'linkonce_odr'
 
         self._finalized = True

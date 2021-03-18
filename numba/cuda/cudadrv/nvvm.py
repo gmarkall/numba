@@ -705,6 +705,7 @@ def llvm_to_ptx(llvmir, **opts):
     cu.lazy_add_module(libdevice.get())
 
     ptx = cu.compile(**opts)
+    return ptx
     # XXX remove debug_pubnames seems to be necessary sometimes
     return patch_ptx_debug_pubnames(ptx)
 

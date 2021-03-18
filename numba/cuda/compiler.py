@@ -249,8 +249,15 @@ class DeviceFunctionTemplate(serialize.ReduceMixin):
         Returns the `CompileResult`.
         """
         if args not in self._compileinfos:
+            # Repro for this fix: Issue #5311 reproducer
+            nvvm_options = {
+                'debug': self.debug,
+                # XXX TBC 'fastmath': fastmath, BUG!!! (test case seems to
+                # check this)
+                'opt': 3 if self.opt else 0
+            }
             cres = compile_cuda(self.py_func, None, args, debug=self.debug,
-                                inline=self.inline)
+                                inline=self.inline, nvvm_options=nvvm_options)
             first_definition = not self._compileinfos
             self._compileinfos[args] = cres
             libs = [cres.library]
@@ -467,18 +474,21 @@ class _Kernel(serialize.ReduceMixin):
         self.debug = debug
         self.extensions = extensions or []
 
-        cres = compile_cuda(self.py_func, types.void, self.argtypes,
-                            debug=self.debug,
-                            inline=inline,
-                            fastmath=fastmath)
-        fname = cres.fndesc.llvm_func_name
-        args = cres.signature.args
-
+        # Repro / test case for this fix - kernel that calls power - see e.g.
+        # discourse thread 449
         nvvm_options = {
             'debug': self.debug,
             'fastmath': fastmath,
             'opt': 3 if opt else 0
         }
+
+        cres = compile_cuda(self.py_func, types.void, self.argtypes,
+                            debug=self.debug,
+                            inline=inline,
+                            fastmath=fastmath,
+                            nvvm_options=nvvm_options)
+        fname = cres.fndesc.llvm_func_name
+        args = cres.signature.args
 
         tgt_ctx = cres.target_context
         filename = cres.type_annotation.filename
