@@ -249,11 +249,8 @@ class DeviceFunctionTemplate(serialize.ReduceMixin):
         Returns the `CompileResult`.
         """
         if args not in self._compileinfos:
-            # Repro for this fix: Issue #5311 reproducer
             nvvm_options = {
                 'debug': self.debug,
-                # XXX TBC 'fastmath': fastmath, BUG!!! (test case seems to
-                # check this)
                 'opt': 3 if self.opt else 0
             }
             cres = compile_cuda(self.py_func, None, args, debug=self.debug,
@@ -474,8 +471,6 @@ class _Kernel(serialize.ReduceMixin):
         self.debug = debug
         self.extensions = extensions or []
 
-        # Repro / test case for this fix - kernel that calls power - see e.g.
-        # discourse thread 449
         nvvm_options = {
             'debug': self.debug,
             'fastmath': fastmath,

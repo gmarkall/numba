@@ -253,6 +253,10 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         #
         # See also discussion on PR #890:
         # https://github.com/numba/numba/pull/890
+        #
+        # We don't adjust the linkage of functions when compiling for debug -
+        # because the device functions are in separate modules, we need them to
+        # be externally visible.
         for library in self._linking_libraries:
             for fn in library._module.functions:
                 if (not fn.is_declaration and
