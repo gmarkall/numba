@@ -78,6 +78,39 @@ class TestCudaDebugInfo(CUDATestCase):
         wrapper_define = defines[0]
         self.assertIn('noinline!dbg', wrapper_define)
 
+    def test_debug_function_calls_internal_impl(self):
+        # Calling a function in a module generated from an implementation
+        # internal to Numba reqires multiple modules to be compiled with NVVM -
+        # the internal implementation, and the caller. This example uses two
+        # modules because the `in (2, 3)` is implemented with:
+        #
+        # numba::cpython::listobj::in_seq::$3clocals$3e::seq_contains_impl$242(
+        #     UniTuple<long long, 2>,
+        #     int
+        # )
+        #
+        # This is condensed from the reproducer from c200chromebook in Issue
+        # #5311.
+
+        @cuda.jit((types.int32[:], types.int32[:]), debug=True)
+        def f(inp, outp):
+            outp[0] = 1 if inp[0] in (2, 3) else 3
+
+    def test_debug_function_calls_device_function(self):
+        # Calling a device function requires compilation of multiple modules
+        # with NVVM - one for the caller and one for the callee. This checks
+        # that we don't cause an NVVM error in this case.
+
+        @cuda.jit(device=True, debug=True, opt=0)
+        def threadid():
+            return cuda.blockDim.x * cuda.blockIdx.x + cuda.threadIdx.x
+
+        @cuda.jit((types.int32[:],), debug=True, opt=0)
+        def kernel(arr):
+            i = cuda.grid(1)
+            if i < len(arr):
+                arr[i] = threadid()
+
 
 if __name__ == '__main__':
     unittest.main()
