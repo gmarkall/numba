@@ -217,6 +217,14 @@ class FakeCUDAAtomic(object):
                 array[index] = val
             return loaded
 
+    def compare_and_swap_element(self, array,idx, old, val):
+        with caslock:
+            index = (idx,) * array.ndim
+            loaded = array[index]
+            if loaded == old:
+                array[index] = val
+            return loaded
+
 
 class FakeCUDAModule(object):
     '''

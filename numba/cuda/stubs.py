@@ -552,3 +552,12 @@ class atomic(Stub):
 
         Returns the current value as if it is loaded atomically.
         """
+
+    class compare_and_swap_element(Stub):
+        """compare_and_swap_element(ary, idx, old, val)
+
+        Conditionally assign ``val`` to the first element of an 1D array ``ary``
+        if the current value matches ``old``.
+
+        Returns the current value as if it is loaded atomically.
+        """

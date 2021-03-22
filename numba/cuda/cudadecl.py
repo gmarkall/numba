@@ -16,6 +16,24 @@ register_global = registry.register_global
 register_number_classes(register_global)
 
 
+@register
+class Cuda_atomic_compare_and_swap_element(AbstractTemplate):
+    key = cuda.atomic.compare_and_swap_element
+
+    def generic(self, args, kws):
+        assert not kws
+        ary, idx, old, val = args
+        dty = ary.dtype
+
+        if (dty in integer_numba_types and idx in integer_numba_types and
+                ary.ndim == 1):
+            return signature(dty, ary, types.intp, dty, dty)
+
+
+def resolve_compare_and_swap_element(self, mod):
+    return types.Function(Cuda_atomic_compare_and_swap_element)
+
+
 class GridFunction(CallableTemplate):
     def generic(self):
         def typer(ndim):
@@ -451,6 +469,9 @@ class CudaAtomicTemplate(AttributeTemplate):
 
     def resolve_compare_and_swap(self, mod):
         return types.Function(Cuda_atomic_compare_and_swap)
+
+    def resolve_compare_and_swap_element(self, mod):
+        return types.Function(Cuda_atomic_compare_and_swap_element)
 
 
 @register_attr
