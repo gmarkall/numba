@@ -24,8 +24,9 @@ from numba.core.typing.typeof import Purpose, typeof
 from warnings import warn
 import numba
 from .cudadrv.devices import get_context
+from .cudadrv.driver import ERROR_MAP, CudaAPIError
 from .cudadrv.libs import get_cudalib
-from .cudadrv import nvvm, driver
+from .cudadrv import enums, nvvm, driver
 from .errors import missing_launch_config_msg, normalize_kernel_dimensions
 from .api import get_current_device
 from .args import wrap_arg
@@ -695,17 +696,13 @@ class _Kernel(serialize.ReduceMixin):
         else:
             # Compile launcher
             launcher = self.compile_launcher(cufunc.handle.value)
-            ret = launcher(gx, gy, gz, bx, by, bz, sharedmem,
-                           stream_handle,
-                           ctypes.addressof(params))
-            print(ret)
-            #driver.driver.cuLaunchKernel(cufunc.handle,
-            #                             gx, gy, gz,
-            #                             bx, by, bz,
-            #                             sharedmem,
-            #                             stream_handle,
-            #                             params,
-            #                             None)
+            retcode = launcher(gx, gy, gz, bx, by, bz, sharedmem,
+                               stream_handle,
+                               ctypes.addressof(params))
+            if retcode != enums.CUDA_SUCCESS:
+                errname = ERROR_MAP.get(retcode, "UNKNOWN_CUDA_ERROR")
+                msg = f"Kernel launch results in {errname}"
+                raise CudaAPIError(retcode, msg)
 
         if self.debug:
             driver.device_to_host(ctypes.addressof(excval), excmem, excsz)

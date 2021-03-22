@@ -1539,11 +1539,8 @@ https://numba.pydata.org/numba-doc/latest/user/troubleshoot.html#my-code-has-an-
 
     def typeof_global(self, inst, target, gvar):
         try:
-            #from pudb import set_trace; set_trace()
             typ = self.resolve_value_type(inst, gvar.value)
         except TypingError as e:
-            from pudb import set_trace; set_trace()
-            typ = self.resolve_value_type(inst, gvar.value)
             if (gvar.name == self.func_id.func_name
                     and gvar.name in _temporary_dispatcher_map):
                 # Self-recursion case where the dispatcher is not (yet?) known
@@ -1564,7 +1561,6 @@ https://numba.pydata.org/numba-doc/latest/user/troubleshoot.html#my-code-has-an-
                     e.patch_message(msg)
                     raise
                 else:
-                    print("ARGH")
                     msg = _termcolor.errmsg("Untyped global name '%s':" % nm)
                 msg += " %s"  # interps the actual error
 
