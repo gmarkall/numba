@@ -54,9 +54,9 @@ class _TypeMetaclass(ABCMeta):
             return orig
         else:
             inst._code = _autoincr()
-            print(f"Making type {inst._code}")
-            if inst._code == 1713:
-                from pudb import set_trace; set_trace()
+            #print(f"Making type {inst._code}")
+            #if inst._code == 1713:
+            #    from pudb import set_trace; set_trace()
             _typecache[wr] = wr
             return inst
 

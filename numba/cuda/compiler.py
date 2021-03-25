@@ -858,7 +858,22 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         if sigs:
             if len(sigs) > 1:
                 raise TypeError("Only one signature supported at present")
-            self.compile(sigs[0])
+            if isinstance(sigs[0], str):
+                args, return_type = sigutils.normalize_signature(sigs[0])
+            elif isinstance(sigs[0], tuple):
+                args = sigs[0]
+                return_type = types.void
+            else:
+                args, return_type = sigs[0].args, sigs[0].return_type
+            if return_type is None:
+                return_type = types.void
+            launch_sig = return_type(types.Tuple(args),
+                                     types.UniTuple(types.int64, 3),
+                                     types.UniTuple(types.int64, 3),
+                                     types.int64,
+                                     types.int64)
+            #launch_sig = sigutils.normalize_signature(launch_args)
+            self.compile(launch_sig)
             self._can_compile = False
 
     def configure(self, griddim, blockdim, stream=0, sharedmem=0):
@@ -934,7 +949,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         # Based on _DispatcherBase._compile_for_args.
         assert not kws
         print(f"_compile_for_args args are {args}")
-        argtypes = [self.typeof_pyval(a) for a in args[0]]
+        argtypes = [self.typeof_pyval(a) for a in args]
         print(argtypes)
         #argtypes = argtypes[:-4]
         print(argtypes)
@@ -944,12 +959,12 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         # Based on _DispatcherBase._search_new_conversions
         assert not kws
         print(f"Search new conversions args {args}")
-        args = [self.typeof_pyval(a) for a in args[0]]
+        args = [self.typeof_pyval(a) for a in args]
         print(f"Search new conversions typeofargs {args} / {[x._code for x in args]}")
         print(f"Search new conversions sigs {self.nopython_signatures[0].args}")
         found = False
         for sig in self.nopython_signatures:
-            from pudb import set_trace; set_trace()
+            #from pudb import set_trace; set_trace()
             conv = self.typingctx.install_possible_conversions(args, sig.args)
             if conv:
                 found = True
@@ -1061,7 +1076,9 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
                 raise RuntimeError("Compilation disabled")
             # strip off the (griddim, blockdim, stream, shared) args for
             # compilation of the kernel
-            kernel = _Kernel(self.py_func, argtypes, link=self.link,
+            #from pudb import set_trace; set_trace()
+            kernel_argtypes = tuple(t for t in argtypes[0])
+            kernel = _Kernel(self.py_func, kernel_argtypes, link=self.link,
                              **self.targetoptions)
             # Inspired by _DispatcherBase.add_overload, but differs slightly
             # because we're inserting a _Kernel object instead of a compiled
