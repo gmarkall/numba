@@ -626,6 +626,7 @@ class _Kernel(serialize.ReduceMixin):
         return active_per_sm * sm_count
 
     def launch(self, args, griddim, blockdim, stream=0, sharedmem=0):
+        print("In _Kernel.launch")
         # Prepare kernel
         cufunc = self._codelibrary.get_cufunc()
 
@@ -691,6 +692,8 @@ class _Kernel(serialize.ReduceMixin):
         # retrieve auto converted arrays
         for wb in retr:
             wb()
+
+        print("Leaving _Kernel.launch")
 
     def _prepare_args(self, ty, val, stream, retr, kernelargs):
         """
@@ -810,6 +813,9 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         self.link = targetoptions.pop('link', (),)
         self._can_compile = True
 
+        # Host launcher functions for the overloads
+        self.host_overloads = {}
+
         # Specializations for given sets of argument types
         self.specializations = {}
 
@@ -911,31 +917,43 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         raise ValueError(missing_launch_config_msg)
 
     def call(self, args, griddim, blockdim, stream, sharedmem):
-        '''
-        Compile if necessary and invoke this kernel with *args*.
-        '''
-        if self.specialized:
-            kernel = next(iter(self.overloads.values()))
-        else:
-            kernel = _dispatcher.Dispatcher._cuda_call(self, *args)
-
-        kernel.launch(args, griddim, blockdim, stream, sharedmem)
+        print("In Dispatcher.call")
+        super().__call__(args, griddim, blockdim, stream, sharedmem)
+        print("Exiting Dispatcher.call")
+#        '''
+#        Compile if necessary and invoke this kernel with *args*.
+#        '''
+#        if self.specialized:
+#            kernel = next(iter(self.overloads.values()))
+#        else:
+#            kernel = _dispatcher.Dispatcher._cuda_call(self, *args)
+#
+#        kernel.launch(args, griddim, blockdim, stream, sharedmem)
 
     def _compile_for_args(self, *args, **kws):
         # Based on _DispatcherBase._compile_for_args.
         assert not kws
-        argtypes = [self.typeof_pyval(a) for a in args]
+        print(f"_compile_for_args args are {args}")
+        argtypes = [self.typeof_pyval(a) for a in args[0]]
+        print(argtypes)
+        #argtypes = argtypes[:-4]
+        print(argtypes)
         return self.compile(tuple(argtypes))
 
     def _search_new_conversions(self, *args, **kws):
         # Based on _DispatcherBase._search_new_conversions
         assert not kws
-        args = [self.typeof_pyval(a) for a in args]
+        print(f"Search new conversions args {args}")
+        args = [self.typeof_pyval(a) for a in args[0]]
+        print(f"Search new conversions typeofargs {args} / {[x._code for x in args]}")
+        print(f"Search new conversions sigs {self.nopython_signatures[0].args}")
         found = False
         for sig in self.nopython_signatures:
+            from pudb import set_trace; set_trace()
             conv = self.typingctx.install_possible_conversions(args, sig.args)
             if conv:
                 found = True
+        print(f"Found: {found}")
         return found
 
     def typeof_pyval(self, val):
@@ -1030,27 +1048,46 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         Compile and bind to the current context a version of this kernel
         specialized for the given signature.
         '''
+        print(sig)
         argtypes, return_type = sigutils.normalize_signature(sig)
         assert return_type is None or return_type == types.none
         if self.specialized:
-            return next(iter(self.overloads.values()))
+            return next(iter(self.host_overloads.values()))
         else:
-            kernel = self.overloads.get(argtypes)
-        if kernel is None:
+            call_kernel = self.host_overloads.get(argtypes)
+        if call_kernel is None:
+            print(f"Compiling kernel for {sig}")
             if not self._can_compile:
                 raise RuntimeError("Compilation disabled")
+            # strip off the (griddim, blockdim, stream, shared) args for
+            # compilation of the kernel
             kernel = _Kernel(self.py_func, argtypes, link=self.link,
                              **self.targetoptions)
             # Inspired by _DispatcherBase.add_overload, but differs slightly
             # because we're inserting a _Kernel object instead of a compiled
             # function.
             c_sig = [a._code for a in argtypes]
-            self._insert(c_sig, kernel, cuda=True)
             self.overloads[argtypes] = kernel
 
             kernel.bind()
             self.sigs.append(sig)
-        return kernel
+            print("Finished kernel")
+
+            print("Define kernel call function")
+
+            def call_kernel(args, griddim, blockdim, stream, sharedmem):
+                print("About to launch kernel from jit function")
+                ret = kernel.launch(args, griddim, blockdim, stream, sharedmem)
+                print("back in jit function after launch")
+                return ret
+
+            print(f"Inserting for {c_sig}")
+            self._insert(c_sig, call_kernel, cuda=True)
+            self.host_overloads[argtypes] = call_kernel
+
+        print("Returning jit call function")
+        #return kernel
+        return call_kernel
 
     def inspect_llvm(self, signature=None, compute_capability=None):
         '''

@@ -30,7 +30,7 @@ import numpy as np
 from collections import namedtuple, deque
 
 from numba import mviewbuf
-from numba.core import utils, serialize, config
+from numba.core import utils, serialize, types, config
 from .error import CudaSupportError, CudaDriverError
 from .drvapi import API_PROTOTYPES
 from .drvapi import cu_occupancy_b2d_size, cu_stream_callback_pyobj, cu_uuid
@@ -1845,6 +1845,8 @@ class ManagedOwnedPointer(OwnedPointer, mviewbuf.MemAlloc):
 
 
 class Stream(object):
+    _numba_type_ = types.intp
+
     def __init__(self, context, handle, finalizer, external=False):
         self.context = context
         self.handle = handle
