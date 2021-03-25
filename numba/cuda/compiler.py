@@ -834,19 +834,21 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
 
         self._tm = default_type_manager
 
-        pysig = utils.pysignature(py_func)
-        arg_count = len(pysig.parameters)
-        argnames = tuple(pysig.parameters)
+        #from pudb import set_trace; set_trace()
+        # pysig = utils.pysignature(py_func)
+        arg_count = 5 # len(pysig.parameters)
+        argnames = ('args', 'griddim', 'blockdim', 'stream', 'shared') #tuple(pysig.parameters)
         default_values = self.py_func.__defaults__ or ()
         defargs = tuple(OmittedArg(val) for val in default_values)
         can_fallback = False # CUDA cannot fallback to object mode
 
-        try:
-            lastarg = list(pysig.parameters.values())[-1]
-        except IndexError:
-            has_stararg = False
-        else:
-            has_stararg = lastarg.kind == lastarg.VAR_POSITIONAL
+        #try:
+        #    lastarg = list(pysig.parameters.values())[-1]
+        #except IndexError:
+        #    has_stararg = False
+        #else:
+        #    has_stararg = lastarg.kind == lastarg.VAR_POSITIONAL
+        has_stararg = False
 
         exact_match_required = False
 
