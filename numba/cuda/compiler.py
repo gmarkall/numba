@@ -963,6 +963,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         print(f"Search new conversions typeofargs {args} / {[x._code for x in args]}")
         print(f"Search new conversions sigs {self.nopython_signatures[0].args}")
         found = False
+        #from pudb import set_trace; set_trace()
         for sig in self.nopython_signatures:
             #from pudb import set_trace; set_trace()
             conv = self.typingctx.install_possible_conversions(args, sig.args)
@@ -988,7 +989,12 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
     @property
     def nopython_signatures(self):
         # Based on _DispatcherBase.nopython_signatures
-        return [kernel.signature for kernel in self.overloads.values()]
+        # old, from kernel
+        #return [kernel.signature for kernel in self.overloads.values()]
+        # new, for host launcher
+        #from pudb import set_trace; set_trace()
+        return [types.void(*k) for k in self.host_overloads.keys()]
+        #return [cres.signature for cres in self.host_overloads.values()]
 
     def specialize(self, *args):
         '''
