@@ -55,7 +55,13 @@ class _TypeMetaclass(ABCMeta):
         else:
             inst._code = _autoincr()
             #print(f"Making type {inst._code}")
-            #if inst._code == 1713:
+            # 1788: dispatcher sees in signature to resolve
+            # 1791: c-order to convert from
+            # 1706: a-order to convert to
+            #if inst._code in (1788, 1791, 1706):
+            #    import traceback
+             #   print(f"\n\ncode {inst._code}\n\n")
+            #    traceback.print_stack()
             #    from pudb import set_trace; set_trace()
             _typecache[wr] = wr
             return inst

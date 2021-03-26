@@ -834,6 +834,9 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
 
         self._tm = default_type_manager
 
+        # a place to keep an active reference to the types of the active call
+        self._types_active_call = []
+
         #from pudb import set_trace; set_trace()
         # pysig = utils.pysignature(py_func)
         arg_count = 5 # len(pysig.parameters)
@@ -936,6 +939,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
     def call(self, args, griddim, blockdim, stream, sharedmem):
         print("In Dispatcher.call")
         super().__call__(args, griddim, blockdim, stream, sharedmem)
+        self._types_active_call = []
         print("Exiting Dispatcher.call")
 #        '''
 #        Compile if necessary and invoke this kernel with *args*.
@@ -968,6 +972,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         #from pudb import set_trace; set_trace()
         for sig in self.nopython_signatures:
             #from pudb import set_trace; set_trace()
+            print(f"Installing conversions for {args[0]._code} to {sig.args[0]._code}")
             conv = self.typingctx.install_possible_conversions(args, sig.args)
             if conv:
                 found = True
@@ -978,15 +983,18 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         # Based on _DispatcherBase.typeof_pyval, but differs from it to support
         # the CUDA Array Interface.
         try:
-            return typeof(val, Purpose.argument)
+            tp = typeof(val, Purpose.argument)
         except ValueError:
             if numba.cuda.is_cuda_array(val):
                 # When typing, we don't need to synchronize on the array's
                 # stream - this is done when the kernel is launched.
-                return typeof(numba.cuda.as_cuda_array(val, sync=False),
-                              Purpose.argument)
+                tp = typeof(numba.cuda.as_cuda_array(val, sync=False),
+                            Purpose.argument)
             else:
                 raise
+
+        self._types_active_call.append(tp)
+        return tp
 
     @property
     def nopython_signatures(self):
