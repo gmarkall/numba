@@ -773,6 +773,12 @@ class _KernelConfiguration:
         self.stream = stream
         self.sharedmem = sharedmem
 
+    def __rshift__(self, *args):
+        if not isinstance(args, tuple):
+            args = (args,)
+        return self.dispatcher.call(args, self.griddim, self.blockdim,
+                                    self.stream, self.sharedmem)
+
     def __call__(self, *args):
         return self.dispatcher.call(args, self.griddim, self.blockdim,
                                     self.stream, self.sharedmem)
@@ -861,6 +867,11 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
 
     def __getitem__(self, args):
         if len(args) not in [2, 3, 4]:
+            raise ValueError('must specify at least the griddim and blockdim')
+        return self.configure(*args)
+
+    def __lshift__(self, args):
+        if not isinstance(args, tuple) and len(args) not in (2, 3, 4):
             raise ValueError('must specify at least the griddim and blockdim')
         return self.configure(*args)
 
