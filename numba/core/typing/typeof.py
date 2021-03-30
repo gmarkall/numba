@@ -6,6 +6,7 @@ import enum
 import numpy as np
 
 from numba.core import types, utils, errors
+from numba.misc import dummyarray
 from numba.np import numpy_support
 
 # terminal color markup
@@ -36,6 +37,24 @@ def typeof(val, purpose=Purpose.argument):
     return ty
 
 
+def _fill_stride_by_order(shape, dtype, order):
+    nd = len(shape)
+    if nd == 0:
+        return ()
+    strides = [0] * nd
+    if order == 'C':
+        strides[-1] = dtype.itemsize
+        for d in reversed(range(nd - 1)):
+            strides[d] = strides[d + 1] * shape[d + 1]
+    elif order == 'F':
+        strides[0] = dtype.itemsize
+        for d in range(1, nd):
+            strides[d] = strides[d - 1] * shape[d - 1]
+    else:
+        raise ValueError('must be either C/F order')
+    return tuple(strides)
+
+
 @singledispatch
 def typeof_impl(val, c):
     """
@@ -54,8 +73,42 @@ def typeof_impl(val, c):
         if cffi_utils.is_ffi_instance(val):
             return types.ffi
 
-    return getattr(val, "_numba_type_", None)
+    numba_type = getattr(val, "_numba_type_", None)
+    if numba_type:
+        return numba_type
 
+    # XXX: Logic for this smeared across cuda.Dispatcher.typeof_pyval,
+    # DeviceNDArray._numba_type_, cuda.api._prepare_shape_strides_dtype, and
+    # here
+    cai = getattr(val, '__cuda_array_interface__', None)
+    if cai:
+        #breakpoint()
+        shape = cai['shape']
+        strides = cai['strides']
+        dtype = np.dtype(cai['typestr'])
+
+        if isinstance(shape, int):
+            shape = (shape,)
+
+        if isinstance(strides, int):
+            strides = (strides,)
+        else:
+            strides = strides or _fill_stride_by_order(shape, dtype, order='C')
+
+        dummy = dummyarray.Array.from_desc(0, shape, strides, dtype.itemsize)
+        broadcast = 0 in dummy.strides
+        if dummy.flags['C_CONTIGUOUS'] and not broadcast:
+            layout = 'C'
+        elif dummy.flags['F_CONTIGUOUS'] and not broadcast:
+            layout = 'F'
+        else:
+            layout = 'A'
+        nb_dtype = numpy_support.from_dtype(dtype)
+
+        return types.Array(nb_dtype, dummy.ndim, layout)
+
+    # If we get here then we've failed to type
+    return None
 
 def _typeof_buffer(val, c):
     from numba.core.typing import bufproto
