@@ -31,6 +31,11 @@ from .api import get_current_device
 from .args import wrap_arg
 
 
+def DEBUG_DISPATCH(*args, **kwargs):
+    """Comment print for silence"""
+    #print(*args, **kwargs)
+
+
 class CUDAFlags(Flags):
     OPTIONS = { **Flags.OPTIONS, **{'nvvm_options': None}}
 
@@ -626,7 +631,7 @@ class _Kernel(serialize.ReduceMixin):
         return active_per_sm * sm_count
 
     def launch(self, args, griddim, blockdim, stream=0, sharedmem=0):
-        print("In _Kernel.launch")
+        DEBUG_DISPATCH("In _Kernel.launch")
         # Prepare kernel
         cufunc = self._codelibrary.get_cufunc()
 
@@ -693,7 +698,7 @@ class _Kernel(serialize.ReduceMixin):
         for wb in retr:
             wb()
 
-        print("Leaving _Kernel.launch")
+        DEBUG_DISPATCH("Leaving _Kernel.launch")
 
     def _prepare_args(self, ty, val, stream, retr, kernelargs):
         """
@@ -840,7 +845,8 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         #from pudb import set_trace; set_trace()
         # pysig = utils.pysignature(py_func)
         arg_count = 5 # len(pysig.parameters)
-        argnames = ('args', 'griddim', 'blockdim', 'stream', 'shared') #tuple(pysig.parameters)
+        # was tuple(pysig.parameters)
+        argnames = ('args', 'griddim', 'blockdim', 'stream', 'shared')
         default_values = self.py_func.__defaults__ or ()
         defargs = tuple(OmittedArg(val) for val in default_values)
         can_fallback = False # CUDA cannot fallback to object mode
@@ -937,10 +943,10 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         raise ValueError(missing_launch_config_msg)
 
     def call(self, args, griddim, blockdim, stream, sharedmem):
-        print("In Dispatcher.call")
+        DEBUG_DISPATCH("In Dispatcher.call")
         super().__call__(args, griddim, blockdim, stream, sharedmem)
         self._types_active_call = []
-        print("Exiting Dispatcher.call")
+        DEBUG_DISPATCH("Exiting Dispatcher.call")
 #        '''
 #        Compile if necessary and invoke this kernel with *args*.
 #        '''
@@ -954,29 +960,32 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
     def _compile_for_args(self, *args, **kws):
         # Based on _DispatcherBase._compile_for_args.
         assert not kws
-        print(f"_compile_for_args args are {args}")
+        DEBUG_DISPATCH(f"_compile_for_args args are {args}")
         argtypes = [self.typeof_pyval(a) for a in args]
-        print(argtypes)
+        DEBUG_DISPATCH(argtypes)
         #argtypes = argtypes[:-4]
-        print(argtypes)
+        DEBUG_DISPATCH(argtypes)
         return self.compile(tuple(argtypes))
 
     def _search_new_conversions(self, *args, **kws):
         # Based on _DispatcherBase._search_new_conversions
         assert not kws
-        print(f"Search new conversions args {args}")
+        DEBUG_DISPATCH(f"Search new conversions args {args}")
         args = [self.typeof_pyval(a) for a in args]
-        print(f"Search new conversions typeofargs {args} / {[x._code for x in args]}")
-        print(f"Search new conversions sigs {self.nopython_signatures[0].args}")
+        DEBUG_DISPATCH(f"Search new conversions typeofargs {args} / "
+                       f"{[x._code for x in args]}")
+        DEBUG_DISPATCH(f"Search new conversions sigs "
+                       f"{self.nopython_signatures[0].args}")
         found = False
         #from pudb import set_trace; set_trace()
         for sig in self.nopython_signatures:
             #from pudb import set_trace; set_trace()
-            print(f"Installing conversions for {args[0]._code} to {sig.args[0]._code}")
+            DEBUG_DISPATCH(f"Installing conversions for "
+                           f"{args[0]._code} to {sig.args[0]._code}")
             conv = self.typingctx.install_possible_conversions(args, sig.args)
             if conv:
                 found = True
-        print(f"Found: {found}")
+        DEBUG_DISPATCH(f"Found: {found}")
         return found
 
     def typeof_pyval(self, val):
@@ -1079,7 +1088,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         Compile and bind to the current context a version of this kernel
         specialized for the given signature.
         '''
-        print(sig)
+        DEBUG_DISPATCH(sig)
         argtypes, return_type = sigutils.normalize_signature(sig)
         assert return_type is None or return_type == types.none
         if self.specialized:
@@ -1087,7 +1096,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         else:
             call_kernel = self.host_overloads.get(argtypes)
         if call_kernel is None:
-            print(f"Compiling kernel for {sig}")
+            DEBUG_DISPATCH(f"Compiling kernel for {sig}")
             if not self._can_compile:
                 raise RuntimeError("Compilation disabled")
             # strip off the (griddim, blockdim, stream, shared) args for
@@ -1104,21 +1113,21 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
 
             kernel.bind()
             self.sigs.append(sig)
-            print("Finished kernel")
+            DEBUG_DISPATCH("Finished kernel")
 
-            print("Define kernel call function")
+            DEBUG_DISPATCH("Define kernel call function")
 
             def call_kernel(args, griddim, blockdim, stream, sharedmem):
-                print("About to launch kernel from jit function")
+                DEBUG_DISPATCH("About to launch kernel from jit function")
                 ret = kernel.launch(args, griddim, blockdim, stream, sharedmem)
-                print("back in jit function after launch")
+                DEBUG_DISPATCH("back in jit function after launch")
                 return ret
 
-            print(f"Inserting for {c_sig}")
+            DEBUG_DISPATCH(f"Inserting for {c_sig}")
             self._insert(c_sig, call_kernel, cuda=True)
             self.host_overloads[argtypes] = call_kernel
 
-        print("Returning jit call function")
+        DEBUG_DISPATCH("Returning jit call function")
         #return kernel
         return call_kernel
 
