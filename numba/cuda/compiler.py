@@ -882,22 +882,10 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         if sigs:
             if len(sigs) > 1:
                 raise TypeError("Only one signature supported at present")
-            if isinstance(sigs[0], str):
-                args, return_type = sigutils.normalize_signature(sigs[0])
-            elif isinstance(sigs[0], tuple):
-                args = sigs[0]
-                return_type = types.void
-            else:
-                args, return_type = sigs[0].args, sigs[0].return_type
-            if return_type is None:
-                return_type = types.void
-            launch_sig = return_type(types.Tuple(args),
-                                     types.UniTuple(types.int64, 3),
-                                     types.UniTuple(types.int64, 3),
-                                     types.int64,
-                                     types.int64)
+
+            sig = sigs[0]
             #launch_sig = sigutils.normalize_signature(launch_args)
-            self.compile(launch_sig)
+            self.compile(sig)
             self._can_compile = False
 
     def configure(self, griddim, blockdim, stream=0, sharedmem=0):
@@ -978,7 +966,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         DEBUG_DISPATCH(argtypes)
         #argtypes = argtypes[:-4]
         DEBUG_DISPATCH(argtypes)
-        return self.compile(tuple(argtypes))
+        return self._compile_with_launch_args(tuple(argtypes))
 
     def _search_new_conversions(self, *args, **kws):
         # Based on _DispatcherBase._search_new_conversions
@@ -1097,6 +1085,24 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
                     for sig, defn in self.definitions.items()}
 
     def compile(self, sig):
+        if isinstance(sig, str):
+            args, return_type = sigutils.normalize_signature(sig)
+        elif isinstance(sig, tuple):
+            args = sig
+            return_type = types.void
+        else:
+            args, return_type = sig.args, sig.return_type
+        if return_type is None:
+            return_type = types.void
+        launch_sig = return_type(types.Tuple(args),
+                                 types.UniTuple(types.int64, 3),
+                                 types.UniTuple(types.int64, 3),
+                                 types.int64,
+                                 types.int64)
+
+        self._compile_with_launch_args(launch_sig)
+
+    def _compile_with_launch_args(self, sig):
         '''
         Compile and bind to the current context a version of this kernel
         specialized for the given signature.
