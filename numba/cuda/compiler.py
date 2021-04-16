@@ -232,7 +232,7 @@ def compile_ptx_for_current_device(pyfunc, args, debug=False, device=False,
                        fastmath=fastmath, cc=cc, opt=True)
 
 
-class DeviceFunctionTemplate(serialize.ReduceMixin):
+class DeviceDispatcher(serialize.ReduceMixin):
     """Unmaterialized device function
     """
     def __init__(self, pyfunc, debug, inline, opt):
@@ -249,7 +249,53 @@ class DeviceFunctionTemplate(serialize.ReduceMixin):
 
     @classmethod
     def _rebuild(cls, py_func, debug, inline):
-        return compile_device_template(py_func, debug=debug, inline=inline)
+        return compile_device_dispatcher(py_func, debug=debug, inline=inline)
+
+    ############# BEGIN _DispatcherBase stuff
+
+    def get_call_template(self, args, kws):
+        """
+        Get a typing.ConcreteTemplate for this dispatcher and the given
+        *args* and *kws* types.  This allows to resolve the return type.
+
+        A (template, pysig, args, kws) tuple is returned.
+        """
+        # XXX how about a dispatcher template class automating the
+        # following?
+
+        # Fold keyword arguments and resolve default values
+        pysig, args = utils.pysignature(self.py_func), args
+        # self._compiler.fold_argument_types(args, kws)
+
+        kws = {}
+        # Ensure an overload is available
+        if True: # self._can_compile:
+            self.compile(tuple(args))
+
+        # Create function type for typing
+        func_name = self.py_func.__name__
+        name = "CallTemplate({0})".format(func_name)
+        # The `key` isn't really used except for diagnosis here,
+        # so avoid keeping a reference to `cfunc`.
+        call_template = typing.make_concrete_template(
+            name, key=func_name, signatures=self.nopython_signatures)
+        return call_template, pysig, args, kws
+
+    @property
+    def nopython_signatures(self):
+        sigs = []
+        for info in self._compileinfos.values():
+            sigs.append(info.signature)
+        return sigs
+
+    def get_overload(self, sig):
+        """
+        Return the compiled function for the given signature.
+        """
+        args, return_type = sigutils.normalize_signature(sig)
+        return self#._compileinfos[tuple(args)]  #.entry_point
+
+    ############# END _DispatcherBase stuff
 
     def compile(self, args):
         """Compile the function for the given argument types.
@@ -320,20 +366,19 @@ class DeviceFunctionTemplate(serialize.ReduceMixin):
         return ptx
 
 
-def compile_device_template(pyfunc, debug=False, inline=False, opt=True):
-    """Create a DeviceFunctionTemplate object and register the object to
-    the CUDA typing context.
+def compile_device_dispatcher(pyfunc, debug=False, inline=False, opt=True):
+    """Create a DeviceDispatcher and register it to the CUDA typing context.
     """
     from .descriptor import cuda_target
 
-    dft = DeviceFunctionTemplate(pyfunc, debug=debug, inline=inline, opt=opt)
+    dispatcher = DeviceDispatcher(pyfunc, debug=debug, inline=inline, opt=opt)
 
     class device_function_template(AbstractTemplate):
-        key = dft
+        key = dispatcher
 
         def generic(self, args, kws):
             assert not kws
-            return dft.compile(args).signature
+            return dispatcher.compile(args).signature
 
         def get_template_info(cls):
             basepath = os.path.dirname(os.path.dirname(numba.__file__))
@@ -351,8 +396,8 @@ def compile_device_template(pyfunc, debug=False, inline=False, opt=True):
             return info
 
     typingctx = cuda_target.typingctx
-    typingctx.insert_user_function(dft, device_function_template)
-    return dft
+    typingctx.insert_user_function(dispatcher, device_function_template)
+    return dispatcher
 
 
 def compile_device(pyfunc, return_type, args, inline=True, debug=False):
@@ -470,7 +515,8 @@ class _Kernel(serialize.ReduceMixin):
 
     @global_compiler_lock
     def __init__(self, py_func, argtypes, link=None, debug=False, inline=False,
-                 fastmath=False, extensions=None, max_registers=None, opt=True):
+                 fastmath=False, extensions=None, max_registers=None, opt=True,
+                 no_cpython_wrapper=None):
         super().__init__()
 
         self.py_func = py_func

@@ -7,7 +7,12 @@ from numba import cuda
 from numba.cuda.compiler import Dispatcher as CUDADispatcher
 
 dispatcher_registry[hardware_registry["cuda"]] = CUDADispatcher
-decorators.jit_registry[hardware_registry["cuda"]] = cuda.jit
+
+def cuda_jit_device(*args, **kwargs):
+    kwargs['device'] = True
+    return cuda.jit(*args, **kwargs)
+
+decorators.jit_registry[hardware_registry["cuda"]] = cuda_jit_device
 
 # ------------------- GET THIS TO WORK
 
@@ -52,3 +57,4 @@ cpu_foo()
 print("CUDA FOO")
 cuda_foo[1, 1]()
 
+cuda.synchronize()
