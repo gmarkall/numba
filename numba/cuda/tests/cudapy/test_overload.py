@@ -1,6 +1,7 @@
 from numba import cuda
 from numba.core.extending import overload
-from numba.cuda.testing import CUDATestCase, captured_cuda_stdout, unittest
+from numba.cuda.testing import (CUDATestCase, captured_cuda_stdout,
+                                skip_on_cudasim, unittest)
 
 
 def generic_func_1():
@@ -157,6 +158,7 @@ def ol_generic_calls_hardware_overloaded_cuda():
     return impl
 
 
+@skip_on_cudasim('Overloading not supported in cudasim')
 class TestOverload(CUDATestCase):
     def test_generic(self):
         @cuda.jit
