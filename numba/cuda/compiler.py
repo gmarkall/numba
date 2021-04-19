@@ -505,8 +505,7 @@ class _Kernel(serialize.ReduceMixin):
 
     @global_compiler_lock
     def __init__(self, py_func, argtypes, link=None, debug=False, inline=False,
-                 fastmath=False, extensions=None, max_registers=None, opt=True,
-                 no_cpython_wrapper=None):
+                 fastmath=False, extensions=None, max_registers=None, opt=True):
         super().__init__()
 
         self.py_func = py_func

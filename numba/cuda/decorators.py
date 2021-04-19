@@ -14,6 +14,8 @@ def jitdevice(func, link=[], debug=None, inline=False, opt=True,
               no_cpython_wrapper=None):
     """Wrapper for device-jit.
     """
+    # We ignore  the no_cpython_wrapper kwarg - it is passed by the callee when
+    # using overloads, but there is never a CPython wrapper for CUDA anyway.
     debug = config.CUDA_DEBUGINFO_DEFAULT if debug is None else debug
     if link:
         raise ValueError("link keyword invalid for device function")
