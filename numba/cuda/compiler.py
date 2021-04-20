@@ -903,6 +903,36 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
             self.compile(sigs[0])
             self._can_compile = False
 
+        self.insert_typing()
+
+    def insert_typing(self):
+        from .descriptor import cuda_target
+
+        class device_function_template(AbstractTemplate):
+            key = self
+
+            def generic(self, args, kws):
+                assert not kws
+                return self.compile(args).signature
+
+            def get_template_info(cls):
+                basepath = os.path.dirname(os.path.dirname(numba.__file__))
+                code, firstlineno = inspect.getsourcelines(self.py_func)
+                path = inspect.getsourcefile(self.py_func)
+                sig = str(utils.pysignature(self.py_func))
+                info = {
+                    'kind': "overload",
+                    'name': getattr(cls.key, '__name__', "unknown"),
+                    'sig': sig,
+                    'filename': utils.safe_relpath(path, start=basepath),
+                    'lines': (firstlineno, firstlineno + len(code) - 1),
+                    'docstring': self.py_func.__doc__
+                }
+                return info
+
+        typingctx = cuda_target.typingctx
+        typingctx.insert_user_function(self, device_function_template)
+
     def configure(self, griddim, blockdim, stream=0, sharedmem=0):
         griddim, blockdim = normalize_kernel_dimensions(griddim, blockdim)
         return _KernelConfiguration(self, griddim, blockdim, stream, sharedmem)
@@ -1073,12 +1103,36 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
             return {sig: defn.regs_per_thread
                     for sig, defn in self.definitions.items()}
 
-    def compile(self, sig):
+    def compile(self, sig, device=False):
         '''
         Compile and bind to the current context a version of this kernel
         specialized for the given signature.
         '''
         argtypes, return_type = sigutils.normalize_signature(sig)
+
+        # XXX: Just pasted this in and edited it from DeviceDispatcher... need
+        # to check logic and test
+        if device:
+            if argtypes not in self.overloads:
+                cres = compile_cuda(self.py_func, None, argtypes,
+                                    debug=self.debug, inline=self.inline)
+                first_definition = not self.overloads
+                self.overloads[argtypes] = cres
+                libs = [cres.library]
+
+                if first_definition:
+                    # First definition
+                    cres.target_context.insert_user_function(self, cres.fndesc,
+                                                             libs)
+                else:
+                    cres.target_context.add_user_function(self, cres.fndesc,
+                                                          libs)
+
+            else:
+                cres = self.overloads[argtypes]
+
+            return cres
+
         assert return_type is None or return_type == types.none
         if self.specialized:
             return next(iter(self.overloads.values()))

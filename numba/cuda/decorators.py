@@ -119,8 +119,8 @@ def jit(func_or_sig=None, device=False, inline=False, link=[], debug=None,
             if config.ENABLE_CUDASIM:
                 return FakeCUDAKernel(func_or_sig, device=device,
                                       fastmath=fastmath)
-            elif device:
-                return jitdevice(func_or_sig, debug=debug, opt=opt, **kws)
+            #elif device:
+            #    return jitdevice(func_or_sig, debug=debug, opt=opt, **kws)
             else:
                 targetoptions = kws.copy()
                 targetoptions['debug'] = debug
