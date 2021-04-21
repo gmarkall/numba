@@ -907,13 +907,14 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
 
     def insert_typing(self):
         from .descriptor import cuda_target
+        dispatcher = self
 
-        class device_function_template(AbstractTemplate):
-            key = self
+        class DispatcherTemplate(AbstractTemplate):
+            key = dispatcher
 
             def generic(self, args, kws):
                 assert not kws
-                return self.compile(args).signature
+                return dispatcher.compile(args, device=True).signature
 
             def get_template_info(cls):
                 basepath = os.path.dirname(os.path.dirname(numba.__file__))
@@ -931,7 +932,30 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
                 return info
 
         typingctx = cuda_target.typingctx
-        typingctx.insert_user_function(self, device_function_template)
+        typingctx.insert_user_function(self, DispatcherTemplate)
+
+    def get_call_template(self, args, kws):
+        # Copied and simplified from _DispatcherBase.get_call_template.
+        """
+        Get a typing.ConcreteTemplate for this dispatcher and the given
+        *args* and *kws* types.  This allows to resolve the return type.
+
+        A (template, pysig, args, kws) tuple is returned.
+        """
+        # Ensure an overload is available
+        self.compile(tuple(args))
+
+        # Create function type for typing
+        func_name = self.py_func.__name__
+        name = "CallTemplate({0})".format(func_name)
+
+        # The `key` isn't really used except for diagnosis here,
+        # so avoid keeping a reference to `cfunc`.
+        call_template = typing.make_concrete_template(
+            name, key=func_name, signatures=self.nopython_signatures)
+        pysig = utils.pysignature(self.py_func)
+
+        return call_template, pysig, args, kws
 
     def configure(self, griddim, blockdim, stream=0, sharedmem=0):
         griddim, blockdim = normalize_kernel_dimensions(griddim, blockdim)
@@ -1110,12 +1134,18 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         '''
         argtypes, return_type = sigutils.normalize_signature(sig)
 
+        breakpoint()
+
         # XXX: Just pasted this in and edited it from DeviceDispatcher... need
         # to check logic and test
         if device:
             if argtypes not in self.overloads:
+                debug = self.targetoptions.get('debug', False)
+                # inline was always False in the case from which we've lifted
+                # this code
+                inline = False
                 cres = compile_cuda(self.py_func, None, argtypes,
-                                    debug=self.debug, inline=self.inline)
+                                    debug=debug, inline=inline)
                 first_definition = not self.overloads
                 self.overloads[argtypes] = cres
                 libs = [cres.library]
