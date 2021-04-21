@@ -943,7 +943,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         A (template, pysig, args, kws) tuple is returned.
         """
         # Ensure an overload is available
-        self.compile(tuple(args))
+        self.compile(tuple(args), device=True)
 
         # Create function type for typing
         func_name = self.py_func.__name__
@@ -956,6 +956,13 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         pysig = utils.pysignature(self.py_func)
 
         return call_template, pysig, args, kws
+
+    def get_overload(self, sig):
+        # NOTE: This dispatcher seems to be used as the key for the dict of
+        # implementations elsewhere in Numba, so we return this dispatcher
+        # instead of a compiled entry point as in
+        # _DispatcherBase.get_overload().
+        return self
 
     def configure(self, griddim, blockdim, stream=0, sharedmem=0):
         griddim, blockdim = normalize_kernel_dimensions(griddim, blockdim)
@@ -1134,7 +1141,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         '''
         argtypes, return_type = sigutils.normalize_signature(sig)
 
-        breakpoint()
+        #breakpoint()
 
         # XXX: Just pasted this in and edited it from DeviceDispatcher... need
         # to check logic and test
