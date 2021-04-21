@@ -879,7 +879,9 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         pysig = utils.pysignature(py_func)
         arg_count = len(pysig.parameters)
         argnames = tuple(pysig.parameters)
-        default_values = self.py_func.__defaults__ or ()
+        default_values = getattr(self.py_func, '__defaults__', None)
+        if default_values is None:
+            default_values = ()
         defargs = tuple(OmittedArg(val) for val in default_values)
         can_fallback = False # CUDA cannot fallback to object mode
 
