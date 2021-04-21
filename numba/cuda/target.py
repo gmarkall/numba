@@ -11,7 +11,7 @@ from numba.core.typing import cmathdecl
 
 from .cudadrv import nvvm
 from numba.cuda import codegen, nvvmutils
-from .decorators import jitdevice
+from numba.cuda.compiler import Dispatcher
 from numba.cpython import cmathimpl
 
 
@@ -33,18 +33,17 @@ class CUDATypingContext(typing.BaseContext):
         if isinstance(val, dispatcher.Dispatcher):
             try:
                 # use cached device function
-                val = val.__cudajitdevice
+                val = val.__cudadispatcher
             except AttributeError:
                 if not val._can_compile:
                     raise ValueError('using cpu function on device '
                                      'but its compilation is disabled')
-                opt = val.targetoptions.get('opt', True)
-                jd = jitdevice(val, debug=val.targetoptions.get('debug'),
-                               opt=opt)
+                sigs = None
+                cudadispatcher = Dispatcher(val, sigs, val.targetoptions)
                 # cache the device function for future use and to avoid
                 # duplicated copy of the same function.
-                val.__cudajitdevice = jd
-                val = jd
+                val.__cudadispatcher = cudadispatcher
+                val = cudadispatcher
 
         # continue with parent logic
         return super(CUDATypingContext, self).resolve_value_type(val)

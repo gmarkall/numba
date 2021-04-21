@@ -9,24 +9,6 @@ _msg_deprecated_signature_arg = ("Deprecated keyword argument `{0}`. "
                                  "positional argument.")
 
 
-def jitdevice(func, link=[], debug=None, inline=False, opt=True,
-              no_cpython_wrapper=None):
-    """Wrapper for device-jit.
-    """
-    # We ignore  the no_cpython_wrapper kwarg - it is passed by the callee when
-    # using overloads, but there is never a CPython wrapper for CUDA anyway.
-    debug = config.CUDA_DEBUGINFO_DEFAULT if debug is None else debug
-    if link:
-        raise ValueError("link keyword invalid for device function")
-    targetoptions = {
-        'debug': debug,
-        'inline': inline,
-        'opt': opt,
-    }
-    sigs = None
-    return Dispatcher(func, sigs, targetoptions)
-
-
 def jit(func_or_sig=None, device=False, inline=False, link=[], debug=None,
         opt=True, **kws):
     """
