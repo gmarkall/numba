@@ -237,6 +237,8 @@ def compile_device(pyfunc, return_type, args, inline=True, debug=False):
     return DeviceFunction(pyfunc, return_type, args, inline=True, debug=False)
 
 
+# Used when linking in PTX code from elsewhere - allows one to tell Numba the
+# "prototype" of the function.
 def declare_device_function(name, restype, argtypes):
     from .descriptor import cuda_target
     typingctx = cuda_target.typing_context
