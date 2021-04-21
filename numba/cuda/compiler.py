@@ -13,7 +13,7 @@ from numba.core import (types, typing, utils, funcdesc, serialize, config,
                         compiler, sigutils)
 from numba.core.typeconv.rules import default_type_manager
 from numba.core.compiler import (CompilerBase, DefaultPassBuilder,
-                                 compile_result, Flags, Option)
+                                 compile_result, CompileResult, Flags, Option)
 from numba.core.compiler_lock import global_compiler_lock
 from numba.core.compiler_machinery import (LoweringPass, PassManager,
                                            register_pass)
@@ -903,6 +903,9 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
             self.compile(sigs[0])
             self._can_compile = False
 
+        name = getattr(py_func, '__name__', 'unknown')
+        self.__name__ = f"{name} <CUDA function>".format(name)
+
         self.insert_typing()
 
     def insert_typing(self):
@@ -963,6 +966,9 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         # instead of a compiled entry point as in
         # _DispatcherBase.get_overload().
         return self
+
+    def inspect_ptx(self, args):
+        return self.compile(args, device=True).library.get_asm_str().encode()
 
     def configure(self, griddim, blockdim, stream=0, sharedmem=0):
         griddim, blockdim = normalize_kernel_dimensions(griddim, blockdim)
@@ -1208,7 +1214,12 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
             warn('passing compute_capability has no effect on the LLVM IR',
                  category=NumbaDeprecationWarning)
         if signature is not None:
-            return self.overloads[signature].inspect_llvm()
+            overload = self.overloads[signature]
+            if isinstance(overload, CompileResult):
+                modules = overload.library.modules
+                return "\n\n".join([str(mod) for mod in modules])
+            else:
+                return overload.inspect_llvm()
         elif self.specialized:
             warn('inspect_llvm will always return a dict in future',
                  category=NumbaDeprecationWarning)
