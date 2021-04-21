@@ -25,7 +25,7 @@ from warnings import warn
 import numba
 from .cudadrv.devices import get_context
 from .cudadrv.libs import get_cudalib
-from .cudadrv import nvvm, driver
+from .cudadrv import driver
 from .errors import missing_launch_config_msg, normalize_kernel_dimensions
 from .api import get_current_device
 from .args import wrap_arg
@@ -230,164 +230,6 @@ def compile_ptx_for_current_device(pyfunc, args, debug=False, device=False,
     cc = get_current_device().compute_capability
     return compile_ptx(pyfunc, args, debug=-debug, device=device,
                        fastmath=fastmath, cc=cc, opt=True)
-
-
-class DeviceDispatcher(serialize.ReduceMixin):
-    """Unmaterialized device function
-    """
-    def __init__(self, pyfunc, debug, inline, opt):
-        self.py_func = pyfunc
-        self.debug = debug
-        self.inline = inline
-        self.opt = opt
-        self.overloads = {}
-        name = getattr(pyfunc, '__name__', 'unknown')
-        self.__name__ = f"{name} <CUDA device function>".format(name)
-
-    def _reduce_states(self):
-        return dict(py_func=self.py_func, debug=self.debug, inline=self.inline)
-
-    @classmethod
-    def _rebuild(cls, py_func, debug, inline):
-        return compile_device_dispatcher(py_func, debug=debug, inline=inline)
-
-    def get_call_template(self, args, kws):
-        # Copied and simplified from _DispatcherBase.get_call_template.
-        """
-        Get a typing.ConcreteTemplate for this dispatcher and the given
-        *args* and *kws* types.  This allows to resolve the return type.
-
-        A (template, pysig, args, kws) tuple is returned.
-        """
-        # Ensure an overload is available
-        self.compile(tuple(args))
-
-        # Create function type for typing
-        func_name = self.py_func.__name__
-        name = "CallTemplate({0})".format(func_name)
-
-        # The `key` isn't really used except for diagnosis here,
-        # so avoid keeping a reference to `cfunc`.
-        call_template = typing.make_concrete_template(
-            name, key=func_name, signatures=self.nopython_signatures)
-        pysig = utils.pysignature(self.py_func)
-
-        return call_template, pysig, args, kws
-
-    @property
-    def nopython_signatures(self):
-        # All overloads are for nopython mode, because there is only
-        # nopython mode in CUDA
-        return [info.signature for info in self.overloads.values()]
-
-    def get_overload(self, sig):
-        # NOTE: This dispatcher seems to be used as the key for the dict of
-        # implementations elsewhere in Numba, so we return this dispatcher
-        # instead of a compiled entry point as in
-        # _DispatcherBase.get_overload().
-        return self
-
-    def compile(self, args):
-        """Compile the function for the given argument types.
-
-        Each signature is compiled once by caching the compiled function inside
-        this object.
-
-        Returns the `CompileResult`.
-        """
-        if args not in self.overloads:
-            cres = compile_cuda(self.py_func, None, args, debug=self.debug,
-                                inline=self.inline)
-            first_definition = not self.overloads
-            self.overloads[args] = cres
-            libs = [cres.library]
-
-            if first_definition:
-                # First definition
-                cres.target_context.insert_user_function(self, cres.fndesc,
-                                                         libs)
-            else:
-                cres.target_context.add_user_function(self, cres.fndesc, libs)
-
-        else:
-            cres = self.overloads[args]
-
-        return cres
-
-    def inspect_llvm(self, args):
-        """Returns the LLVM-IR text compiled for *args*.
-
-        Parameters
-        ----------
-        args: tuple[Type]
-            Argument types.
-
-        Returns
-        -------
-        llvmir : str
-        """
-        # Force a compilation to occur if none has yet - this can be needed if
-        # the user attempts to inspect LLVM IR or PTX before the function has
-        # been called for the given arguments from a jitted kernel.
-        self.compile(args)
-        cres = self.overloads[args]
-        return "\n\n".join([str(mod) for mod in cres.library.modules])
-
-    def inspect_ptx(self, args, nvvm_options={}):
-        """Returns the PTX compiled for *args* for the currently active GPU
-
-        Parameters
-        ----------
-        args: tuple[Type]
-            Argument types.
-
-        Returns
-        -------
-        ptx : bytes
-        """
-        llvmir = self.inspect_llvm(args)
-        # Make PTX
-        cuctx = get_context()
-        device = cuctx.device
-        cc = device.compute_capability
-        arch = nvvm.get_arch_option(*cc)
-        opt = 3 if self.opt else 0
-        ptx = nvvm.llvm_to_ptx(llvmir, opt=opt, arch=arch, **nvvm_options)
-        return ptx
-
-
-def compile_device_dispatcher(pyfunc, debug=False, inline=False, opt=True):
-    """Create a DeviceDispatcher and register it to the CUDA typing context.
-    """
-    from .descriptor import cuda_target
-
-    dispatcher = DeviceDispatcher(pyfunc, debug=debug, inline=inline, opt=opt)
-
-    class device_function_template(AbstractTemplate):
-        key = dispatcher
-
-        def generic(self, args, kws):
-            assert not kws
-            return dispatcher.compile(args).signature
-
-        def get_template_info(cls):
-            basepath = os.path.dirname(os.path.dirname(numba.__file__))
-            code, firstlineno = inspect.getsourcelines(pyfunc)
-            path = inspect.getsourcefile(pyfunc)
-            sig = str(utils.pysignature(pyfunc))
-            info = {
-                'kind': "overload",
-                'name': getattr(cls.key, '__name__', "unknown"),
-                'sig': sig,
-                'filename': utils.safe_relpath(path, start=basepath),
-                'lines': (firstlineno, firstlineno + len(code) - 1),
-                'docstring': pyfunc.__doc__
-            }
-            return info
-
-    typingctx = cuda_target.typing_context
-    typingctx.insert_user_function(dispatcher, device_function_template)
-    return dispatcher
 
 
 def compile_device(pyfunc, return_type, args, inline=True, debug=False):
@@ -936,7 +778,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
                 }
                 return info
 
-        typingctx = cuda_target.typingctx
+        typingctx = cuda_target.typing_context
         typingctx.insert_user_function(self, DispatcherTemplate)
 
     def get_call_template(self, args, kws):
