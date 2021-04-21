@@ -1,5 +1,7 @@
 from numba import cuda
+from numba.core import sigutils
 from numba.cuda import dispatcher
+from numba.cuda.compiler import compile_device
 from numba.np.ufunc import deviceufunc
 
 vectorizer_stager_source = '''
@@ -12,7 +14,8 @@ def __vectorized_{name}({args}, __out__):
 
 class CUDAVectorize(deviceufunc.DeviceVectorize):
     def _compile_core(self, sig):
-        cudevfn = cuda.jit(sig, device=True, inline=True)(self.pyfunc)
+        argtypes, return_type = sigutils.normalize_signature(sig)
+        cudevfn = compile_device(self.pyfunc, return_type, argtypes)
         return cudevfn, cudevfn.cres.signature.return_type
 
     def _get_globals(self, corefn):
@@ -57,7 +60,8 @@ class CUDAGUFuncVectorize(deviceufunc.DeviceGUFuncVectorize):
         return _gufunc_stager_source
 
     def _get_globals(self, sig):
-        corefn = cuda.jit(sig, device=True)(self.pyfunc)
+        argtypes, return_type = sigutils.normalize_signature(sig)
+        corefn = compile_device(self.pyfunc, return_type, argtypes)
         glbls = self.py_func.__globals__.copy()
         glbls.update({'__cuda__': cuda,
                       '__core__': corefn})

@@ -233,6 +233,7 @@ def compile_ptx_for_current_device(pyfunc, args, debug=False, device=False,
 
 
 def compile_device(pyfunc, return_type, args, inline=True, debug=False):
+    # XXX: This still exists because it is used by CUDA ufuncs
     return DeviceFunction(pyfunc, return_type, args, inline=True, debug=False)
 
 

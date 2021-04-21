@@ -1,8 +1,8 @@
 from numba.core import types, config, sigutils
-from numba.core.errors import DeprecationError
+from numba.core.errors import DeprecationError, NumbaDeprecationWarning
 from .compiler import compile_device, declare_device_function, Dispatcher
 from .simulator.kernel import FakeCUDAKernel
-
+from warnings import warn
 
 _msg_deprecated_signature_arg = ("Deprecated keyword argument `{0}`. "
                                  "Signatures should be passed as the first "
@@ -87,6 +87,9 @@ def jit(func_or_sig=None, device=False, inline=False, link=[], debug=None,
                                   debug=debug)
 
         if device:
+            msg = ("Compiling a device function for a specific signature is "
+                   "deprecated. Use compile_ptx() instead")
+            warn(msg, category=NumbaDeprecationWarning)
             return device_jit
         else:
             return kernel_jit
