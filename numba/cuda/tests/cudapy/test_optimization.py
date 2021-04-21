@@ -75,6 +75,7 @@ class TestOptimization(CUDATestCase):
         device = cuda.jit(device=True, opt=False)(device_func)
         ptx = device.inspect_ptx((float64, float64, float64)).decode('utf-8')
         # Fused-multiply adds should be disabled when not optimizing
+        print(ptx)
         self.assertNotIn('fma.rn.f64', ptx)
 
 

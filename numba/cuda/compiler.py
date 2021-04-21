@@ -1157,8 +1157,13 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
                 # inline was always False in the case from which we've lifted
                 # this code
                 inline = False
+                nvvm_options = {
+                    'opt': self.targetoptions.get('opt', 3),
+                    'debug': self.targetoptions.get('debug', False),
+                }
                 cres = compile_cuda(self.py_func, None, argtypes,
-                                    debug=debug, inline=inline)
+                                    debug=debug, inline=inline,
+                                    nvvm_options=nvvm_options)
                 first_definition = not self.overloads
                 self.overloads[argtypes] = cres
                 libs = [cres.library]
