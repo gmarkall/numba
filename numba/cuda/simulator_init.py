@@ -7,7 +7,7 @@ from .simulator.kernel import FakeCUDAKernel
 
 
 def jit(func_or_sig=None, device=False, inline=False, link=[], debug=None,
-        opt=True, **kws):
+        opt=True, fastmath=False, **kws):
     """
     JIT compile a python function conforming to the CUDA Python specification.
     If a signature is supplied, then a function is returned that takes a
@@ -47,23 +47,12 @@ def jit(func_or_sig=None, device=False, inline=False, link=[], debug=None,
     if kws.get('boundscheck'):
         raise NotImplementedError("bounds checking is not supported for CUDA")
 
-    fastmath = kws.get('fastmath', False)
-
-    if sigutils.is_signature(func_or_sig):
+    if func_or_sig is None or sigutils.is_signature(func_or_sig):
         def jitwrapper(func):
             return FakeCUDAKernel(func, device=device, fastmath=fastmath)
         return jitwrapper
     else:
-        if func_or_sig is None:
-            def autojitwrapper(func):
-                return FakeCUDAKernel(func, device=device, fastmath=fastmath)
-            return autojitwrapper
-        # func_or_sig is a function
-        else:
-            return FakeCUDAKernel(func_or_sig, device=device,
-                                  fastmath=fastmath)
-
-    breakpoint()
+        return FakeCUDAKernel(func_or_sig, device=device, fastmath=fastmath)
 
 
 def is_available():
