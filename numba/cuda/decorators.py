@@ -1,7 +1,6 @@
 from numba.core import types, config, sigutils
-from numba.core.errors import DeprecationError, NumbaDeprecationWarning
-from .compiler import compile_device, declare_device_function, Dispatcher
-from .simulator.kernel import FakeCUDAKernel
+from numba.core.errors import NumbaDeprecationWarning
+from .compiler import compile_device, Dispatcher
 from warnings import warn
 
 _msg_deprecated_signature_arg = ("Deprecated keyword argument `{0}`. "
@@ -44,31 +43,13 @@ def jit(func_or_sig=None, device=False, inline=False, link=[], debug=None,
     :type opt: bool
     """
 
-    if link and config.ENABLE_CUDASIM:
-        raise NotImplementedError('Cannot link PTX in the simulator')
-
     if kws.get('boundscheck'):
         raise NotImplementedError("bounds checking is not supported for CUDA")
-
-    if kws.get('argtypes') is not None:
-        msg = _msg_deprecated_signature_arg.format('argtypes')
-        raise DeprecationError(msg)
-    if kws.get('restype') is not None:
-        msg = _msg_deprecated_signature_arg.format('restype')
-        raise DeprecationError(msg)
-    if kws.get('bind') is not None:
-        msg = _msg_deprecated_signature_arg.format('bind')
-        raise DeprecationError(msg)
 
     debug = config.CUDA_DEBUGINFO_DEFAULT if debug is None else debug
     fastmath = kws.get('fastmath', False)
 
     if sigutils.is_signature(func_or_sig):
-        if config.ENABLE_CUDASIM:
-            def jitwrapper(func):
-                return FakeCUDAKernel(func, device=device, fastmath=fastmath)
-            return jitwrapper
-
         argtypes, restype = sigutils.normalize_signature(func_or_sig)
 
         if restype and not device and restype != types.void:
@@ -95,31 +76,16 @@ def jit(func_or_sig=None, device=False, inline=False, link=[], debug=None,
             return kernel_jit
     else:
         if func_or_sig is None:
-            if config.ENABLE_CUDASIM:
-                def autojitwrapper(func):
-                    return FakeCUDAKernel(func, device=device,
-                                          fastmath=fastmath)
-            else:
-                def autojitwrapper(func):
-                    return jit(func, device=device, debug=debug, opt=opt, **kws)
+            def autojitwrapper(func):
+                return jit(func, device=device, debug=debug, opt=opt, **kws)
 
             return autojitwrapper
         # func_or_sig is a function
         else:
-            if config.ENABLE_CUDASIM:
-                return FakeCUDAKernel(func_or_sig, device=device,
-                                      fastmath=fastmath)
-            else:
-                targetoptions = kws.copy()
-                targetoptions['debug'] = debug
-                targetoptions['opt'] = opt
-                targetoptions['link'] = link
-                targetoptions['fastmath'] = fastmath
-                sigs = None
-                return Dispatcher(func_or_sig, sigs,
-                                  targetoptions=targetoptions)
-
-
-def declare_device(name, sig):
-    argtypes, restype = sigutils.normalize_signature(sig)
-    return declare_device_function(name, restype, argtypes)
+            targetoptions = kws.copy()
+            targetoptions['debug'] = debug
+            targetoptions['opt'] = opt
+            targetoptions['link'] = link
+            targetoptions['fastmath'] = fastmath
+            sigs = None
+            return Dispatcher(func_or_sig, sigs, targetoptions=targetoptions)

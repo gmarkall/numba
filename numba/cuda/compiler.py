@@ -257,6 +257,11 @@ def declare_device_function(name, restype, argtypes):
     return extfn
 
 
+def declare_device(name, sig):
+    argtypes, restype = sigutils.normalize_signature(sig)
+    return declare_device_function(name, restype, argtypes)
+
+
 class DeviceFunction(serialize.ReduceMixin):
 
     def __init__(self, pyfunc, return_type, args, inline, debug):
