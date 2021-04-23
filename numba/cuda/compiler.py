@@ -233,8 +233,11 @@ def compile_ptx_for_current_device(pyfunc, args, debug=False, device=False,
 
 
 def compile_device(pyfunc, return_type, args, inline=True, debug=False):
-    # XXX: This still exists because it is used by CUDA ufuncs
-    return DeviceFunction(pyfunc, return_type, args, inline=True, debug=False)
+    args = args or ((),)
+    return_type = return_type or types.none
+    sigs = [return_type(*args)]
+    targetoptions = {'debug': debug}
+    return Dispatcher(pyfunc, sigs, targetoptions, device=True)
 
 
 # Used when linking in PTX code from elsewhere - allows one to tell Numba the
@@ -255,6 +258,12 @@ def declare_device_function(name, restype, argtypes):
     typingctx.insert_user_function(extfn, device_function_template)
     targetctx.insert_user_function(extfn, fndesc)
     return extfn
+
+
+class ExternFunction(object):
+    def __init__(self, name, sig):
+        self.name = name
+        self.sig = sig
 
 
 def declare_device(name, sig):
@@ -295,11 +304,6 @@ class DeviceFunction(serialize.ReduceMixin):
         fmt = "<DeviceFunction py_func={0} signature={1}>"
         return fmt.format(self.py_func, self.cres.signature)
 
-
-class ExternFunction(object):
-    def __init__(self, name, sig):
-        self.name = name
-        self.sig = sig
 
 
 class ForAll(object):
@@ -702,7 +706,9 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
     # cases.
     _fold_args = False
 
-    def __init__(self, py_func, sigs, targetoptions):
+    # XXX: device= kwarg only used for compile_device - it "knows" in other
+    # cases what it is.
+    def __init__(self, py_func, sigs, targetoptions, device=False):
         self.py_func = py_func
         self.sigs = []
         self.link = targetoptions.pop('link', (),)
@@ -752,7 +758,7 @@ class Dispatcher(_dispatcher.Dispatcher, serialize.ReduceMixin):
         if sigs:
             if len(sigs) > 1:
                 raise TypeError("Only one signature supported at present")
-            self.compile(sigs[0])
+            self.compile(sigs[0], device=device)
             self._can_compile = False
 
         name = getattr(py_func, '__name__', 'unknown')
