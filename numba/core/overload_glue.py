@@ -175,6 +175,8 @@ class _OverloadWrapper(object):
             exec(gen, g, l)
             return l['jit_wrapper_{}'.format(name)]
 
+import threading
+gluer_global_lock = threading.RLock()
 
 class _Gluer:
     """This is a helper class to make sure that each concrete overload has only
@@ -183,16 +185,17 @@ class _Gluer:
         self._registered = dict()
 
     def __call__(self, func, typing_key=None):
-        if typing_key is None:
-            key = func
-        else:
-            key = typing_key
-        if key in self._registered:
-            return self._registered[key]
-        else:
-            wrapper = _OverloadWrapper(func, typing_key=typing_key)
-            self._registered[key] = wrapper
-            return wrapper
+        with gluer_global_lock:
+            if typing_key is None:
+                key = func
+            else:
+                key = typing_key
+            if key in self._registered:
+                return self._registered[key]
+            else:
+                wrapper = _OverloadWrapper(func, typing_key=typing_key)
+                self._registered[key] = wrapper
+                return wrapper
 
 
 _overload_glue = _Gluer()
@@ -202,9 +205,15 @@ del _Gluer
 _no_defer = set()
 
 
+import threading
+
 def glue_typing(concrete_function, typing_key=None):
     """This is a decorator for wrapping the typing part for a concrete function
     'concrete_function', it's a text-only replacement for '@infer_global'"""
+    
+    #if 'ones' in str(concrete_function):
+    #    print(f"{threading.current_thread()} Glue typing ones")
+
     return _overload_glue(concrete_function,
                           typing_key=typing_key).wrap_typing()
 
@@ -217,6 +226,9 @@ def glue_lowering(*args):
     a concrete function. 'args[0]' is the concrete_function, 'args[1:]' are the
     types the lowering will accept. This acts as a text-only replacement for
     '@lower/@lower_builtin'"""
+
+    #if 'ones' in str(args):
+    #    print(f"{threading.current_thread()} Glue lowering ones")
 
     def wrap(fn):
         d = _deferred_lowering

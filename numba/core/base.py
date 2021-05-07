@@ -171,6 +171,20 @@ def _load_global_helpers():
             ll.add_symbol("PyExc_%s" % (obj.__name__), id(obj))
 
 
+import threading
+
+class nb_defaultdict(defaultdict):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.lock = threading.RLock()
+
+    def __getitem__(self, key):
+        with self.lock:
+            return super().__getitem__(key)
+
+global_lock = threading.RLock()
+
+
 class BaseContext(object):
     """
 
@@ -229,7 +243,18 @@ class BaseContext(object):
     # the function descriptor
     fndesc = None
 
+    #def __new__(cls, *args, **kwargs):
+    #    print(f"{threading.current_thread()} making a new context")
+    #    import traceback
+    #    traceback.print_stack()#
+#
+ #       return object.__new__(cls)
+
     def __init__(self, typing_context, target):
+        #print(f"{threading.current_thread()} initing a new context")
+        #import traceback
+        #traceback.print_stack()
+
         _load_global_helpers()
 
         self.address_size = utils.MACHINE_BITS
@@ -241,9 +266,9 @@ class BaseContext(object):
         # A mapping of installed registries to their loaders
         self._registries = {}
         # Declarations loaded from registries and other sources
-        self._defns = defaultdict(OverloadSelector)
-        self._getattrs = defaultdict(OverloadSelector)
-        self._setattrs = defaultdict(OverloadSelector)
+        self._defns_ = nb_defaultdict(OverloadSelector)
+        self._getattrs = nb_defaultdict(OverloadSelector)
+        self._setattrs = nb_defaultdict(OverloadSelector)
         self._casts = OverloadSelector()
         self._get_constants = OverloadSelector()
         # Other declarations
@@ -259,6 +284,10 @@ class BaseContext(object):
 
         # Initialize
         self.init()
+
+    @property
+    def _defns(self):
+        return self._defns_
 
     def init(self):
         """
@@ -347,6 +376,7 @@ class BaseContext(object):
 
     def subtarget(self, **kws):
         obj = copy.copy(self)  # shallow copy
+        assert obj._defns is self._defns
         for k, v in kws.items():
             if not hasattr(obj, k):
                 raise NameError("unknown option {0!r}".format(k))
@@ -361,16 +391,17 @@ class BaseContext(object):
         Install a *registry* (a imputils.Registry instance) of function
         and attribute implementations.
         """
-        try:
-            loader = self._registries[registry]
-        except KeyError:
-            loader = RegistryLoader(registry)
-            self._registries[registry] = loader
-        self.insert_func_defn(loader.new_registrations('functions'))
-        self._insert_getattr_defn(loader.new_registrations('getattrs'))
-        self._insert_setattr_defn(loader.new_registrations('setattrs'))
-        self._insert_cast_defn(loader.new_registrations('casts'))
-        self._insert_get_constant_defn(loader.new_registrations('constants'))
+        with global_lock:
+            try:
+                loader = self._registries[registry]
+            except KeyError:
+                loader = RegistryLoader(registry)
+                self._registries[registry] = loader
+            self.insert_func_defn(loader.new_registrations('functions'))
+            self._insert_getattr_defn(loader.new_registrations('getattrs'))
+            self._insert_setattr_defn(loader.new_registrations('setattrs'))
+            self._insert_cast_defn(loader.new_registrations('casts'))
+            self._insert_get_constant_defn(loader.new_registrations('constants'))
 
     def insert_func_defn(self, defns):
         for impl, func, sig in defns:
@@ -549,6 +580,13 @@ class BaseContext(object):
             key = fn
             overloads = self._defns[key]
 
+        #if 'ones_at_0x' in str(key):
+        #    print(f'{threading.current_thread()} - Number of overloads: {len(overloads.versions)} {fn}')
+        #    print(f'{threading.current_thread()} Overloads ID is   {id(overloads)}')
+        #    print(f'{threading.current_thread()} Definitions ID is {id(self._defns)} ({len(self._defns)})')
+        #    print(f'{threading.current_thread()} Context ID is     {id(self)}')
+        #    #print(f'{threading.current_thread()} Key is {key}')
+
         try:
             return _wrap_impl(overloads.find(sig.args), self, sig)
         except NotImplementedError:
@@ -567,7 +605,10 @@ class BaseContext(object):
             self.refresh()
             return self.get_function(fn, sig, _firstcall=False)
 
-        raise NotImplementedError("No definition for lowering %s%s" % (key, sig))
+
+
+        msg = "\n".join([f"{v}" for v in overloads.versions])
+        raise NotImplementedError(f"No definition for lowering {key}{sig}  {fn} versions ({len(overloads.versions)}): {msg}")
 
     def get_generator_desc(self, genty):
         """

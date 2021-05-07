@@ -299,7 +299,11 @@ class UniqueDict(dict):
 # Django's cached_property
 # see https://docs.djangoproject.com/en/dev/ref/utils/#django.utils.functional.cached_property    # noqa: E501
 
-class cached_property(object):
+#import threading
+
+from functools import cached_property
+
+class cached_propertyXXX(object):
     """
     Decorator that converts a method with a single self argument into a
     property cached on the instance.
@@ -310,12 +314,14 @@ class cached_property(object):
     def __init__(self, func, name=None):
         self.func = func
         self.name = name or func.__name__
+        self.lock = threading.RLock()
 
     def __get__(self, instance, type=None):
-        if instance is None:
-            return self
-        res = instance.__dict__[self.name] = self.func(instance)
-        return res
+        with self.lock:
+            if instance is None:
+                return self
+            res = instance.__dict__[self.name] = self.func(instance)
+            return res
 
 
 def runonce(fn):
