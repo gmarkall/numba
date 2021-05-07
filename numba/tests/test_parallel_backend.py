@@ -153,10 +153,8 @@ def chooser(fnlist, **kwargs):
     q = kwargs.get('queue')
     try:
         faulthandler.enable()
-        
-        for _ in range(int(len(fnlist))):
+        for _ in range(int(len(fnlist) * 1.5)):
             fn = random.choice(fnlist)
-            #print(fn, file=sys.stderr)
             fn()
     except Exception as e:
         q.put(e)
@@ -168,7 +166,6 @@ def compile_factory(parallel_class, queue_impl):
         kws = {'queue': q}
         ths = [parallel_class(target=chooser, args=(fnlist,), kwargs=kws)
                for i in range(4)]
-        #print(f"Parallel class: {parallel_class}", file=sys.stderr)
         for th in ths:
             th.start()
         for th in ths:
@@ -178,8 +175,7 @@ def compile_factory(parallel_class, queue_impl):
             while not q.empty():
                 errors.append(q.get(False))
             _msg = "Error(s) occurred in delegated runner:\n%s"
-            [print(x) for x in errors]
-            raise RuntimeError("Whoops") #_msg % '\n'.join([repr(x) for x in errors]))
+            raise RuntimeError(_msg % '\n'.join([repr(x) for x in errors]))
     return run_compile
 
 
@@ -329,19 +325,6 @@ class TestParallelBackend(TestParallelBackendBase):
 
                 def methgen(impl, p):
                     def test_method(self):
-                        #state = random.getstate()
-                        import pickle
-                        import datetime
-                        #now = datetime.datetime.now()
-                        #fname = f"{now.timestamp()}.pickle"
-                        #print(f"Filename is: {fname}")
-                        #with open(fname, 'wb') as f:
-                        #    pickle.dump(state, f)
-
-                        fname = "1620393897.661826.pickle"
-                        with open(fname, 'rb') as f:
-                            random.setstate(pickle.load(f))
-
                         selfproc = multiprocessing.current_process()
                         # daemonized processes cannot have children
                         if selfproc.daemon:

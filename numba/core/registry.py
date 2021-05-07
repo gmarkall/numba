@@ -12,9 +12,6 @@ class _NestedContext(object):
 
     @contextlib.contextmanager
     def nested(self, typing_context, target_context):
-        yield
-        return
-        
         old_nested = self._typing_context, self._target_context
         try:
             self._typing_context = typing_context
