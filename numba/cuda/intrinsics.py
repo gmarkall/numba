@@ -111,7 +111,7 @@ def _warpsize(typingctx):
     return sig, codegen
 
 
-@overload_attribute(types.Module(cuda), 'warpsize')
+@overload_attribute(types.Module(cuda), 'warpsize', hardware='generic')
 def cuda_warpsize(mod):
     '''
     The size of a warp. All architectures implemented to date have a warp size
