@@ -62,6 +62,7 @@ from numba.cpython.unicode_support import (_Py_TOUPPER, _Py_TOLOWER, _Py_UCS4,
                                            _PyUnicode_IsDigit,
                                            _PyUnicode_IsDecimalDigit)
 from numba.cpython import slicing
+from  numba import njit
 
 
 _py38_or_later = utils.PYVERSION >= (3, 8)
@@ -222,19 +223,19 @@ def make_deref_codegen(bitsize):
     return codegen
 
 
-@intrinsic
+@intrinsic(target='generic')
 def deref_uint8(typingctx, data, offset):
     sig = types.uint32(types.voidptr, types.intp)
     return sig, make_deref_codegen(8)
 
 
-@intrinsic
+@intrinsic(target='generic')
 def deref_uint16(typingctx, data, offset):
     sig = types.uint32(types.voidptr, types.intp)
     return sig, make_deref_codegen(16)
 
 
-@intrinsic
+@intrinsic(target='generic')
 def deref_uint32(typingctx, data, offset):
     sig = types.uint32(types.voidptr, types.intp)
     return sig, make_deref_codegen(32)
@@ -280,7 +281,7 @@ def _empty_string(kind, length, is_ascii=0):
 
 
 # Disable RefCt for performance.
-@register_jitable(_nrt=False)
+@njit(_nrt=False)
 def _get_code_point(a, i):
     if a._kind == PY_UNICODE_1BYTE_KIND:
         return deref_uint8(a._data, i)
@@ -384,7 +385,7 @@ def _kind_to_byte_width(kind):
         raise AssertionError("Unexpected unicode encoding encountered")
 
 
-@register_jitable(_nrt=False)
+@njit(_nrt=False)
 def _cmp_region(a, a_offset, b, b_offset, n):
     if n == 0:
         return 0
@@ -540,13 +541,13 @@ def unicode_ge(a, b):
         return ge_impl
 
 
-@overload(operator.contains)
+@overload(operator.contains, target='generic')
 def unicode_contains(a, b):
     if isinstance(a, types.UnicodeType) and isinstance(b, types.UnicodeType):
-        def contains_impl(a, b):
+        def contains_impl_unicode(a, b):
             # note parameter swap: contains(a, b) == b in a
             return _find(a, b) > -1
-        return contains_impl
+        return contains_impl_unicode
 
 
 def unicode_idx_check_type(ty, name):
@@ -595,7 +596,7 @@ def generate_finder(find_func):
     return impl
 
 
-@register_jitable
+@njit
 def _finder(data, substr, start, end):
     """Left finder."""
     if len(substr) == 0:
@@ -617,7 +618,7 @@ def _rfinder(data, substr, start, end):
     return -1
 
 
-_find = register_jitable(generate_finder(_finder))
+_find = njit(generate_finder(_finder))
 _rfind = register_jitable(generate_finder(_rfinder))
 
 
@@ -810,7 +811,7 @@ def unicode_startswith(a, b):
 
 
 # https://github.com/python/cpython/blob/201c8f79450628241574fba940e08107178dc3a5/Objects/unicodeobject.c#L9342-L9354    # noqa: E501
-@register_jitable
+@njit
 def _adjust_indices(length, start, end):
     if end > length:
         end = length

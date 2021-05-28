@@ -244,6 +244,7 @@ class BaseContext(object):
 
         if isinstance(func, types.Callable):
             # XXX fold this into the __call__ attribute logic?
+            print(f"Resolving call type, {func} == {args} -- {kws}")
             return func.get_call_type(self, args, kws)
 
     def _get_attribute_templates(self, typ):
