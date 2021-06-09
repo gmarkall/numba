@@ -18,6 +18,14 @@ from numba.cuda import codegen, nvvmutils
 
 
 class CUDATypingContext(typing.BaseContext):
+
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
     def load_additional_registries(self):
         from . import cudadecl, cudamath, libdevicedecl
 
@@ -58,6 +66,13 @@ VALID_CHARS = re.compile(r'[^a-z0-9]', re.I)
 class CUDATargetContext(BaseContext):
     implement_powi_as_math_call = True
     strict_alignment = True
+
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+        return cls._instance
 
     def __init__(self, typingctx, target='cuda'):
         super().__init__(typingctx, target)
