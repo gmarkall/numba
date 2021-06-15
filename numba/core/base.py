@@ -171,6 +171,24 @@ def _load_global_helpers():
             ll.add_symbol("PyExc_%s" % (obj.__name__), id(obj))
 
 
+class SubTarget:
+    def __init__(self, target, subtargetoptions):
+        self._target = target
+        self._subtargetoptions = subtargetoptions
+
+    def __getattr__(self, attr):
+        if attr in ('_target', '_subtargetoptions'):
+            return super().__getattr__(attr)
+        if attr in dir(self._subtargetoptions):
+            return self._subtargetoptions[attr]
+        return getattr(self._target, attr)
+
+    def __setattr__(self, attr, value):
+        if attr in ('_target', '_subtargetoptions'):
+            super().__setattr__(attr, value)
+        setattr(self._target, attr, value)
+
+
 class BaseContext(object):
     """
 
@@ -346,6 +364,8 @@ class BaseContext(object):
         return NRTContext(self, self.enable_nrt)
 
     def subtarget(self, **kws):
+        return SubTarget(self, kws)
+
         obj = copy.copy(self)  # shallow copy
         for k, v in kws.items():
             if not hasattr(obj, k):
