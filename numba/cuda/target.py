@@ -86,7 +86,7 @@ class CUDATargetContext(BaseContext):
         # side effect of import needed for numba.cpython.*, the builtins
         # registry is updated at import time.
         from numba.cpython import numbers, tupleobj, slicing # noqa: F401
-        from numba.cpython import rangeobj, unicode # noqa: F401
+        from numba.cpython import rangeobj, iterators, unicode # noqa: F401
         from numba.cpython import cmathimpl
         from numba.np import arrayobj # noqa: F401
         from numba.np import npdatetime # noqa: F401
@@ -179,7 +179,7 @@ class CUDATargetContext(BaseContext):
         wrapfn = ir.Function(wrapper_module, wrapfnty, prefixed)
         builder = ir.IRBuilder(wrapfn.append_basic_block(''))
 
-        if debug:
+        if False: #debug:
             debuginfo = self.DIBuilder(module=wrapper_module, filepath=filename)
             debuginfo.mark_subprogram(wrapfn, kernel_name, linenum)
             debuginfo.mark_location(builder, linenum)
@@ -203,7 +203,7 @@ class CUDATargetContext(BaseContext):
         status, _ = self.call_conv.call_function(
             builder, func, types.void, argtypes, callargs)
 
-        if debug:
+        if False: #debug:
             # Check error status
             with cgutils.if_likely(builder, status.is_ok):
                 builder.ret_void()
@@ -243,7 +243,7 @@ class CUDATargetContext(BaseContext):
 
         nvvm.set_cuda_kernel(wrapfn)
         library.add_ir_module(wrapper_module)
-        if debug:
+        if False: #debug:
             debuginfo.finalize()
         library.finalize()
         wrapfn = library.get_function(wrapfn.name)

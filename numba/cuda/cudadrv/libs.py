@@ -46,6 +46,8 @@ def get_cudalib(lib, platform=None, static=False):
     loader's search mechanism.
     """
     if lib == 'nvvm':
+        return ('/home/gmarkall/numbadev/cuda-installers/'
+                'nvvm-20210625/x86_64_Linux_debug/nvvm/lib64/libnvvm.so.4.0.0')
         return get_cuda_paths()['nvvm'].info or _dllnamepattern % 'nvvm'
     else:
         libdir = get_cuda_paths()['cudalib_dir'].info
