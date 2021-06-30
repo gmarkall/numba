@@ -92,6 +92,7 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         if nvvm_options is None:
             nvvm_options = {}
         self._nvvm_options = nvvm_options
+        print(f"options for {name} are {nvvm_options}")
         self._entry_name = entry_name
 
     def get_llvm_str(self):
@@ -114,17 +115,28 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         options = self._nvvm_options.copy()
         options['arch'] = arch
 
-        irs = [str(mod) for mod in self.modules]
-
         if options.get('debug', False):
             # If we're compiling with debug, we need to compile modules with
             # NVVM one at a time, because it does not support multiple modules
             # with debug enabled:
             # https://docs.nvidia.com/cuda/nvvm-ir-spec/index.html#source-level-debugging-support
-            ptxes = [nvvm.llvm_to_ptx(ir, **options) for ir in irs]
+
+            # First compile the module for this library to PTX
+            ptxes = [nvvm.llvm_to_ptx(str(self._module), **options)]
+
+            # The recursively compile the other modules with the correct
+            # options
+            for library in self.linking_libraries:
+                for mod in library.modules:
+                    lib_opts = options.copy()
+                    lib_opts['debug'] = library._nvvm_options.get('debug',
+                                                                  False)
+                    print(lib_opts)
+                    ptxes.append(nvvm.llvm_to_ptx(str(mod), **lib_opts))
         else:
             # Otherwise, we compile all modules with NVVM at once because this
             # results in better optimization than separate compilation.
+            irs = [str(mod) for mod in self.modules]
             ptxes = [nvvm.llvm_to_ptx(irs, **options)]
 
         # Sometimes the result from NVVM contains trailing whitespace and
@@ -232,8 +244,20 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
 
     @property
     def modules(self):
+        #try:
+        #    return [self._module] + [lib._module for lib in self.linking_libraries]
+        #except:
+        #    breakpoint()
         return [self._module] + [mod for lib in self._linking_libraries
                                  for mod in lib.modules]
+
+    @property
+    def linking_libraries(self):
+        libs = []
+        for lib in self._linking_libraries:
+            libs.extend(lib.linking_libraries)
+            libs.append(lib)
+        return libs
 
     def finalize(self):
         # Unlike the CPUCodeLibrary, we don't invoke the binding layer here -
