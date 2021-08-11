@@ -993,7 +993,6 @@ def _generic_array(context, builder, shape, dtype, symbol_name, addrspace,
         else:
             kshape = [context.get_constant(types.intp, s) for s in shape]
 
-
     # Create array object
     ndim = len(shape)
     aryty = types.Array(dtype=dtype, ndim=ndim, layout='C')
