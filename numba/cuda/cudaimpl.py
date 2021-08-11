@@ -176,16 +176,17 @@ def cuda_shared_array_tuple(context, builder, sig, args):
 
 @lower(cuda.local.array, types.Integer, types.Any)
 def cuda_local_array_integer(context, builder, sig, args):
+    can_dynsized = False
     if isinstance(sig.args[0], types.IntegerLiteral):
         length = sig.args[0].literal_value
     else:
-        pass
-        # XXX: TBC
+        length = args[0]
+        can_dynsized = True
     dtype = parse_dtype(sig.args[1])
     return _generic_array(context, builder, shape=(length,), dtype=dtype,
                           symbol_name='_cudapy_lmem',
                           addrspace=nvvm.ADDRSPACE_LOCAL,
-                          can_dynsized=False)
+                          can_dynsized=can_dynsized)
 
 
 @lower(cuda.local.array, types.Tuple, types.Any)
