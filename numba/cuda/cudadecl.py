@@ -47,10 +47,11 @@ class Cuda_array_decl(CallableTemplate):
             # Only integer literals and tuples of integer literals are valid
             # shapes
             if isinstance(shape, types.Integer):
-                if not isinstance(shape, types.IntegerLiteral):
-                    return None
+                pass
+                #if not isinstance(shape, types.IntegerLiteral):
+                #    return None
             elif isinstance(shape, (types.Tuple, types.UniTuple)):
-                if any([not isinstance(s, types.IntegerLiteral)
+                if any([not isinstance(s, types.Integer)
                         for s in shape]):
                     return None
             else:

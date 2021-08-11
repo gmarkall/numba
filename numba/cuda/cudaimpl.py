@@ -172,9 +172,13 @@ def cuda_shared_array_tuple(context, builder, sig, args):
                           can_dynsized=True)
 
 
-@lower(cuda.local.array, types.IntegerLiteral, types.Any)
+@lower(cuda.local.array, types.Integer, types.Any)
 def cuda_local_array_integer(context, builder, sig, args):
-    length = sig.args[0].literal_value
+    if isinstance(sig.args[0], types.IntegerLiteral):
+        length = sig.args[0].literal_value
+    else:
+        pass
+        # XXX: TBC
     dtype = parse_dtype(sig.args[1])
     return _generic_array(context, builder, shape=(length,), dtype=dtype,
                           symbol_name='_cudapy_lmem',
@@ -185,12 +189,21 @@ def cuda_local_array_integer(context, builder, sig, args):
 @lower(cuda.local.array, types.Tuple, types.Any)
 @lower(cuda.local.array, types.UniTuple, types.Any)
 def ptx_lmem_alloc_array(context, builder, sig, args):
-    shape = [ s.literal_value for s in sig.args[0] ]
+    shape = []
+    arg0 = cgutils.unpack_tuple(builder, args[0], count=sig.args[0].count)
+    can_dynsized = False
+    for ty, val in zip(sig.args[0], arg0):
+        if isinstance(ty, types.IntegerLiteral):
+            sh = ty.literal_value
+        else:
+            sh = val
+            can_dynsized = True
+        shape.append(sh)
     dtype = parse_dtype(sig.args[1])
     return _generic_array(context, builder, shape=shape, dtype=dtype,
                           symbol_name='_cudapy_lmem',
                           addrspace=nvvm.ADDRSPACE_LOCAL,
-                          can_dynsized=False)
+                          can_dynsized=can_dynsized)
 
 
 @lower(stubs.syncthreads)
@@ -859,13 +872,19 @@ def _get_target_data(context):
 
 def _generic_array(context, builder, shape, dtype, symbol_name, addrspace,
                    can_dynsized=False):
-    elemcount = reduce(operator.mul, shape, 1)
+    if can_dynsized and addrspace == nvvm.ADDRSPACE_LOCAL:
+        elemcount = 0
+    else:
+        elemcount = reduce(operator.mul, shape, 1)
 
     # Check for valid shape for this type of allocation.
     # Only 1d arrays can be dynamic.
-    dynamic_smem = elemcount <= 0 and can_dynsized and len(shape) == 1
-    if elemcount <= 0 and not dynamic_smem:
-        raise ValueError("array length <= 0")
+    if not can_dynsized and not addrspace == nvvm.ADDRSPACE_LOCAL:
+        dynamic_smem = elemcount <= 0 and can_dynsized and len(shape) == 1
+        if elemcount <= 0 and not dynamic_smem:
+            raise ValueError("array length <= 0")
+    else:
+        dynamic_smem = False
 
     # Check that we support the requested dtype
     other_supported_type = isinstance(dtype, (types.Record, types.Boolean))
@@ -879,7 +898,18 @@ def _generic_array(context, builder, shape, dtype, symbol_name, addrspace,
         # Special case local address space allocation to use alloca
         # NVVM is smart enough to only use local memory if no register is
         # available
-        dataptr = cgutils.alloca_once(builder, laryty, name=symbol_name)
+        if can_dynsized:
+            size = context.get_constant(types.uint64, dtype.bitwidth // 8)
+            for s in shape:
+                size = builder.mul(size, builder.sext(s, ir.IntType(64)))
+            fname = 'malloc'
+            fnty = ir.FunctionType(ir.IntType(64),
+                                   (ir.IntType(64),))
+            fn = cgutils.get_or_insert_function(builder.module, fnty, fname)
+            dataptr = builder.call(fn, (size,))
+        else:
+            dataptr = cgutils.alloca_once(builder, laryty, name=symbol_name)
+
     else:
         lmod = builder.module
 
@@ -913,13 +943,34 @@ def _generic_array(context, builder, shape, dtype, symbol_name, addrspace,
     itemsize = lldtype.get_abi_size(targetdata)
 
     # Compute strides
-    laststride = itemsize
+    if can_dynsized:
+        laststride = context.get_constant(types.uint64, itemsize)
+    else:
+        laststride = itemsize
+
     rstrides = []
     for i, lastsize in enumerate(reversed(shape)):
         rstrides.append(laststride)
-        laststride *= lastsize
+        if can_dynsized:
+            # XX: TBC
+            if isinstance(lastsize, int):
+                laststride = builder.mul(laststride,
+                                         context.get_constant(types.uint64,
+                                                              lastsize))
+            else:
+                laststride = builder.mul(laststride,
+                                         builder.sext(lastsize,
+                                                      ir.IntType(64)))
+        else:
+            laststride *= lastsize
+
     strides = [s for s in reversed(rstrides)]
-    kstrides = [context.get_constant(types.intp, s) for s in strides]
+
+    breakpoint()
+    if can_dynsized:
+        kstrides = [builder.sext(s, ir.IntType(64)) for s in strides]
+    else:
+        kstrides = [context.get_constant(types.intp, s) for s in strides]
 
     # Compute shape
     if dynamic_smem:
@@ -937,7 +988,11 @@ def _generic_array(context, builder, shape, dtype, symbol_name, addrspace,
         kitemsize = context.get_constant(types.intp, itemsize)
         kshape = [builder.udiv(dynsmem_size, kitemsize)]
     else:
-        kshape = [context.get_constant(types.intp, s) for s in shape]
+        if can_dynsized:
+            kshape = [builder.sext(s, ir.IntType(64)) for s in shape]
+        else:
+            kshape = [context.get_constant(types.intp, s) for s in shape]
+
 
     # Create array object
     ndim = len(shape)
