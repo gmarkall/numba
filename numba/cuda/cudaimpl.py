@@ -966,7 +966,6 @@ def _generic_array(context, builder, shape, dtype, symbol_name, addrspace,
 
     strides = [s for s in reversed(rstrides)]
 
-    breakpoint()
     if can_dynsized:
         kstrides = [builder.sext(s, ir.IntType(64)) for s in strides]
     else:
