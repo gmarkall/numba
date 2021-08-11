@@ -42,7 +42,37 @@ class Cuda_gridsize(GridFunction):
     key = cuda.gridsize
 
 
-class Cuda_array_decl(CallableTemplate):
+@register
+class Cuda_shared_array(CallableTemplate):
+    key = cuda.shared.array
+
+    def generic(self):
+        def typer(shape, dtype):
+
+            # Only integer literals and tuples of integer literals are valid
+            # shapes
+            if isinstance(shape, types.Integer):
+                if not isinstance(shape, types.IntegerLiteral):
+                    return None
+            elif isinstance(shape, (types.Tuple, types.UniTuple)):
+                if any([not isinstance(s, types.IntegerLiteral)
+                        for s in shape]):
+                    return None
+            else:
+                return None
+
+            ndim = parse_shape(shape)
+            nb_dtype = parse_dtype(dtype)
+            if nb_dtype is not None and ndim is not None:
+                return types.Array(dtype=nb_dtype, ndim=ndim, layout='C')
+
+        return typer
+
+
+@register
+class Cuda_local_array(CallableTemplate):
+    key = cuda.local.array
+
     def generic(self):
         def typer(shape, dtype):
 
@@ -65,16 +95,6 @@ class Cuda_array_decl(CallableTemplate):
                 return types.Array(dtype=nb_dtype, ndim=ndim, layout='C')
 
         return typer
-
-
-@register
-class Cuda_shared_array(Cuda_array_decl):
-    key = cuda.shared.array
-
-
-@register
-class Cuda_local_array(Cuda_array_decl):
-    key = cuda.local.array
 
 
 @register
