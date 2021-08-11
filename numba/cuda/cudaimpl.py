@@ -880,7 +880,7 @@ def _generic_array(context, builder, shape, dtype, symbol_name, addrspace,
 
     # Check for valid shape for this type of allocation.
     # Only 1d arrays can be dynamic.
-    if not can_dynsized and not addrspace == nvvm.ADDRSPACE_LOCAL:
+    if not addrspace == nvvm.ADDRSPACE_LOCAL:
         dynamic_smem = elemcount <= 0 and can_dynsized and len(shape) == 1
         if elemcount <= 0 and not dynamic_smem:
             raise ValueError("array length <= 0")
