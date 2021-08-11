@@ -1024,7 +1024,7 @@ def _generic_array(context, builder, shape, dtype, symbol_name, addrspace,
             for s in shape:
                 size = builder.mul(size, builder.sext(s, ir.IntType(64)))
             fname = 'malloc'
-            fnty = ir.FunctionType(ir.IntType(64),
+            fnty = ir.FunctionType(ir.PointerType(ir.IntType(8)),
                                    (ir.IntType(64),))
             fn = cgutils.get_or_insert_function(builder.module, fnty, fname)
             dataptr = builder.call(fn, (size,))
