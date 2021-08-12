@@ -953,11 +953,7 @@ def _generic_array(context, builder, shape, dtype, symbol_name, addrspace,
     for i, lastsize in enumerate(reversed(shape)):
         rstrides.append(laststride)
         if can_dynsized and addrspace == nvvm.ADDRSPACE_LOCAL:
-            # XX: TBC
             if isinstance(lastsize, int):
-                # maybe the problem is here? is laststride a string instead of
-                # the llvm thingy?
-                print(laststride)
                 laststride = builder.mul(laststride,
                                          context.get_constant(types.uint64,
                                                               lastsize))
