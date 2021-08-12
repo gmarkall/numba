@@ -72,6 +72,7 @@ class Cuda_shared_array(CallableTemplate):
 @register
 class Cuda_local_array(CallableTemplate):
     key = cuda.local.array
+    prefer_literal = True
 
     def generic(self):
         def typer(shape, dtype):
