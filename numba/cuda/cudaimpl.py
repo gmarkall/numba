@@ -990,19 +990,15 @@ def ptx_nanosleep(context, builder, sig, args):
 def _generic_array(context, builder, shape, dtype, symbol_name, addrspace,
                    can_dynsized=False):
     dynamic_local = can_dynsized and addrspace == nvvm.ADDRSPACE_LOCAL
-    if dynamic_local:
-        elemcount = 0
-    else:
-        elemcount = reduce(operator.mul, shape, 1)
+
+    elemcount = 0 if dynamic_local else reduce(operator.mul, shape, 1)
 
     # Check for valid shape for this type of allocation.
     # Only 1d arrays can be dynamic.
-    if not addrspace == nvvm.ADDRSPACE_LOCAL:
+    if addrspace == nvvm.ADDRSPACE_SHARED:
         dynamic_smem = elemcount <= 0 and can_dynsized and len(shape) == 1
         if elemcount <= 0 and not dynamic_smem:
             raise ValueError("array length <= 0")
-    else:
-        dynamic_smem = False
 
     # Check that we support the requested dtype
     data_model = context.data_model_manager[dtype]
@@ -1017,9 +1013,6 @@ def _generic_array(context, builder, shape, dtype, symbol_name, addrspace,
     laryty = ir.ArrayType(lldtype, elemcount)
 
     if addrspace == nvvm.ADDRSPACE_LOCAL:
-        # Special case local address space allocation to use alloca
-        # NVVM is smart enough to only use local memory if no register is
-        # available
         if can_dynsized:
             size = context.get_constant(types.uint64, dtype.bitwidth // 8)
             for s in shape:
@@ -1030,6 +1023,9 @@ def _generic_array(context, builder, shape, dtype, symbol_name, addrspace,
             fn = cgutils.get_or_insert_function(builder.module, fnty, fname)
             dataptr = builder.call(fn, (size,))
         else:
+            # Special case static local address space allocation to use alloca
+            # NVVM is smart enough to only use local memory if no register is
+            # available
             dataptr = cgutils.alloca_once(builder, laryty, name=symbol_name)
 
     else:
@@ -1065,10 +1061,9 @@ def _generic_array(context, builder, shape, dtype, symbol_name, addrspace,
     itemsize = lldtype.get_abi_size(targetdata)
 
     # Compute strides
+    laststride = itemsize
     if dynamic_local:
         laststride = context.get_constant(types.uint64, itemsize)
-    else:
-        laststride = itemsize
 
     rstrides = []
     for i, lastsize in enumerate(reversed(shape)):
@@ -1093,7 +1088,7 @@ def _generic_array(context, builder, shape, dtype, symbol_name, addrspace,
         kstrides = [context.get_constant(types.intp, s) for s in strides]
 
     # Compute shape
-    if dynamic_smem:
+    if addrspace == nvvm.ADDRSPACE_SHARED and dynamic_smem:
         # Compute the shape based on the dynamic shared memory configuration.
         # Unfortunately NVVM does not provide an intrinsic for the
         # %dynamic_smem_size register, so we must read it using inline
