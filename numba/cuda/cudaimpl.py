@@ -989,7 +989,8 @@ def ptx_nanosleep(context, builder, sig, args):
 
 def _generic_array(context, builder, shape, dtype, symbol_name, addrspace,
                    can_dynsized=False):
-    if can_dynsized and addrspace == nvvm.ADDRSPACE_LOCAL:
+    dynamic_local = can_dynsized and addrspace == nvvm.ADDRSPACE_LOCAL
+    if dynamic_local:
         elemcount = 0
     else:
         elemcount = reduce(operator.mul, shape, 1)
@@ -1064,7 +1065,7 @@ def _generic_array(context, builder, shape, dtype, symbol_name, addrspace,
     itemsize = lldtype.get_abi_size(targetdata)
 
     # Compute strides
-    if can_dynsized and addrspace == nvvm.ADDRSPACE_LOCAL:
+    if dynamic_local:
         laststride = context.get_constant(types.uint64, itemsize)
     else:
         laststride = itemsize
@@ -1072,7 +1073,7 @@ def _generic_array(context, builder, shape, dtype, symbol_name, addrspace,
     rstrides = []
     for i, lastsize in enumerate(reversed(shape)):
         rstrides.append(laststride)
-        if can_dynsized and addrspace == nvvm.ADDRSPACE_LOCAL:
+        if dynamic_local:
             if isinstance(lastsize, int):
                 laststride = builder.mul(laststride,
                                          context.get_constant(types.uint64,
@@ -1086,7 +1087,7 @@ def _generic_array(context, builder, shape, dtype, symbol_name, addrspace,
 
     strides = [s for s in reversed(rstrides)]
 
-    if can_dynsized and addrspace == nvvm.ADDRSPACE_LOCAL:
+    if dynamic_local:
         kstrides = [builder.sext(s, ir.IntType(64)) for s in strides]
     else:
         kstrides = [context.get_constant(types.intp, s) for s in strides]
@@ -1107,7 +1108,7 @@ def _generic_array(context, builder, shape, dtype, symbol_name, addrspace,
         kitemsize = context.get_constant(types.intp, itemsize)
         kshape = [builder.udiv(dynsmem_size, kitemsize)]
     else:
-        if can_dynsized and addrspace == nvvm.ADDRSPACE_LOCAL:
+        if dynamic_local:
             kshape = [builder.sext(s, ir.IntType(64)) for s in shape]
         else:
             kshape = [context.get_constant(types.intp, s) for s in shape]
