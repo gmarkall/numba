@@ -10,7 +10,7 @@ from functools import reduce
 import numpy as np
 
 from numba.np.ufunc.ufuncbuilder import _BaseUFuncBuilder, parse_identity
-from numba.core import types, sigutils
+from numba.core import dispatcher, types, sigutils
 from numba.core.typing import signature
 from numba.np.ufunc.sigparse import parse_signature
 
@@ -365,6 +365,8 @@ class DeviceVectorize(_BaseUFuncBuilder):
                 fmt = "Unrecognized options. "
                 fmt += "cuda vectorize target does not support option: '%s'"
                 raise KeyError(fmt % opt)
+        if isinstance(func, dispatcher.Dispatcher):
+            func = func.py_func
         self.py_func = func
         self.identity = parse_identity(identity)
         # { arg_dtype: (return_dtype), cudakernel }
