@@ -25,7 +25,7 @@ class CUDAVectorize(deviceufunc.DeviceVectorize):
         return cuda.jit(fnobj)
 
     def build_ufunc(self):
-        return dispatcher.CUDAUFuncDispatcher(self.kernelmap)
+        return dispatcher.CUDAUFuncDispatcher(self.pyfunc.__name__, self.kernelmap)
 
     @property
     def _kernel_template(self):

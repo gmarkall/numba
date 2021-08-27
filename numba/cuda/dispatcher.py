@@ -11,7 +11,8 @@ class CUDAUFuncDispatcher(object):
     Invoke the CUDA ufunc specialization for the given inputs.
     """
 
-    def __init__(self, types_to_retty_kernels):
+    def __init__(self, name, types_to_retty_kernels):
+        self.__name__ = name
         self.functions = types_to_retty_kernels
         self._maxblocksize = 0  # ignored
 
