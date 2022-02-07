@@ -759,8 +759,17 @@ def llvm100_to_70_ir(ir):
             attrs = ' '.join(a for a in attrs if a != 'willreturn')
             line = line.replace(m.group(1), attrs)
 
+
+        bad_datalayout = "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-f32:32:32-f64:64:64-v16:16:16-v32:32:32-v64:64:64-v128:128:128-n16:32:64"
+        good_datalayout =        "e-p:64:64:64-i1:8:8-i8:8:8-i16:16:16-i32:32:32-i64:64:64-i128:128:128-f32:32:32-f64:64:64-v16:16:16-v32:32:32-v64:64:64-v128:128:128-n16:32:64"
+        if bad_datalayout in line:
+            print("replacing datalayout")
+            line = line.replace(bad_datalayout, good_datalayout)
+        
         buf.append(line)
 
+
+    print('\n'.join(buf))
     return '\n'.join(buf)
 
 

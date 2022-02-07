@@ -446,7 +446,8 @@ class BaseContext(object):
             else:
                 # A type was already inserted, see if we can add to it
                 newty = existing.augment(gty)
-                if newty is None:
+                if newty is None and existing != gty:
+                    breakpoint()
                     raise TypeError("cannot augment %s with %s"
                                     % (existing, gty))
                 self._remove_global(gv)

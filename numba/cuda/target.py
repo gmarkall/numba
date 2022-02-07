@@ -12,19 +12,24 @@ from numba.core.typing import cmathdecl
 from .cudadrv import nvvm
 from numba.cuda import codegen, nvvmutils
 
+from numba.np import ufunc_db
 
 # -----------------------------------------------------------------------------
 # Typing
 
 
-class CUDATypingContext(typing.BaseContext):
+class CUDATypingContext(typing.Context):
     def load_additional_registries(self):
-        from . import cudadecl, cudamath, libdevicedecl
 
+        from . import cudadecl, cudamath, libdevicedecl
         self.install_registry(cudadecl.registry)
         self.install_registry(cudamath.registry)
         self.install_registry(cmathdecl.registry)
         self.install_registry(libdevicedecl.registry)
+
+        super().load_additional_registries()
+        #from numba.core.typing import npydecl
+        #self.install_registry(npydecl.registry)
 
     def resolve_value_type(self, val):
         # treat other dispatcher object as another device function
@@ -100,6 +105,11 @@ class CUDATargetContext(BaseContext):
         self.install_registry(libdeviceimpl.registry)
         self.install_registry(cmathimpl.registry)
         self.install_registry(mathimpl.registry)
+
+        from numba.np import linalg, polynomial, arraymath # noqa: F401
+
+        from numba.np import npyimpl
+        self.install_registry(npyimpl.registry)
 
     def codegen(self):
         return self._internal_codegen
@@ -360,6 +370,9 @@ class CUDATargetContext(BaseContext):
         # fpm.run(func)
         # fpm.finalize()
 
+    # Overrides
+    def get_ufunc_info(self, ufunc_key):
+        return ufunc_db.get_ufunc_info(ufunc_key)
 
 class CUDACallConv(MinimalCallConv):
     pass
