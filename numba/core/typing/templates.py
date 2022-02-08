@@ -716,7 +716,10 @@ class _OverloadFunctionTemplate(AbstractTemplate):
     def _get_jit_decorator(self):
         """Gets a jit decorator suitable for the current target"""
 
-        jitter_str = self.metadata.get('target', None)
+        #jitter_str = self.metadata.get('target', None)
+        # Untested hack as suggested by Stu to see if making all overloads
+        # generic by default enables the CUDA target to see them
+        jitter_str = 'generic' 
         if jitter_str is None:
             from numba import jit
             # There is no target requested, use default, this preserves
