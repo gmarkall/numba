@@ -95,8 +95,8 @@ void display(DLManagedTensor a) {
   int ndim = a.dl_tensor.ndim;
   printf("data = %p\n", a.dl_tensor.data);
   printf("ctx = (device_type = %d, device_id = %d)\n",
-          (int) a.dl_tensor.ctx.device_type,
-          (int) a.dl_tensor.ctx.device_id);
+          (int) a.dl_tensor.device.device_type,
+          (int) a.dl_tensor.device.device_id);
   printf("dtype = (code = %d, bits = %d, lanes = %d)\n",
           (int) a.dl_tensor.dtype.code,
           (int) a.dl_tensor.dtype.bits,
@@ -181,12 +181,12 @@ DeviceArray_to_dlpack(PyObject *self, PyObject *args)
   // Create and populated the DLManagedTensor that we're going to return
   DLManagedTensor *managed_tensor = new DLManagedTensor;
   managed_tensor->dl_tensor.data = (void*)ptr;
-  managed_tensor->dl_tensor.byte_offset = 0;          // TODO: Need to work this out - e.g. for views?
-  managed_tensor->dl_tensor.ctx.device_type = kDLGPU; // TODO: Support for pinned / mapped / managed memory
-  managed_tensor->dl_tensor.ctx.device_id = 0;        // TODO: Use actual device ID, not hardcoded 0
-  managed_tensor->dl_tensor.dtype.code = kDLFloat;    // TODO: Use dtype code based on actual type, not hardcoded
-  managed_tensor->dl_tensor.dtype.bits = 64;          // TODO: Use bits based on actual type, not hardcoded
-  managed_tensor->dl_tensor.dtype.lanes = 1;          // TODO: Support for homogeneous structured dtypes with lanes?
+  managed_tensor->dl_tensor.byte_offset = 0;              // TODO: Need to work this out - e.g. for views?
+  managed_tensor->dl_tensor.device.device_type = kDLCUDA; // TODO: Support for pinned / mapped / managed memory
+  managed_tensor->dl_tensor.device.device_id = 0;         // TODO: Use actual device ID, not hardcoded 0
+  managed_tensor->dl_tensor.dtype.code = kDLFloat;        // TODO: Use dtype code based on actual type, not hardcoded
+  managed_tensor->dl_tensor.dtype.bits = 64;              // TODO: Use bits based on actual type, not hardcoded
+  managed_tensor->dl_tensor.dtype.lanes = 1;              // TODO: Support for homogeneous structured dtypes with lanes?
   managed_tensor->dl_tensor.ndim = ndim;
   managed_tensor->dl_tensor.shape = shape;
   managed_tensor->dl_tensor.strides = strides;
