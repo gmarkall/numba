@@ -16,7 +16,7 @@ from numba.core.runtime.nrt import MemInfo
 from numba.experimental import jitclass
 from numba.experimental.jitclass import _box
 from numba.experimental.jitclass.base import JitClassType
-from numba.tests.support import MemoryLeakMixin, TestCase
+from numba.tests.support import MemoryLeakMixin, TestCase, skip_if_typeguard
 
 
 class TestClass1(object):
@@ -632,6 +632,7 @@ class TestJitClass(TestCase, MemoryLeakMixin):
             access_dunder.py_func(inst)
         self.assertIn("_TestJitClass__value", str(raises.exception))
 
+    @skip_if_typeguard
     def test_annotations(self):
         """
         Methods with annotations should compile fine (issue #1911).
@@ -1109,6 +1110,47 @@ class TestJitClass(TestCase, MemoryLeakMixin):
         JitTest2 = jitclass(UnannotatedTest, spec)
         self.assertIsInstance(JitTest2, JitClassType)
         self.assertDictEqual(JitTest2.class_type.struct, spec)
+
+    def test_jitclass_isinstance(self):
+        spec = OrderedDict(value=int32)
+
+        @jitclass(spec)
+        class Foo(object):
+            def __init__(self, value):
+                self.value = value
+
+            def getValue(self):
+                return self.value
+
+            def getValueIncr(self):
+                return self.value + 1
+
+        @jitclass(spec)
+        class Bar(object):
+            def __init__(self, value):
+                self.value = value
+
+            def getValue(self):
+                return self.value
+
+        def test_jitclass_isinstance(obj):
+            if isinstance(obj, (Foo, Bar)):
+                # call something that both classes implements
+                x = obj.getValue()
+                if isinstance(obj, Foo):  # something that only Foo implements
+                    return obj.getValueIncr() + x, 'Foo'
+                else:
+                    return obj.getValue() + x, 'Bar'
+            else:
+                return 'no match'
+
+        pyfunc = test_jitclass_isinstance
+        cfunc = njit(test_jitclass_isinstance)
+
+        self.assertIsInstance(Foo, JitClassType)
+        self.assertEqual(pyfunc(Foo(3)), cfunc(Foo(3)))
+        self.assertEqual(pyfunc(Bar(123)), cfunc(Bar(123)))
+        self.assertEqual(pyfunc(0), cfunc(0))
 
 
 if __name__ == "__main__":
