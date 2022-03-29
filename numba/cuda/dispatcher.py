@@ -111,7 +111,7 @@ class _Kernel(serialize.ReduceMixin):
         return tuple(self.signature.args)
 
     @classmethod
-    def _rebuild(cls, cooperative, name, argtypes, codelibrary, link, debug,
+    def _rebuild(cls, cooperative, name, signature, codelibrary, debug,
                  lineinfo, call_helper, extensions):
         """
         Rebuild an instance.
@@ -122,7 +122,7 @@ class _Kernel(serialize.ReduceMixin):
         # populate members
         instance.cooperative = cooperative
         instance.entry_name = name
-        instance.argument_types = tuple(argtypes)
+        instance.signature = signature
         instance._type_annotation = None
         instance._codelibrary = codelibrary
         instance.debug = debug
@@ -140,7 +140,7 @@ class _Kernel(serialize.ReduceMixin):
         Stream information is discarded.
         """
         return dict(cooperative=self.cooperative, name=self.entry_name,
-                    argtypes=self.argtypes, codelibrary=self.codelibrary,
+                    signature=self.signature, codelibrary=self._codelibrary,
                     debug=self.debug, lineinfo=self.lineinfo,
                     call_helper=self.call_helper, extensions=self.extensions)
 
@@ -835,11 +835,22 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
             defn.bind()
 
     @classmethod
-    def _rebuild(cls, py_func, targetoptions):
+    def _rebuild(cls, py_func, targetoptions, overloads, can_compile):
         """
         Rebuild an instance.
         """
         instance = cls(py_func, targetoptions)
+
+        for argtypes, ov in overloads.items():
+            c_sig = [a._code for a in argtypes]
+            instance._insert(c_sig, ov, cuda=True)
+            instance.overloads[argtypes] = ov
+
+            # Only bind kernels, not device functions
+            if isinstance(ov, _Kernel):
+                ov.bind()
+
+        instance._can_compile = can_compile
         return instance
 
     def _reduce_states(self):
@@ -848,4 +859,6 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
         Compiled definitions are discarded.
         """
         return dict(py_func=self.py_func,
-                    targetoptions=self.targetoptions)
+                    targetoptions=self.targetoptions,
+                    overloads=self.overloads,
+                    can_compile=self._can_compile)

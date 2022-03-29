@@ -1,4 +1,3 @@
-from llvmlite import binding as ll
 from llvmlite import ir
 from warnings import warn
 
@@ -337,6 +336,7 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
 
         instance._max_registers = max_registers
         instance._nvvm_options = nvvm_options
+        return instance
 
 
 class JITCUDACodegen(Codegen):
@@ -349,7 +349,9 @@ class JITCUDACodegen(Codegen):
 
     def __init__(self, module_name):
         self._data_layout = nvvm.default_data_layout
-        self._target_data = ll.create_target_data(self._data_layout)
+        # CUDA does not use the binding layer, so no TargetData instance
+        # needed.
+        self._target_data = None
 
     def _create_empty_module(self, name):
         ir_module = ir.Module(name)
