@@ -525,10 +525,14 @@ class CloudPickler(Pickler):
         As opposed to cloudpickle.py, There no special handling for builtin
         pypy functions because cloudpickle_fast is CPython-specific.
         """
+        print(f"In _function_reduce() {obj}")
         if _is_importable(obj):
             return NotImplemented
         else:
-            return self._dynamic_function_reduce(obj)
+            print("Starting dynamic function reduce")
+            ret = self._dynamic_function_reduce(obj)
+            print("Finished dynamic function reduce")
+            return ret
 
     def _function_getnewargs(self, func):
         code = func.__code__
@@ -565,6 +569,7 @@ class CloudPickler(Pickler):
 
     def dump(self, obj):
         try:
+            print(f"Pickling {obj}")
             return Pickler.dump(self, obj)
         except RuntimeError as e:
             if "recursion" in e.args[0]:

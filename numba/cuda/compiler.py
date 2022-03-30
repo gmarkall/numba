@@ -1,5 +1,5 @@
 from numba.core.typing.templates import ConcreteTemplate
-from numba.core import types, typing, funcdesc, config, compiler
+from numba.core import types, typing, funcdesc, config, compiler, serialize
 from numba.core.compiler import (sanitize_compile_result_entries, CompilerBase,
                                  DefaultPassBuilder, Flags, Option,
                                  CompileResult)
@@ -46,10 +46,16 @@ class CUDAFlags(Flags):
 #    point will no longer need to be a synthetic value, but will instead be a
 #    pointer to the compiled function as in the CPU target.
 
-class CUDACompileResult(CompileResult):
+class CUDACompileResult(CompileResult, serialize.ReduceMixin):
     @property
     def entry_point(self):
         return id(self)
+
+    def _reduce_states(self):
+        return self._reduce()
+
+    def _find_referenced_environments(self):
+        return []
 
 
 def cuda_compile_result(**entries):

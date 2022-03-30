@@ -314,6 +314,24 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
             nvvm_options=self._nvvm_options
         )
 
+    def serialize_using_object_code(self):
+        # Inspired by CPUCodeLibrary's version
+        self._ensure_finalized()
+        data = (self._ptx_cache, self._cubin_cache)
+        return (self.name, 'object', data)
+
+    @classmethod
+    def _unserialize(cls, codegen, state):
+        # Inspired by CPUCodeLibrary's version
+        name, kind, data = state
+        if kind != 'object':
+            raise ValueError('Only support unserialize with obj state')
+        self = codegen.create_library(name)
+        assert isinstance(self, cls)
+
+        self._ptx_cache, self._cubin_cache = data
+        # Is any more required?
+
     @classmethod
     def _rebuild(cls, codegen, name, entry_name, module, linking_libraries,
                  ptx_cache, cubin_cache, linkerinfo_cache, max_registers,

@@ -858,6 +858,9 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
         Reduce the instance for serialization.
         Compiled definitions are discarded.
         """
+        print("Reducing dispatcher")
+        print(f"Overloads: {self.overloads}")
+        breakpoint()
         return dict(py_func=self.py_func,
                     targetoptions=self.targetoptions,
                     overloads=self.overloads,
