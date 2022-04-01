@@ -532,8 +532,7 @@ _fp16_cmp = """{{
         }}"""
 
 
-def lower_fp16_comparison(fn, op):
-    @lower(fn, types.float16, types.float16)
+def _gen_fp16_cmp(op):
     def ptx_fp16_comparison(context, builder, sig, args):
         fnty = ir.FunctionType(ir.IntType(16), [ir.IntType(16), ir.IntType(16)])
         asm = ir.InlineAsm(fnty, _fp16_cmp.format(op=op), '=h,h,h')
@@ -544,50 +543,26 @@ def lower_fp16_comparison(fn, op):
 
         return builder.icmp_unsigned("!=", int_result, zero)
 
-
-lower_fp16_comparison(stubs.fp16.heq, 'eq')
-lower_fp16_comparison(stubs.fp16.hne, 'ne')
-lower_fp16_comparison(stubs.fp16.hge, 'ge')
-lower_fp16_comparison(stubs.fp16.hgt, 'gt')
-lower_fp16_comparison(stubs.fp16.hle, 'le')
-lower_fp16_comparison(stubs.fp16.hlt, 'lt')
+    return ptx_fp16_comparison
 
 
-def lower_fp16_minmax_comparison(fn, op, cond):
+lower(stubs.fp16.heq, types.float16, types.float16)(_gen_fp16_cmp('eq'))
+lower(stubs.fp16.hne, types.float16, types.float16)(_gen_fp16_cmp('ne'))
+lower(stubs.fp16.hge, types.float16, types.float16)(_gen_fp16_cmp('ge'))
+lower(stubs.fp16.hgt, types.float16, types.float16)(_gen_fp16_cmp('gt'))
+lower(stubs.fp16.hle, types.float16, types.float16)(_gen_fp16_cmp('le'))
+lower(stubs.fp16.hlt, types.float16, types.float16)(_gen_fp16_cmp('lt'))
+
+
+def lower_fp16_minmax(fn, fname, op):
     @lower(fn, types.float16, types.float16)
     def ptx_fp16_minmax(context, builder, sig, args):
-        temp_reg = '__$$temp3'
-        reg_pred_fnty = ir.FunctionType(ir.VoidType(),[])
-        reg_pred_asm = ir.InlineAsm(reg_pred_fnty,
-                                    f"{{ .reg .pred {temp_reg};",
-                                    "")
-        _ = builder.call(reg_pred_asm, [])
-
-        setp_fnty = ir.FunctionType(ir.VoidType(),
-                                    [ir.IntType(16), ir.IntType(16)])
-        setp_asm = ir.InlineAsm(setp_fnty,
-                                f"setp.{cond}.f16 {temp_reg}, $0, $1;",
-                                'h,h')
-        _ = builder.call(setp_asm, args)
-
-        selp_fnty = ir.FunctionType(ir.IntType(16),[])
-
-        selp_asm = ir.InlineAsm(selp_fnty,
-                                f"selp.u16 $0, 1, 0, {temp_reg};}}",
-                                '=h')
-        selp = builder.call(selp_asm, [])
-
-        zero = context.get_constant(types.int16, 0)
-        cmp = builder.icmp_unsigned("==",
-                                    builder.bitcast(selp, ir.IntType(16)),
-                                    zero)
-
-        select = builder.select(cmp, args[1], args[0])
-        return select
+        choice = _gen_fp16_cmp(op)(context, builder, sig, args)
+        return builder.select(choice, args[0], args[1])
 
 
-lower_fp16_minmax_comparison(stubs.fp16.hmax, 'max', 'gt')
-lower_fp16_minmax_comparison(stubs.fp16.hmin, 'min', 'lt')
+lower_fp16_minmax(stubs.fp16.hmax, 'max', 'gt')
+lower_fp16_minmax(stubs.fp16.hmin, 'min', 'lt')
 
 # See:
 # https://docs.nvidia.com/cuda/libdevice-users-guide/__nv_cbrt.html#__nv_cbrt
