@@ -525,37 +525,24 @@ def ptx_hfma(context, builder, sig, args):
     return builder.call(asm, args)
 
 
+_fp16_cmp = """{{
+          .reg .pred __$$f16_cmp_tmp;
+          setp.{op}.f16 __$$f16_cmp_tmp, $1, $2;
+          selp.u16 $0, 1, 0, __$$f16_cmp_tmp;
+        }}"""
+
+
 def lower_fp16_comparison(fn, op):
     @lower(fn, types.float16, types.float16)
     def ptx_fp16_comparison(context, builder, sig, args):
-        temp_reg = '__$$temp3'
-
-        reg_pred_fnty = ir.FunctionType(ir.VoidType(),[])
-        reg_pred_asm = ir.InlineAsm(reg_pred_fnty,
-                                    f"{{ .reg .pred {temp_reg};",
-                                    "")
-        _ = builder.call(reg_pred_asm, [])
-
-        setp_fnty = ir.FunctionType(ir.VoidType(),
-                                    [ir.IntType(16), ir.IntType(16)])
-        setp_asm = ir.InlineAsm(setp_fnty,
-                                f"setp.{op}.f16 {temp_reg}, $0, $1;",
-                                'h,h')
-        _ = builder.call(setp_asm, args)
-
-        selp_fnty = ir.FunctionType(ir.IntType(16),[])
-
-        selp_asm = ir.InlineAsm(selp_fnty,
-                                f"selp.u16 $0, 1, 0, {temp_reg};}}",
-                                '=h')
-        selp = builder.call(selp_asm, [])
+        fnty = ir.FunctionType(ir.IntType(16), [ir.IntType(16), ir.IntType(16)])
+        asm = ir.InlineAsm(fnty, _fp16_cmp.format(op=op), '=h,h,h')
+        result = builder.call(asm, args)
 
         zero = context.get_constant(types.int16, 0)
-        cmp = builder.icmp_unsigned("!=",
-                                    builder.bitcast(selp, ir.IntType(16)),
-                                    zero)
+        int_result = builder.bitcast(result, ir.IntType(16))
 
-        return cmp
+        return builder.icmp_unsigned("!=", int_result, zero)
 
 
 lower_fp16_comparison(stubs.fp16.heq, 'eq')
