@@ -3,6 +3,7 @@ import os
 import sys
 import ctypes
 import functools
+import itertools
 import warnings
 
 from numba.core import config, serialize, sigutils, types, typing, utils
@@ -237,7 +238,7 @@ class _Kernel(serialize.ReduceMixin):
         sm_count = ctx.device.MULTIPROCESSOR_COUNT
         return active_per_sm * sm_count
 
-    def launch(self, args, griddim, blockdim, stream=0, sharedmem=0):
+    def launch(self, args, kwargs, griddim, blockdim, stream=0, sharedmem=0):
         # Prepare kernel
         cufunc = self._codelibrary.get_cufunc()
 
@@ -252,7 +253,8 @@ class _Kernel(serialize.ReduceMixin):
         retr = []                       # hold functors for writeback
 
         kernelargs = []
-        for t, v in zip(self.argument_types, args):
+        actualargs = itertools.chain(args, kwargs.values())
+        for t, v in zip(self.argument_types, actualargs):
             self._prepare_args(t, v, stream, retr, kernelargs)
 
         if driver.USE_NV_BINDING:
@@ -469,8 +471,8 @@ class _LaunchConfiguration:
                 msg = msg.format(grid=grid_size, sm=2 * smcount)
                 warn(NumbaPerformanceWarning(msg))
 
-    def __call__(self, *args):
-        return self.dispatcher.call(args, self.griddim, self.blockdim,
+    def __call__(self, *args, **kwargs):
+        return self.dispatcher.call(args, kwargs, self.griddim, self.blockdim,
                                     self.stream, self.sharedmem)
 
 
@@ -485,10 +487,8 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
     created using the :func:`numba.cuda.jit` decorator.
     '''
 
-    # Whether to fold named arguments and default values. Default values are
-    # presently unsupported on CUDA, so we can leave this as False in all
-    # cases.
-    _fold_args = False
+    # Fold named arguments and default values.
+    _fold_args = True
 
     targetdescr = cuda_target
 
@@ -569,16 +569,16 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
         # An attempt to launch an unconfigured kernel
         raise ValueError(missing_launch_config_msg)
 
-    def call(self, args, griddim, blockdim, stream, sharedmem):
+    def call(self, args, kwargs, griddim, blockdim, stream, sharedmem):
         '''
         Compile if necessary and invoke this kernel with *args*.
         '''
         if self.specialized:
             kernel = next(iter(self.overloads.values()))
         else:
-            kernel = _dispatcher.Dispatcher._cuda_call(self, *args)
+            kernel = _dispatcher.Dispatcher._cuda_call(self, *args, **kwargs)
 
-        kernel.launch(args, griddim, blockdim, stream, sharedmem)
+        kernel.launch(args, kwargs, griddim, blockdim, stream, sharedmem)
 
     def _compile_for_args(self, *args, **kws):
         # Based on _DispatcherBase._compile_for_args.

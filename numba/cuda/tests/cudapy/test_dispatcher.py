@@ -337,14 +337,16 @@ class TestDispatcher(CUDATestCase):
             c_add_w_default[1, 1](r, x, y)
             self.assertEqual(r[0], add(x, y))
 
-            # invocation using default, y=789 (float)
-            # NOTE: This will fail due to the same issue that leads to the
-            # failure with `test_coerce_input_types_unsafe`
-            try:
-                c_add_w_default[1, 1](r, x)
-                self.assertEqual(r[0], add(x, 789))
-            except TypeError:
-                pass
+    @unittest.skip
+    def test_unsafe_coerce_default_args(self):
+        # invocation using default, y=789 (float)
+        # NOTE: This will fail due to the same issue that leads to the
+        # failure with `test_coerce_input_types_unsafe`
+        r = np.zeros(1, dtype=np.complex128)
+        x = 123
+        c_add_w_default = cuda.jit(add_kernel_with_default)
+        c_add_w_default[1, 1](r, x)
+        self.assertEqual(r[0], add(x, 789))
 
 
 @contextmanager
