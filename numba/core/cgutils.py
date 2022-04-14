@@ -1049,10 +1049,16 @@ def _raw_mem_intrinsic(builder, func_name, dst, src, count, itemsize):
     length = builder.mul(count, itemsize)
     is_volatile = false_bit
 
-    builder.call(func, (builder.bitcast(dst, voidptr_t),
-                        builder.bitcast(src, voidptr_t),
-                        length,
-                        is_volatile))
+    func.args[0].attributes.align = itemsize.constant
+    func.args[1].attributes.align = itemsize.constant
+
+    breakpoint()
+    call = builder.call(func, (builder.bitcast(dst, voidptr_t),
+                               builder.bitcast(src, voidptr_t),
+                               length,
+                               is_volatile),
+                        arg_attrs={0: 'align', 1: 'align'})
+    return None
 
 
 def muladd_with_overflow(builder, a, b, c):

@@ -768,6 +768,7 @@ def llvm100_to_34_ir(ir):
     """
     Convert LLVM 10.0 IR for LLVM 3.4.
     """
+    print("Converting IR")
     def parse_out_leading_type(s):
         par_level = 0
         pos = 0
@@ -792,6 +793,7 @@ def llvm100_to_34_ir(ir):
 
     buf = []
     for line in ir.splitlines():
+        print(line)
 
         # Fix llvm.dbg.cu
         if line.startswith('!numba.llvm.dbg.cu'):
@@ -844,6 +846,7 @@ def llvm100_to_34_ir(ir):
                 pos = m.end()
                 line = line[:pos] + parse_out_leading_type(line[pos:])
         if 'call ' in line:
+            breakpoint()
             # Rewrite "call ty (...) @foo"
             # to "call ty (...)* @foo"
             line = re_call.sub(r"\1*\2", line)
@@ -856,10 +859,24 @@ def llvm100_to_34_ir(ir):
                     _replace_llvm_memset_usage,
                     line,
                 )
+
+            if '@"llvm.memcpy' in line:
+                print("Replace memcpy call")
+                line = re_parenthesized_list.sub(
+                    _replace_llvm_memcpy_usage,
+                    line,
+                )
         if 'declare' in line:
             if '@llvm.memset' in line:
                 line = re_parenthesized_list.sub(
                     _replace_llvm_memset_declaration,
+                    line,
+                )
+
+            if '@"llvm.memcpy' in line:
+                print("Replace memcpy decl")
+                line = re_parenthesized_list.sub(
+                    _replace_llvm_memcpy_declaration,
                     line,
                 )
 
@@ -889,6 +906,33 @@ def _replace_llvm_memset_usage(m):
 
 def _replace_llvm_memset_declaration(m):
     """Replace `llvm.memset` declaration for llvm7+.
+
+    Used as functor for `re.sub.
+    """
+    params = list(m.group(1).split(','))
+    params.insert(-1, 'i32')
+    out = ', '.join(params)
+    return '({})'.format(out)
+
+
+def _replace_llvm_memcpy_usage(m):
+    """Replace `llvm.memcpy` usage for llvm7+.
+
+    Used as functor for `re.sub.
+    """
+    params = list(m.group(1).split(','))
+    align_attr = re.search(r'align (\d+)', params[0])
+    if not align_attr:
+        raise ValueError("No alignment attribute found on memcpy dest")
+    else:
+        align = align_attr.group(1)
+    params.insert(-1, 'i32 {}'.format(align))
+    out = ', '.join(params)
+    return '({})'.format(out)
+
+
+def _replace_llvm_memcpy_declaration(m):
+    """Replace `llvm.memcpy` declaration for llvm7+.
 
     Used as functor for `re.sub.
     """
