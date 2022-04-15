@@ -6,6 +6,7 @@ import functools
 import warnings
 
 from numba.core import config, serialize, sigutils, types, typing, utils
+from numba.core.caching import Cache, CacheImpl
 from numba.core.compiler_lock import global_compiler_lock
 from numba.core.dispatcher import Dispatcher
 from numba.core.errors import NumbaPerformanceWarning, NumbaDeprecationWarning
@@ -65,6 +66,9 @@ class _Kernel(serialize.ReduceMixin):
         self.lineinfo = lineinfo
         self.extensions = extensions or []
 
+        # Kernels don't have any lifted code
+        self.lifted = []
+
         nvvm_options = {
             'debug': self.debug,
             'lineinfo': self.lineinfo,
@@ -87,6 +91,11 @@ class _Kernel(serialize.ReduceMixin):
                                                   filename, linenum,
                                                   max_registers)
 
+        # Needed for caching to get codegen
+        self.target_context = tgt_ctx
+        self.fndesc = cres.fndesc
+        self.environment = cres.environment
+
         if not link:
             link = []
 
@@ -106,13 +115,42 @@ class _Kernel(serialize.ReduceMixin):
         self._codelibrary = lib
         self.call_helper = cres.call_helper
 
+        # Pretend there are no referenced environments. TODO: Are there any for
+        # kernels?
+        self._referenced_environments = []
+        # What is reload_init for? is it only parfors?
+        self.reload_init = []
+
+    @property
+    def library(self):
+        # Is this here because we have a discrepancy between the naming in
+        # kernel and compile result? It should probably be renamed.
+        return self._codelibrary
+
+    @property
+    def type_annotation(self):
+        # Another hack, should probably just change the name
+        return self._type_annotation
+
+    def _find_referenced_environments(self):
+        # Another hack
+        return self._referenced_environments
+
     @property
     def argument_types(self):
         return tuple(self.signature.args)
 
+    @property
+    def codegen(self):
+        return self.target_context.codegen()
+
+    def _reduce(self):
+        # TODO: WHY IS THIS CALLED AND NOT _reduce_states?
+        return self._reduce_states()
+
     @classmethod
-    def _rebuild(cls, cooperative, name, argtypes, codelibrary, link, debug,
-                 lineinfo, call_helper, extensions):
+    def _rebuild(cls, cooperative, name, signature, codelibrary,
+                 debug, lineinfo, call_helper, extensions):
         """
         Rebuild an instance.
         """
@@ -122,7 +160,7 @@ class _Kernel(serialize.ReduceMixin):
         # populate members
         instance.cooperative = cooperative
         instance.entry_name = name
-        instance.argument_types = tuple(argtypes)
+        instance.signature = signature
         instance._type_annotation = None
         instance._codelibrary = codelibrary
         instance.debug = debug
@@ -140,7 +178,7 @@ class _Kernel(serialize.ReduceMixin):
         Stream information is discarded.
         """
         return dict(cooperative=self.cooperative, name=self.entry_name,
-                    argtypes=self.argtypes, codelibrary=self.codelibrary,
+                    signature=self.signature, codelibrary=self._codelibrary,
                     debug=self.debug, lineinfo=self.lineinfo,
                     call_helper=self.call_helper, extensions=self.extensions)
 
@@ -474,6 +512,32 @@ class _LaunchConfiguration:
                                     self.stream, self.sharedmem)
 
 
+class CUDACacheImpl(CacheImpl):
+    def reduce(self, kernel):
+        print(f"Reducing {type(kernel)}")
+        return kernel._reduce()
+
+    def rebuild(self, target_context, payload):
+        return _Kernel._rebuild(**payload)
+
+    def check_cachable(self, cres):
+        # CUDA Kernels are always cachable - the reasons for an entity not to
+        # be cachable are:
+        #
+        # - The presence of lifted loops,
+        # - The presence of dynamic globals,
+        #
+        # neither of which apply to CUDA kernels.
+        return True
+
+
+class CUDACache(Cache):
+    """
+    Implements a cache that saves and loads CUDA kernels and compile results.
+    """
+    _impl_class = CUDACacheImpl
+
+
 class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
     '''
     CUDA Dispatcher object. When configured and called, the dispatcher will
@@ -513,7 +577,9 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
     def _numba_type_(self):
         return cuda_types.CUDADispatcher(self)
 
-    @functools.lru_cache(maxsize=128)
+    def enable_caching(self):
+        self._cache = CUDACache(self.py_func)
+
     def configure(self, griddim, blockdim, stream=0, sharedmem=0):
         griddim, blockdim = normalize_kernel_dimensions(griddim, blockdim)
         return _LaunchConfiguration(self, griddim, blockdim, stream, sharedmem)
@@ -721,23 +787,47 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
         '''
         argtypes, return_type = sigutils.normalize_signature(sig)
         assert return_type is None or return_type == types.none
+
+        # Do we already have an in-memory compiled kernel?
         if self.specialized:
             return next(iter(self.overloads.values()))
         else:
             kernel = self.overloads.get(argtypes)
-        if kernel is None:
-            if not self._can_compile:
-                raise RuntimeError("Compilation disabled")
-            kernel = _Kernel(self.py_func, argtypes,
-                             **self.targetoptions)
-            # Inspired by _DispatcherBase.add_overload, but differs slightly
-            # because we're inserting a _Kernel object instead of a compiled
-            # function.
+            if kernel is not None:
+                return kernel
+
+        # Can we load from the disk cache?
+        kernel = self._cache.load_overload(sig, self.targetctx)
+        if kernel is not None:
+            self._cache_hits[sig] += 1
+
+            # This should be refactored into an add_overload function, it
+            # duplicates the code for the "have to compile" path below
             c_sig = [a._code for a in argtypes]
             self._insert(c_sig, kernel, cuda=True)
             self.overloads[argtypes] = kernel
 
-            kernel.bind()
+            return kernel
+
+        self._cache_misses[sig] += 1
+
+        # We need to compile a new kernel
+        if not self._can_compile:
+            raise RuntimeError("Compilation disabled")
+
+        kernel = _Kernel(self.py_func, argtypes, **self.targetoptions)
+
+        # Inspired by _DispatcherBase.add_overload, but differs slightly
+        # because we're inserting a _Kernel object instead of a compiled
+        # function.
+        c_sig = [a._code for a in argtypes]
+        self._insert(c_sig, kernel, cuda=True)
+        self.overloads[argtypes] = kernel
+
+        kernel.bind()
+
+        self._cache.save_overload(sig, kernel)
+
         return kernel
 
     def inspect_llvm(self, signature=None):
@@ -834,19 +924,3 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
     def bind(self):
         for defn in self.overloads.values():
             defn.bind()
-
-    @classmethod
-    def _rebuild(cls, py_func, targetoptions):
-        """
-        Rebuild an instance.
-        """
-        instance = cls(py_func, targetoptions)
-        return instance
-
-    def _reduce_states(self):
-        """
-        Reduce the instance for serialization.
-        Compiled definitions are discarded.
-        """
-        return dict(py_func=self.py_func,
-                    targetoptions=self.targetoptions)
