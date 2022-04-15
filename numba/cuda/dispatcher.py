@@ -780,6 +780,11 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
 
         return cres
 
+    def add_overload(self, kernel, argtypes):
+        c_sig = [a._code for a in argtypes]
+        self._insert(c_sig, kernel, cuda=True)
+        self.overloads[argtypes] = kernel
+
     def compile(self, sig):
         '''
         Compile and bind to the current context a version of this kernel
@@ -798,35 +803,22 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
 
         # Can we load from the disk cache?
         kernel = self._cache.load_overload(sig, self.targetctx)
+
         if kernel is not None:
             self._cache_hits[sig] += 1
+        else:
+            # We need to compile a new kernel
+            self._cache_misses[sig] += 1
+            if not self._can_compile:
+                raise RuntimeError("Compilation disabled")
 
-            # This should be refactored into an add_overload function, it
-            # duplicates the code for the "have to compile" path below
-            c_sig = [a._code for a in argtypes]
-            self._insert(c_sig, kernel, cuda=True)
-            self.overloads[argtypes] = kernel
+            kernel = _Kernel(self.py_func, argtypes, **self.targetoptions)
+            # Forces codegen for caching. Should not be a separate function,
+            # kernels should just always bind.
+            kernel.bind()
+            self._cache.save_overload(sig, kernel)
 
-            return kernel
-
-        self._cache_misses[sig] += 1
-
-        # We need to compile a new kernel
-        if not self._can_compile:
-            raise RuntimeError("Compilation disabled")
-
-        kernel = _Kernel(self.py_func, argtypes, **self.targetoptions)
-
-        # Inspired by _DispatcherBase.add_overload, but differs slightly
-        # because we're inserting a _Kernel object instead of a compiled
-        # function.
-        c_sig = [a._code for a in argtypes]
-        self._insert(c_sig, kernel, cuda=True)
-        self.overloads[argtypes] = kernel
-
-        kernel.bind()
-
-        self._cache.save_overload(sig, kernel)
+        self.add_overload(kernel, argtypes)
 
         return kernel
 
