@@ -3,7 +3,7 @@ from llvmlite import ir
 from warnings import warn
 
 from numba.core import config, serialize
-from numba.core.codegen import Codegen, CodeLibrary
+from numba.core.codegen import Codegen, CodeLibrary, RuntimeLinker
 from numba.core.errors import NumbaInvalidConfigWarning
 from .cudadrv import devices, driver, nvvm
 
@@ -289,6 +289,9 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
                         else:
                             fn.linkage = 'linkonce_odr'
 
+                # Fix up unresolved references from recursive calls
+                self._codegen._scan_and_fix_unresolved_refs(mod)
+
         self._finalized = True
 
     def _reduce_states(self):
@@ -338,6 +341,10 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         instance._nvvm_options = nvvm_options
 
 
+class CUDARuntimeLinker(RuntimeLinker):
+    PREFIX = '_numba_unresolved$'
+
+
 class JITCUDACodegen(Codegen):
     """
     This codegen implementation for CUDA only generates optimized LLVM IR.
@@ -349,6 +356,8 @@ class JITCUDACodegen(Codegen):
     def __init__(self, module_name):
         self._data_layout = nvvm.default_data_layout
         self._target_data = ll.create_target_data(self._data_layout)
+        self._rtlinker = CUDARuntimeLinker()
+        self._engine = CUDAJitEngine()
 
     def _create_empty_module(self, name):
         ir_module = ir.Module(name)
@@ -360,3 +369,64 @@ class JITCUDACodegen(Codegen):
 
     def _add_module(self, module):
         pass
+
+    def _scan_and_fix_unresolved_refs(self, module):
+        #self._rtlinker.scan_unresolved_symbols(module, self._engine)
+        self._rtlinker.scan_defined_symbols(module)
+        self._rtlinker.resolve(self._engine)
+
+    def insert_unresolved_ref(self, builder, fnty, name):
+        # Copied verbatim (up to module naming) from CPUCodeGen
+        voidptr = ir.IntType(8).as_pointer()
+        ptrname = self._rtlinker.PREFIX + name
+        llvm_mod = builder.module
+        try:
+            fnptr = llvm_mod.get_global(ptrname)
+        except KeyError:
+            # Not defined?
+            fnptr = ir.GlobalVariable(llvm_mod, voidptr, name=ptrname)
+            fnptr.linkage = 'external'
+        return builder.bitcast(builder.load(fnptr), fnty.as_pointer())
+
+
+class CUDAJitEngine(object):
+    """Copied from codegen, modified to avoid ExecutionEngine references
+
+    Wraps an ExecutionEngine to provide custom symbol tracking.
+    Since the symbol tracking is incomplete  (doesn't consider
+    loaded code object), we are not putting it in llvmlite.
+    """
+    def __init__(self):
+        # Track symbol defined via codegen'd Module
+        # but not any cached object.
+        self._defined_symbols = set()
+
+    def is_symbol_defined(self, name):
+        """Is the symbol defined in this session?
+        """
+        return name in self._defined_symbols
+
+    def _load_defined_symbols(self, mod):
+        """Extract symbols from the module
+        """
+        for gsets in (mod.functions, mod.global_variables):
+            self._defined_symbols |= {gv.name for gv in gsets
+                                      if not gv.is_declaration}
+
+    def add_module(self, module):
+        """Override ExecutionEngine.add_module
+        to keep info about defined symbols.
+        """
+        self._load_defined_symbols(module)
+        #return self._ee.add_module(module)
+
+    def add_global_mapping(self, gv, addr):
+        """Override ExecutionEngine.add_global_mapping
+        to keep info about defined symbols.
+        """
+        self._defined_symbols.add(gv.name)
+        #return self._ee.add_global_mapping(gv, addr)
+
+    def get_function_address(self, name):
+        # Do we just need a unique value?
+        return id(self._defined_symbols[name])

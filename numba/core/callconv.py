@@ -266,11 +266,18 @@ class MinimalCallConv(BaseCallConv):
         """
         return func.args[1:]
 
+    def _get_return_argument(self, func):
+        return func.args[0]
+
     def call_function(self, builder, callee, resty, argtys, args):
         """
         Call the Numba-compiled *callee*.
         """
-        retty = callee.args[0].type.pointee
+        try:
+            retty = callee.args[0].type.pointee
+        except AttributeError:
+            # Is this universal / generic ?
+            retty = self._get_return_argument(callee.function_type).pointee
         retvaltmp = cgutils.alloca_once(builder, retty)
         # initialize return value
         builder.store(cgutils.get_null_value(retty), retvaltmp)
