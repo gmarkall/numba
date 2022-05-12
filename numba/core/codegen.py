@@ -1017,8 +1017,6 @@ class RuntimeLinker(object):
         """
         prefix = self.PREFIX
 
-        if not hasattr(module, 'global_variables'):
-            breakpoint()
         for gv in module.global_variables:
             if gv.name.startswith(prefix):
                 sym = gv.name[len(prefix):]

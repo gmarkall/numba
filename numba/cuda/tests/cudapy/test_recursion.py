@@ -48,6 +48,7 @@ class TestSelfRecursion(CUDATestCase):
         self.assertIn("cannot type infer runaway recursion",
                       str(raises.exception))
 
+    @unittest.skip('Needs insert_unresolved_ref support in target')
     def test_type_change(self):
         pfunc = self.mod.type_change_self.py_func
         cfunc = self.mod.type_change_self
