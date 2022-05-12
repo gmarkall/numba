@@ -2,7 +2,8 @@ import re
 import llvmlite.binding as ll
 from llvmlite import ir
 
-from numba.core import typing, types, debuginfo, itanium_mangler, cgutils
+from numba.core import (typing, types, debuginfo, itanium_mangler, cgutils,
+                        imputils)
 from numba.core.dispatcher import Dispatcher
 from numba.core.utils import cached_property
 from numba.core.base import BaseContext
@@ -361,6 +362,37 @@ class CUDATargetContext(BaseContext):
         # fpm.initialize()
         # fpm.run(func)
         # fpm.finalize()
+
+    def call_unresolved(self, builder, name, sig, args):
+        mod = builder.module
+        fndesc = self.fndesc
+
+        # inspired by declare_function
+        # use args of sig for fucntion type instead of fndesc
+        fnty = self.call_conv.get_function_type(sig.return_type, sig.args)
+        fn = cgutils.get_or_insert_function(mod, fnty, name)
+        # use args of sig instead of fndesc
+        self.call_conv.decorate_function(fn, fndesc.args, sig.args,
+                                         noalias=fndesc.noalias)
+        if fndesc.inline:
+            raise RuntimeError("Can't inline recursive function")
+
+        # inspired by call_internal_no_propagate
+        status, res = self.call_conv.call_function(builder, fn,
+                                                   sig.return_type, sig.args,
+                                                   args)
+
+        # inspired by call_internal
+        with cgutils.if_unlikely(builder, status.is_error):
+            self.call_conv.return_status_propagate(builder, status)
+
+        # not sure if this is needed? does it enable optionals in recursion?
+        res = imputils.fix_returning_optional(self, builder, sig, status, res)
+
+        return res
+
+        # former attempt that types wrongly
+        #return self.call_internal(builder, self.fndesc, sig, args)
 
 
 class CUDACallConv(MinimalCallConv):
