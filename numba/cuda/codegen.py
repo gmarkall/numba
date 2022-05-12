@@ -266,6 +266,8 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
 
         self._raise_if_finalized()
 
+        self._codegen.scan_and_fix_unresolved_refs(self)
+
         # Note in-place modification of the linkage of functions in linked
         # libraries. This presently causes no issues as only device functions
         # are shared across code libraries, so they would always need their
@@ -349,6 +351,8 @@ class JITCUDACodegen(Codegen):
     def __init__(self, module_name):
         self._data_layout = nvvm.default_data_layout
         self._target_data = ll.create_target_data(self._data_layout)
+        self._unresolved_refs = []
+        self._modules = []
 
     def _create_empty_module(self, name):
         ir_module = ir.Module(name)
@@ -356,7 +360,15 @@ class JITCUDACodegen(Codegen):
         if self._data_layout:
             ir_module.data_layout = self._data_layout
         nvvm.add_ir_version(ir_module)
+        self._modules.append(ir_module)
         return ir_module
 
     def _add_module(self, module):
         pass
+
+    def insert_unresolved_ref(self, name):
+        self._unresolved_refs.append(name)
+
+    def scan_and_fix_unresolved_refs(self, library):
+        breakpoint()
+

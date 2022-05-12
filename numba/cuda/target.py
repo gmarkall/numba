@@ -364,6 +364,7 @@ class CUDATargetContext(BaseContext):
         # fpm.finalize()
 
     def call_unresolved(self, builder, name, sig, args):
+        breakpoint()
         mod = builder.module
         fndesc = self.fndesc
 
@@ -388,6 +389,9 @@ class CUDATargetContext(BaseContext):
 
         # not sure if this is needed? does it enable optionals in recursion?
         res = imputils.fix_returning_optional(self, builder, sig, status, res)
+
+        # Need to note here the unresolved ref
+        self.codegen().insert_unresolved_ref(name)
 
         return res
 
