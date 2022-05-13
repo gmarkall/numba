@@ -49,14 +49,14 @@ class TestSelfRecursion(CUDATestCase):
                       str(raises.exception))
 
     def test_type_change(self):
-        pfunc = self.mod.type_change_self.py_func
+        pfunc = self.mod.py_type_change_self
         cfunc = self.mod.type_change_self
 
         @cuda.jit
         def kernel(r, x, y):
             r[0] = cfunc(x[0], y[0])
 
-        args = 13, 0.125
+        args = 13, 1
         x = np.asarray([args[0]], dtype=np.int64)
         y = np.asarray([args[1]], dtype=np.float64)
         r = np.zeros_like(x)
@@ -78,7 +78,6 @@ class TestSelfRecursion(CUDATestCase):
 
         self.assertEqual(str(raises.exception), "raise_self")
 
-    @unittest.skip('Needs insert_unresolved_ref support in target')
     def test_optional_return(self):
         pfunc = self.mod.make_optional_return_case()
         cfunc = self.mod.make_optional_return_case(cuda.jit)

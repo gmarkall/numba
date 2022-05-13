@@ -31,6 +31,13 @@ def type_change_self(x, y):
         return y
 
 
+def py_type_change_self(x, y):
+    if x > 1 and y > 0:
+        return x + py_type_change_self(x - y, y)
+    else:
+        return y
+
+
 # Implicit signature
 @cuda.jit(device=True)
 def fib3(n):

@@ -74,6 +74,8 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         # modules within them are compiled from NVVM IR to PTX along with the
         # IR from this module - in that sense they are "linked" by NVVM at PTX
         # generation time, rather than at link time.
+        # FIXME: Can I make this a set? (maybe was some problem with set to
+        # list conversion)
         self._linked_modules = []
         # Files to link with the generated PTX. These are linked using the
         # Driver API at link time.
