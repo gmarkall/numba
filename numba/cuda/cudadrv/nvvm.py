@@ -210,6 +210,8 @@ class CompilationUnit(object):
          - The buffer should contain an NVVM module IR either in the bitcode
            representation (LLVM3.0) or in the text representation.
         """
+        if buffer[:4] != b'BC\xc0\xde':
+            print(buffer.decode())
         err = self.driver.nvvmAddModuleToProgram(self._handle, buffer,
                                                  len(buffer), None)
         self.driver.check_error(err, 'Failed to add module')
@@ -308,6 +310,8 @@ class CompilationUnit(object):
 
         # get log
         self.log = self.get_log()
+        print("NVVM log:")
+        print(self.log)
 
         return ptxbuf[:]
 

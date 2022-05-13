@@ -359,7 +359,9 @@ class JITCUDACodegen(Codegen):
         for mod in library.modules:
             for ref in self._unresolved_refs:
                 if ref in str(mod): # maybe better to check for declaration
+                    print(f"Resolving ref {ref}")
                     for candidate in self._modules:
                         for fn in candidate.functions:
                             if not fn.is_declaration and fn.name == ref:
+                                print(" - resolved")
                                 library.add_linked_module(candidate)
