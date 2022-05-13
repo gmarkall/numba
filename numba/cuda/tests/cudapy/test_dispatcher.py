@@ -291,6 +291,28 @@ class TestDispatcher(CUDATestCase):
         self.assertEqual("Add two integers, kernel version", add_kernel.__doc__)
         self.assertEqual("Add two integers, device version", add_device.__doc__)
 
+    def test_optional_return(self):
+        @cuda.jit
+        def f(x):
+            if x:
+                return 1
+
+        @cuda.jit
+        def kernel(r, x):
+            i = cuda.grid(1)
+            if f(x[i]) is not None:
+                r[0] = 2
+            else:
+                r[1] = 4
+
+        x = np.arange(2, dtype=np.int64)
+        actual = np.zeros_like(x)
+
+        kernel[1, 2](actual, x)
+
+        expected = np.asarray([2, 4], dtype=np.int64)
+        np.testing.assert_equal(actual, expected)
+
 
 @contextmanager
 def deprecation_warning_catcher():
