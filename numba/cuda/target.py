@@ -364,7 +364,6 @@ class CUDATargetContext(BaseContext):
         # fpm.finalize()
 
     def call_unresolved(self, builder, name, sig, args):
-        breakpoint()
         mod = builder.module
         fndesc = self.fndesc
 

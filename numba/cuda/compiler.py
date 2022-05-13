@@ -214,6 +214,7 @@ def compile_cuda(pyfunc, return_type, args, debug=False, lineinfo=False,
                                   pipeline_class=CUDACompiler)
 
     library = cres.library
+    cres.codegen.scan_and_fix_unresolved_refs(targetctx, library)
     library.finalize()
 
     return cres

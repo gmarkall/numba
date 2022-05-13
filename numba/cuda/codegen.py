@@ -1,10 +1,9 @@
 from llvmlite import binding as ll
 from llvmlite import ir
-from warnings import warn
+from weakref import WeakSet
 
 from numba.core import config, serialize
 from numba.core.codegen import Codegen, CodeLibrary
-from numba.core.errors import NumbaInvalidConfigWarning
 from .cudadrv import devices, driver, nvvm
 
 import ctypes
@@ -75,7 +74,7 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         # modules within them are compiled from NVVM IR to PTX along with the
         # IR from this module - in that sense they are "linked" by NVVM at PTX
         # generation time, rather than at link time.
-        self._linking_libraries = set()
+        self._linked_modules = []
         # Files to link with the generated PTX. These are linked using the
         # Driver API at link time.
         self._linking_files = set()
@@ -115,15 +114,7 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         options = self._nvvm_options.copy()
         options['arch'] = arch
         if not nvvm.NVVM().is_nvvm70:
-            # Avoid enabling debug for NVVM 3.4 as it has various issues. We
-            # need to warn the user that we're doing this if any of the
-            # functions that they're compiling have `debug=True` set, which we
-            # can determine by checking the NVVM options.
-            for lib in self.linking_libraries:
-                if lib._nvvm_options.get('debug'):
-                    msg = ("debuginfo is not generated for CUDA versions "
-                           f"< 11.2 (debug=True on function: {lib.name})")
-                    warn(NumbaInvalidConfigWarning(msg))
+            # Avoid enabling debug for NVVM 3.4 as it has various issues.
             options['debug'] = False
 
         irs = [str(mod) for mod in self.modules]
@@ -231,7 +222,8 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         # won't be able to finalize again after adding new ones
         self._raise_if_finalized()
 
-        self._linking_libraries.add(library)
+        for mod in library.modules:
+            self._linked_modules.append(mod)
 
     def add_linking_file(self, filepath):
         self._linking_files.add(filepath)
@@ -244,19 +236,8 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
 
     @property
     def modules(self):
-        return [self._module] + [mod for lib in self._linking_libraries
-                                 for mod in lib.modules]
-
-    @property
-    def linking_libraries(self):
-        # Libraries we link to may link to other libraries, so we recursively
-        # traverse the linking libraries property to build up a list of all
-        # linked libraries.
-        libs = []
-        for lib in self._linking_libraries:
-            libs.extend(lib.linking_libraries)
-            libs.append(lib)
-        return libs
+        ret = [self._module] + self._linked_modules
+        return ret
 
     def finalize(self):
         # Unlike the CPUCodeLibrary, we don't invoke the binding layer here -
@@ -265,8 +246,6 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         # set linkonce_odr to prevent them appearing in the PTX.
 
         self._raise_if_finalized()
-
-        self._codegen.scan_and_fix_unresolved_refs(self)
 
         # Note in-place modification of the linkage of functions in linked
         # libraries. This presently causes no issues as only device functions
@@ -282,14 +261,13 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         # We don't adjust the linkage of functions when compiling for debug -
         # because the device functions are in separate modules, we need them to
         # be externally visible.
-        for library in self._linking_libraries:
-            for mod in library.modules:
-                for fn in mod.functions:
-                    if not fn.is_declaration:
-                        if self._nvvm_options.get('debug', False):
-                            fn.linkage = 'weak_odr'
-                        else:
-                            fn.linkage = 'linkonce_odr'
+        for mod in self._linked_modules:
+            for fn in mod.functions:
+                if not fn.is_declaration:
+                    if self._nvvm_options.get('debug', False):
+                        fn.linkage = 'weak_odr'
+                    else:
+                        fn.linkage = 'linkonce_odr'
 
         self._finalized = True
 
@@ -308,7 +286,7 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
             name=self.name,
             entry_name=self._entry_name,
             module=self._module,
-            linking_libraries=self._linking_libraries,
+            linked_modules=self._linked_modules,
             ptx_cache=self._ptx_cache,
             cubin_cache=self._cubin_cache,
             linkerinfo_cache=self._linkerinfo_cache,
@@ -317,7 +295,7 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         )
 
     @classmethod
-    def _rebuild(cls, codegen, name, entry_name, module, linking_libraries,
+    def _rebuild(cls, codegen, name, entry_name, module, linked_modules,
                  ptx_cache, cubin_cache, linkerinfo_cache, max_registers,
                  nvvm_options):
         """
@@ -328,7 +306,7 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         instance._entry_name = entry_name
 
         instance._module = module
-        instance._linking_libraries = linking_libraries
+        instance._linked_modules = linked_modules
         instance._linking_files = set()
 
         instance._ptx_cache = ptx_cache
@@ -338,6 +316,8 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
 
         instance._max_registers = max_registers
         instance._nvvm_options = nvvm_options
+
+        return instance
 
 
 class JITCUDACodegen(Codegen):
@@ -352,7 +332,7 @@ class JITCUDACodegen(Codegen):
         self._data_layout = nvvm.default_data_layout
         self._target_data = ll.create_target_data(self._data_layout)
         self._unresolved_refs = []
-        self._modules = []
+        self._modules = WeakSet()
 
     def _create_empty_module(self, name):
         ir_module = ir.Module(name)
@@ -360,7 +340,7 @@ class JITCUDACodegen(Codegen):
         if self._data_layout:
             ir_module.data_layout = self._data_layout
         nvvm.add_ir_version(ir_module)
-        self._modules.append(ir_module)
+        self._modules.add(ir_module)
         return ir_module
 
     def _add_module(self, module):
@@ -369,6 +349,12 @@ class JITCUDACodegen(Codegen):
     def insert_unresolved_ref(self, name):
         self._unresolved_refs.append(name)
 
-    def scan_and_fix_unresolved_refs(self, library):
-        breakpoint()
+    def scan_and_fix_unresolved_refs(self, targetctx, library):
 
+        for mod in library.modules:
+            for ref in self._unresolved_refs:
+                if ref in str(mod): # maybe better to check for declaration
+                    for candidate in self._modules:
+                        for fn in candidate.functions:
+                            if not fn.is_declaration and fn.name == ref:
+                                print("doing a thing")
