@@ -49,8 +49,8 @@ class TestSelfRecursion(CUDATestCase):
                       str(raises.exception))
 
     def test_type_change(self):
-        pfunc = self.mod.py_type_change_self
-        cfunc = self.mod.type_change_self
+        pfunc = self.mod.make_type_change_self()
+        cfunc = self.mod.make_type_change_self(cuda.jit)
 
         @cuda.jit
         def kernel(r, x, y):
