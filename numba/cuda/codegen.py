@@ -214,6 +214,9 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
             raise RuntimeError('CUDACodeLibrary only supports one module')
         self._module = mod
 
+    def add_linked_module(self, mod):
+        self._linked_modules.append(mod)
+
     def add_linking_library(self, library):
         library._ensure_finalized()
 
@@ -357,4 +360,4 @@ class JITCUDACodegen(Codegen):
                     for candidate in self._modules:
                         for fn in candidate.functions:
                             if not fn.is_declaration and fn.name == ref:
-                                print("doing a thing")
+                                library.add_linked_module(candidate)
