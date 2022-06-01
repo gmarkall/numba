@@ -130,6 +130,9 @@ class CUDATargetContext(BaseContext):
         return CUDACallConv(self)
 
     def mangler(self, name, argtypes, *, abi_tags=(), uid=None):
+        print(f"Mangling {name} {argtypes} {abi_tags} {uid}")
+        if uid == 7:
+            breakpoint()
         return itanium_mangler.mangle(name, argtypes, abi_tags=abi_tags,
                                       uid=uid)
 
