@@ -352,6 +352,7 @@ class JITCUDACodegen(Codegen):
         pass
 
     def insert_unresolved_ref(self, name):
+        print(f"Adding unresolved ref {name}")
         self._unresolved_refs.append(name)
 
     def scan_and_fix_unresolved_refs(self, targetctx, library):
