@@ -2768,7 +2768,8 @@ class NvrtcProgram:
         arch = f'--gpu-architecture=compute_{major}{minor}'.encode()
         include = f'-I{config.CUDA_INCLUDE_PATH}'.encode()
         cutlass = '-I/home/gmarkall/numbadev/cutlass/include'.encode()
-        opts = [arch, include, cutlass, b'-rdc', b'true']
+        opts = [arch, include, cutlass, b'-rdc', b'true',
+                b'-default-device', b'-std=c++11']
 
         # Compile the program
         err, = nvrtc.nvrtcCompileProgram(self._program, len(opts), opts)
