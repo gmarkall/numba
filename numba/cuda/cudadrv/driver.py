@@ -2767,7 +2767,8 @@ class NvrtcProgram:
         #   being optimized away.
         arch = f'--gpu-architecture=compute_{major}{minor}'.encode()
         include = f'-I{config.CUDA_INCLUDE_PATH}'.encode()
-        opts = [arch, include, b'-rdc', b'true']
+        cutlass = '-I/home/gmarkall/numbadev/cutlass/include'.encode()
+        opts = [arch, include, cutlass, b'-rdc', b'true']
 
         # Compile the program
         err, = nvrtc.nvrtcCompileProgram(self._program, len(opts), opts)
