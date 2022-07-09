@@ -1,5 +1,4 @@
 import platform
-from functools import cached_property
 
 import llvmlite.binding as ll
 from llvmlite import ir
@@ -111,7 +110,7 @@ class CPUContext(BaseContext):
     def codegen(self):
         return self._internal_codegen
 
-    @cached_property
+    @property
     def call_conv(self):
         return callconv.CPUCallConv(self)
 
