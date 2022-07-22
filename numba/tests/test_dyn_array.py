@@ -9,7 +9,7 @@ import gc
 from numba.core.errors import TypingError
 from numba import njit
 from numba.core import types, utils, config
-from numba.tests.support import MemoryLeakMixin, TestCase, tag
+from numba.tests.support import MemoryLeakMixin, TestCase, tag, skip_if_32bit
 import unittest
 
 
@@ -416,6 +416,21 @@ class TestDynArray(NrtRefCtTest, TestCase):
         # The following checks can discover a reference count error
         self.assertEqual(expected_refct, sys.getrefcount(input))
 
+    @skip_if_32bit
+    def test_invalid_size_array(self):
+
+        @njit
+        def foo(x):
+            np.empty(x)
+
+        # Exceptions leak references
+        self.disable_leak_check()
+
+        with self.assertRaises(MemoryError) as raises:
+            foo(types.size_t.maxval // 8 // 2)
+
+        self.assertIn("Allocation failed", str(raises.exception))
+
     def test_swap(self):
 
         def pyfunc(x, y, t):
@@ -656,10 +671,9 @@ class TestNdZeros(ConstructorBaseTest, TestCase):
             func(5, 'int32')
 
         excstr = str(raises.exception)
-        self.assertIn('No match', excstr)
-        restr = r'\b{}\(int.*?, unicode_type\)\B'
-        regex = re.compile(restr.format(pyfunc.__name__))
-        self.assertRegex(excstr, regex)
+        msg = (f"If np.{self.pyfunc.__name__} dtype is a string it must be a "
+               "string constant.")
+        self.assertIn(msg, excstr)
 
     def test_1d_dtype_invalid_str(self):
         pyfunc = self.pyfunc
@@ -720,7 +734,7 @@ class TestNdZeros(ConstructorBaseTest, TestCase):
         width = types.intp.bitwidth
         def gen_func(shape, dtype):
             return lambda : pyfunc(shape, dtype)
-        # Under these values numba will segfault, but thats another issue
+        # Under these values numba will segfault, but that's another issue
         self.check_alloc_size(gen_func(1 << width - 2, np.intp))
         self.check_alloc_size(gen_func((1 << width - 8, 64), np.intp))
 
@@ -845,7 +859,7 @@ class TestNdFull(ConstructorBaseTest, TestCase):
         width = types.intp.bitwidth
         def gen_func(shape, value):
             return lambda : np.full(shape, value)
-        # Under these values numba will segfault, but thats another issue
+        # Under these values numba will segfault, but that's another issue
         self.check_alloc_size(gen_func(1 << width - 2, 1))
         self.check_alloc_size(gen_func((1 << width - 8, 64), 1))
 
@@ -967,8 +981,9 @@ class TestNdEmptyLike(ConstructorLikeBaseTest, TestCase):
             func(np.ones(4), 'int32')
 
         excstr = str(raises.exception)
-
-        self.assertIn('No match', excstr)
+        msg = (f"If np.{self.pyfunc.__name__} dtype is a string it must be a "
+               "string constant.")
+        self.assertIn(msg, excstr)
         self.assertIn(
             '{}(array(float64, 1d, C), unicode_type)'.format(pyfunc.__name__),
             excstr)
@@ -1241,7 +1256,7 @@ class TestLinspace(BaseTest):
             return np.linspace(n, m)
         self.check_outputs(pyfunc,
                            [(0, 4), (1, 100), (-3.5, 2.5), (-3j, 2+3j),
-                            (2, 1), (1+0.5j, 1.5j)], exact=False)
+                            (2, 1), (1+0.5j, 1.5j)])
 
     def test_linspace_3(self):
         def pyfunc(n, m, p):
@@ -1249,8 +1264,7 @@ class TestLinspace(BaseTest):
         self.check_outputs(pyfunc,
                            [(0, 4, 9), (1, 4, 3), (-3.5, 2.5, 8),
                             (-3j, 2+3j, 7), (2, 1, 0),
-                            (1+0.5j, 1.5j, 5), (1, 1e100, 1)],
-                           exact=False)
+                            (1+0.5j, 1.5j, 5), (1, 1e100, 1)])
 
     def test_linspace_accuracy(self):
         # Checking linspace reasonably replicates NumPy's algorithm

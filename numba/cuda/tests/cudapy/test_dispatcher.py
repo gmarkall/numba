@@ -2,7 +2,6 @@ import numpy as np
 import threading
 
 from numba import cuda, float32, float64, int32, int64, void
-from numba.core.errors import NumbaDeprecationWarning
 from numba.cuda.testing import skip_on_cudasim, unittest, CUDATestCase
 import math
 
@@ -273,25 +272,20 @@ class TestDispatcher(CUDATestCase):
         self.assertIsInstance(regs_per_thread, int)
         self.assertGreater(regs_per_thread, 0)
 
-    def test_deprecated_definitions(self):
-        @cuda.jit(void(int64[::1]))
-        def foo(x):
-            x[0] = 0
+    def test_dispatcher_docstring(self):
+        # Ensure that CUDA-jitting a function preserves its docstring. See
+        # Issue #5902: https://github.com/numba/numba/issues/5902
 
-        with self.assertWarns(NumbaDeprecationWarning) as warns:
-            foo.definition
+        @cuda.jit
+        def add_kernel(a, b):
+            """Add two integers, kernel version"""
 
-        self.assertEqual(len(warns.warnings), 1)
-        s = str(warns.warnings[0])
-        self.assertIn('Use overloads instead of definition', s)
-        self.assertNotIn('definitions', s)
+        @cuda.jit(device=True)
+        def add_device(a, b):
+            """Add two integers, device version"""
 
-        with self.assertWarns(NumbaDeprecationWarning) as warns:
-            foo.definitions
-
-        self.assertEqual(len(warns.warnings), 1)
-        s = str(warns.warnings[0])
-        self.assertIn('Use overloads instead of definitions', s)
+        self.assertEqual("Add two integers, kernel version", add_kernel.__doc__)
+        self.assertEqual("Add two integers, device version", add_device.__doc__)
 
 
 if __name__ == '__main__':

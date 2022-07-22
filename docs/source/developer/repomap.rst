@@ -105,6 +105,8 @@ Dispatching
   for different type signatures.
 - :ghfile:`numba/_dispatcher.cpp` - C++ dispatcher implementation (for speed on
   common data types)
+- :ghfile:`numba/core/retarget.py` - Support for dispatcher objects to switch
+  target via a specific with-context.
 
 
 Compiler Pipeline
@@ -477,7 +479,6 @@ CPU unit tests (GPU target unit tests listed in later sections
 
 - :ghfile:`runtests.py` - Convenience script that launches test runner and
   turns on full compiler tracebacks
-- :ghfile:`run_coverage.py` - Runs test suite with coverage tracking enabled
 - :ghfile:`.coveragerc` - Coverage.py configuration
 - :ghfile:`numba/runtests.py` - Entry point to unittest runner
 - :ghfile:`numba/testing/_runtests.py` - Implementation of custom test runner
@@ -541,9 +542,9 @@ Note that the CUDA target does reuse some parts of the CPU target.
 - :ghfile:`numba/cuda/compiler.py` - Compiler pipeline for CUDA target
 - :ghfile:`numba/cuda/intrinsic_wrapper.py` - CUDA device intrinsics
   (shuffle, ballot, etc)
-- :ghfile:`numba/cuda/initialize.py` - Defered initialization of the CUDA
+- :ghfile:`numba/cuda/initialize.py` - Deferred initialization of the CUDA
   device and subsystem.  Called only when user imports ``numba.cuda``
-- :ghfile:`numba/cuda/simulator_init.py` - Initalizes the CUDA simulator
+- :ghfile:`numba/cuda/simulator_init.py` - Initializes the CUDA simulator
   subsystem (only when user requests it with env var)
 - :ghfile:`numba/cuda/random.py` - Implementation of random number generator
 - :ghfile:`numba/cuda/api.py` - User facing APIs imported into ``numba.cuda.*``
@@ -579,49 +580,3 @@ Note that the CUDA target does reuse some parts of the CPU target.
 - :ghfile:`numba/cuda/tests/cudadrv/` - Tests of Python wrapper around CUDA
   API
 
-
-ROCm GPU Target
-'''''''''''''''
-
-Note that the ROCm target does reuse some parts of the CPU target, and
-duplicates some code from CUDA target.  A future refactoring could
-pull out the common subset of CUDA and ROCm.  An older version of this
-target was based on the HSA API, so "hsa" appears in many places.
-
-- :ghfile:`numba/roc` - ROCm GPU target for AMD GPUs
-- :ghfile:`numba/roc/descriptor.py` - TargetDescriptor subclass for ROCm
-  target
-- :ghfile:`numba/roc/enums.py` - Internal constants
-- :ghfile:`numba/roc/mathdecl.py` - Declarations of math functions that can
-  be used on device
-- :ghfile:`numba/roc/mathimpl.py` - Implementations of math functions for
-  device
-- :ghfile:`numba/roc/compiler.py` - Compiler pipeline for ROCm target
-- :ghfile:`numba/roc/hlc` - Wrapper around LLVM interface for AMD GPU
-- :ghfile:`numba/roc/initialize.py` - Register ROCm target for ufunc/gufunc
-  compiler
-- :ghfile:`numba/roc/hsadecl.py` - Type signatures for ROCm device API in
-  Python
-- :ghfile:`numba/roc/hsaimpl.py` - Implementations of ROCm device API
-- :ghfile:`numba/roc/dispatch.py` - ufunc/gufunc dispatcher
-- :ghfile:`numba/roc/README.md` - Notes on testing target (should be
-  deleted)
-- :ghfile:`numba/roc/api.py` - Host API for ROCm actions
-- :ghfile:`numba/roc/gcn_occupancy.py` - Heuristic to compute occupancy of
-  kernels
-- :ghfile:`numba/roc/stubs.py` - Host stubs for device functions
-- :ghfile:`numba/roc/vectorizers.py` - Builds ufuncs
-- :ghfile:`numba/roc/target.py` - Target and typing contexts
-- :ghfile:`numba/roc/hsadrv` - Python wrapper around ROCm (based on HSA)
-  driver API calls
-- :ghfile:`numba/roc/codegen.py` - Codegen subclass for ROCm target
-- :ghfile:`numba/roc/decorators.py` - ``@jit`` decorator for kernels and
-  device functions
-- :ghfile:`numba/roc/servicelib/threadlocal.py` - Thread-local stack used by ROC
-  targets
-- :ghfile:`numba/roc/servicelib/service.py` - Should be removed?
-- :ghfile:`numba/roc/tests` - Unit tests for ROCm target
-- :ghfile:`numba/roc/tests/hsapy` - Tests of compiling ROCm kernels written
-  in Python syntax
-- :ghfile:`numba/roc/tests/hsadrv` - Tests of Python wrapper on platform
-  API.

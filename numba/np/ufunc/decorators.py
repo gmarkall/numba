@@ -3,7 +3,7 @@ import inspect
 from numba.np.ufunc import _internal
 from numba.np.ufunc.parallel import ParallelUFuncBuilder, ParallelGUFuncBuilder
 
-from numba.core.registry import TargetRegistry
+from numba.core.registry import DelayedRegistry
 from numba.np.ufunc import dufunc
 from numba.np.ufunc import gufunc
 
@@ -28,8 +28,8 @@ class _BaseVectorize(object):
 
 
 class Vectorize(_BaseVectorize):
-    target_registry = TargetRegistry({'cpu': dufunc.DUFunc,
-                                      'parallel': ParallelUFuncBuilder,})
+    target_registry = DelayedRegistry({'cpu': dufunc.DUFunc,
+                                       'parallel': ParallelUFuncBuilder,})
 
     def __new__(cls, func, **kws):
         identity = cls.get_identity(kws)
@@ -39,8 +39,8 @@ class Vectorize(_BaseVectorize):
 
 
 class GUVectorize(_BaseVectorize):
-    target_registry = TargetRegistry({'cpu': gufunc.GUFunc,
-                                      'parallel': ParallelGUFuncBuilder,})
+    target_registry = DelayedRegistry({'cpu': gufunc.GUFunc,
+                                       'parallel': ParallelGUFuncBuilder,})
 
     def __new__(cls, func, signature, **kws):
         identity = cls.get_identity(kws)
@@ -58,7 +58,7 @@ class GUVectorize(_BaseVectorize):
 def vectorize(ftylist_or_function=(), **kws):
     """vectorize(ftylist_or_function=(), target='cpu', identity=None, **kws)
 
-    A decorator that creates a Numpy ufunc object using Numba compiled
+    A decorator that creates a NumPy ufunc object using Numba compiled
     code.  When no arguments or only keyword arguments are given,
     vectorize will return a Numba dynamic ufunc (DUFunc) object, where
     compilation/specialization may occur at call-time.
@@ -98,7 +98,7 @@ def vectorize(ftylist_or_function=(), **kws):
     Examples
     -------
         @vectorize(['float32(float32, float32)',
-                    'float64(float64, float64)'], identity=1)
+                    'float64(float64, float64)'], identity=0)
         def sum(a, b):
             return a + b
 

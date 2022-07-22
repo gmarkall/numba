@@ -20,11 +20,11 @@ except ImportError:
 
 
 min_python_version = "3.7"
-max_python_version = "3.10"  # exclusive
+max_python_version = "3.11"  # exclusive
 min_numpy_build_version = "1.11"
-min_numpy_run_version = "1.15"
-min_llvmlite_version = "0.37.0.dev0"
-max_llvmlite_version = "0.38"
+min_numpy_run_version = "1.18"
+min_llvmlite_version = "0.40.0dev0"
+max_llvmlite_version = "0.41"
 
 if sys.platform.startswith('linux'):
     # Patch for #2555 to make wheels without libpython
@@ -328,7 +328,7 @@ def get_ext_modules():
 
     ext_nrt_python = Extension(name='numba.core.runtime._nrt_python',
                                sources=['numba/core/runtime/_nrt_pythonmod.c',
-                                        'numba/core/runtime/nrt.c'],
+                                        'numba/core/runtime/nrt.cpp'],
                                depends=['numba/core/runtime/nrt.h',
                                         'numba/_pymodule.h',
                                         'numba/core/runtime/_nrt_python.c'],
@@ -361,6 +361,7 @@ install_requires = [
     'llvmlite >={},<{}'.format(min_llvmlite_version, max_llvmlite_version),
     'numpy >={}'.format(min_numpy_run_version),
     'setuptools',
+    'importlib_metadata; python_version < "3.9"',
 ]
 
 metadata = dict(
@@ -377,31 +378,31 @@ metadata = dict(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "Topic :: Software Development :: Compilers",
     ],
     package_data={
         # HTML templates for type annotations
         "numba.core.annotations": ["*.html"],
         # Various test data
-        "numba.cuda.tests.cudadrv.data": ["*.ptx"],
+        "numba.cuda.tests.cudadrv.data": ["*.ptx", "*.cu"],
+        "numba.cuda.tests.doc_examples.ffi": ["*.cu"],
         "numba.tests": ["pycc_distutils_usecase/*.py"],
         # Some C files are needed by pycc
         "numba": ["*.c", "*.h"],
         "numba.pycc": ["*.c", "*.h"],
-        "numba.core.runtime": ["*.c", "*.h"],
+        "numba.core.runtime": ["*.cpp", "*.c", "*.h"],
         "numba.cext": ["*.c", "*.h"],
         # numba gdb hook init command language file
         "numba.misc": ["cmdlang.gdb"],
         "numba.typed": ["py.typed"],
     },
     scripts=["numba/pycc/pycc", "bin/numba"],
-    author="Anaconda, Inc.",
-    author_email="numba-users@continuum.io",
     url="https://numba.pydata.org",
     packages=packages,
     setup_requires=build_requires,
     install_requires=install_requires,
-    python_requires=">={},<{}".format(min_python_version, max_python_version),
+    python_requires=">={}".format(min_python_version),
     license="BSD",
     cmdclass=cmdclass,
 )
