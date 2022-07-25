@@ -1,6 +1,7 @@
 from functools import reduce
 import operator
 import math
+import numpy as np
 
 from llvmlite import ir
 import llvmlite.binding as ll
@@ -9,6 +10,8 @@ from numba.core.imputils import Registry, lower_cast
 from numba.core.typing.npydecl import parse_dtype, signature
 from numba.core.datamodel import models
 from numba.core import types, cgutils
+from numba.np.arraymath import (array_min, array_max, array_sum, array_prod,
+                                array_mean, array_var, array_std)
 from .cudadrv import nvvm
 from numba import cuda
 from numba.cuda import nvvmutils, stubs, errors
@@ -1121,3 +1124,35 @@ def _generic_array(context, builder, shape, dtype, symbol_name, addrspace,
 @lower_constant(CUDADispatcher)
 def cuda_dispatcher_const(context, builder, ty, pyval):
     return context.get_dummy_value()
+
+
+# NumPy
+
+@lower(np.isnat, types.NPTimedelta)
+@lower("array.isnat", types.NPTimedelta)
+@lower(np.isnat, types.NPDatetime)
+@lower("array.isnat", types.NPDatetime)
+def np_isnat(context, builder, sig, args):
+    breakpoint()
+
+
+lower(np.min, types.Array)(array_min)
+lower("array.min", types.Array)(array_min)
+
+lower(np.max, types.Array)(array_max)
+lower("array.max", types.Array)(array_max)
+
+lower(np.sum, types.Array)(array_sum)
+lower("array.sum", types.Array)(array_sum)
+
+lower(np.prod, types.Array)(array_prod)
+lower("array.prod", types.Array)(array_prod)
+
+lower(np.mean, types.Array)(array_mean)
+lower("array.mean", types.Array)(array_mean)
+
+lower(np.var, types.Array)(array_var)
+lower("array.var", types.Array)(array_var)
+
+lower(np.std, types.Array)(array_std)
+lower("array.std", types.Array)(array_std)
