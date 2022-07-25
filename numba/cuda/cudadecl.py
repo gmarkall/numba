@@ -1,12 +1,16 @@
 from numba.core import types
 from numba.core.typing.npydecl import (parse_dtype, parse_shape,
-                                       register_number_classes)
+                                       register_number_classes,
+                                       supported_ufunc_names, NdIter,
+                                       Numpy_method_redirection,
+                                       Numpy_rules_ufunc)
 from numba.core.typing.templates import (AttributeTemplate, ConcreteTemplate,
                                          AbstractTemplate, CallableTemplate,
                                          signature, Registry)
 from numba.cuda.types import dim3, grid_group
 from numba import cuda
 
+import numpy as np
 
 registry = Registry()
 register = registry.register
@@ -628,3 +632,59 @@ class CudaModuleTemplate(AttributeTemplate):
 
 
 register_global(cuda, types.Module(cuda))
+
+
+# NumPy
+
+register_global(np.nditer)(NdIter)
+
+
+@register
+class Np_isnat(AbstractTemplate):
+    key = np.isnat
+
+    def generic(self, args, kws):
+        assert not kws
+        if len(args) == 1:
+            return signature(types.boolean, args[0])
+
+
+@register_attr
+class NpModuleTemplate(AttributeTemplate):
+    key = types.Module(np)
+
+    def resolve_isnat(self, mod):
+        return types.Function(Np_isnat)
+
+
+# From the same function in numba.core.typing.npydecl
+def _numpy_redirect(fname):
+    numpy_function = getattr(np, fname)
+    cls = type("Numpy_redirect_{0}".format(fname), (Numpy_method_redirection,),
+               dict(key=numpy_function, method_name=fname))
+    register_global(numpy_function, types.Function(cls))
+
+
+def _numpy_ufunc(name):
+    func = getattr(np, name)
+
+    class typing_class(Numpy_rules_ufunc):
+        key = func
+
+    typing_class.__name__ = "resolve_{0}".format(name)
+
+    # A list of ufuncs that are in fact aliases of other ufuncs. They need to
+    # insert the resolve method, but not register the ufunc itself
+    aliases = ("abs", "bitwise_not", "divide", "abs")
+
+    if name not in aliases:
+        register_global(func, types.Function(typing_class))
+
+
+for func in supported_ufunc_names:
+    _numpy_ufunc(func)
+
+supported_array_fns = ('min', 'max', 'sum', 'prod', 'mean', 'var', 'std')
+
+for func in supported_array_fns:
+    _numpy_redirect(func)
