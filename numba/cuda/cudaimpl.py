@@ -6,12 +6,19 @@ import numpy as np
 from llvmlite import ir
 import llvmlite.binding as ll
 
-from numba.core.imputils import Registry, lower_cast
-from numba.core.typing.npydecl import parse_dtype, signature
+from numba.core.imputils import Registry, lower_cast, force_error_model
+from numba.core.typing.npydecl import (parse_dtype, signature,
+                                       NumpyRulesInplaceArrayOperator,
+                                       NumpyRulesUnaryArrayOperator,
+                                       NumpyRulesArrayOperator)
 from numba.core.datamodel import models
-from numba.core import types, cgutils
+from numba.core import types, typing, cgutils
+from numba.np import ufunc_db
 from numba.np.arraymath import (array_min, array_max, array_sum, array_prod,
                                 array_mean, array_var, array_std)
+from numba.np.npyimpl import numpy_ufunc_kernel, _Kernel, _unpack_output_types
+from numba.np.numpy_support import (
+    ufunc_find_matching_loop, _ufunc_loop_sig)
 from .cudadrv import nvvm
 from numba import cuda
 from numba.cuda import nvvmutils, stubs, errors
@@ -1156,3 +1163,139 @@ lower("array.var", types.Array)(array_var)
 
 lower(np.std, types.Array)(array_std)
 lower("array.std", types.Array)(array_std)
+
+
+# ufuncs
+
+def _ufunc_db_function(ufunc):
+    """Use the ufunc loop type information to select the code generation
+    function from the table provided by the dict_of_kernels. The dict
+    of kernels maps the loop identifier to a function with the
+    following signature: (context, builder, signature, args).
+
+    The loop type information has the form 'AB->C'. The letters to the
+    left of '->' are the input types (specified as NumPy letter
+    types).  The letters to the right of '->' are the output
+    types. There must be 'ufunc.nin' letters to the left of '->', and
+    'ufunc.nout' letters to the right.
+
+    For example, a binary float loop resulting in a float, will have
+    the following signature: 'ff->f'.
+
+    A given ufunc implements many loops. The list of loops implemented
+    for a given ufunc can be accessed using the 'types' attribute in
+    the ufunc object. The NumPy machinery selects the first loop that
+    fits a given calling signature (in our case, what we call the
+    outer_sig). This logic is mimicked by 'ufunc_find_matching_loop'.
+    """
+
+    class _KernelImpl(_Kernel):
+        def __init__(self, context, builder, outer_sig):
+            super(_KernelImpl, self).__init__(context, builder, outer_sig)
+            outputs = tuple(_unpack_output_types(ufunc, outer_sig))
+            loop = ufunc_find_matching_loop(
+                ufunc, outer_sig.args + outputs)
+            self.fn = context.get_ufunc_info(ufunc).get(loop.ufunc_sig)
+            self.inner_sig = _ufunc_loop_sig(loop.outputs, loop.inputs)
+
+            if self.fn is None:
+                msg = "Don't know how to lower ufunc '{0}' for loop '{1}'"
+                raise NotImplementedError(msg.format(ufunc.__name__, loop))
+
+        def generate(self, *args):
+            isig = self.inner_sig
+            osig = self.outer_sig
+
+            cast_args = [self.cast(val, inty, outty)
+                         for val, inty, outty in zip(args, osig.args,
+                                                     isig.args)]
+            with force_error_model(self.context, 'numpy'):
+                res = self.fn(self.context, self.builder, isig, cast_args)
+            dmm = self.context.data_model_manager
+            res = dmm[isig.return_type].from_return(self.builder, res)
+            return self.cast(res, isig.return_type, osig.return_type)
+
+    return _KernelImpl
+
+
+def register_ufunc_kernel(ufunc, kernel):
+    def do_ufunc(context, builder, sig, args):
+        return numpy_ufunc_kernel(context, builder, sig, args, ufunc, kernel)
+
+    _any = types.Any
+    in_args = (_any,) * ufunc.nin
+
+    # Add a lowering for each out argument that is missing.
+    for n_explicit_out in range(ufunc.nout + 1):
+        out_args = (types.Array,) * n_explicit_out
+        lower(ufunc, *in_args, *out_args)(do_ufunc)
+
+    return kernel
+
+
+def register_unary_operator_kernel(operator, ufunc, kernel, inplace=False):
+    assert not inplace  # are there any inplace unary operators?
+
+    def lower_unary_operator(context, builder, sig, args):
+        return numpy_ufunc_kernel(context, builder, sig, args, ufunc, kernel)
+    _arr_kind = types.Array
+    lower(operator, _arr_kind)(lower_unary_operator)
+
+
+def register_binary_operator_kernel(op, ufunc, kernel, inplace=False):
+    def lower_binary_operator(context, builder, sig, args):
+        return numpy_ufunc_kernel(context, builder, sig, args, ufunc, kernel)
+
+    def lower_inplace_operator(context, builder, sig, args):
+        # The visible signature is (A, B) -> A
+        # The implementation's signature (with explicit output)
+        # is (A, B, A) -> A
+        args = tuple(args) + (args[0],)
+        sig = typing.signature(sig.return_type, *sig.args + (sig.args[0],))
+        return numpy_ufunc_kernel(context, builder, sig, args, ufunc, kernel)
+
+    _any = types.Any
+    _arr_kind = types.Array
+    formal_sigs = [(_arr_kind, _arr_kind), (_any, _arr_kind), (_arr_kind, _any)]
+    for sig in formal_sigs:
+        if not inplace:
+            lower(op, *sig)(lower_binary_operator)
+        else:
+            lower(op, *sig)(lower_inplace_operator)
+
+
+def _register_ufuncs():
+    kernels = {}
+    # NOTE: Assuming ufunc implementation for the CPUContext.
+    for ufunc in ufunc_db.get_ufuncs():
+        kernels[ufunc] = register_ufunc_kernel(ufunc, _ufunc_db_function(ufunc))
+
+    for _op_map in (NumpyRulesUnaryArrayOperator._op_map,
+                    NumpyRulesArrayOperator._op_map,
+                    ):
+        for op, ufunc_name in _op_map.items():
+            ufunc = getattr(np, ufunc_name)
+            kernel = kernels[ufunc]
+            if ufunc.nin == 1:
+                register_unary_operator_kernel(op, ufunc, kernel)
+            elif ufunc.nin == 2:
+                register_binary_operator_kernel(op, ufunc, kernel)
+            else:
+                msg = "There shouldn't be any non-unary or binary operators"
+                raise RuntimeError(msg)
+
+    for _op_map in (NumpyRulesInplaceArrayOperator._op_map,
+                    ):
+        for op, ufunc_name in _op_map.items():
+            ufunc = getattr(np, ufunc_name)
+            kernel = kernels[ufunc]
+            if ufunc.nin == 1:
+                register_unary_operator_kernel(op, ufunc, kernel, inplace=True)
+            elif ufunc.nin == 2:
+                register_binary_operator_kernel(op, ufunc, kernel, inplace=True)
+            else:
+                msg = "There shouldn't be any non-unary or binary operators"
+                raise RuntimeError(msg)
+
+
+_register_ufuncs()

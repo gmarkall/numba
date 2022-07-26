@@ -8,6 +8,7 @@ from numba.core.utils import cached_property
 from numba.core.base import BaseContext
 from numba.core.callconv import MinimalCallConv
 from numba.core.typing import cmathdecl
+from numba.np import ufunc_db
 
 from .cudadrv import nvvm
 from numba.cuda import codegen, nvvmutils
@@ -366,6 +367,9 @@ class CUDATargetContext(BaseContext):
         # fpm.initialize()
         # fpm.run(func)
         # fpm.finalize()
+
+    def get_ufunc_info(self, ufunc_key):
+        return ufunc_db.get_ufunc_info(ufunc_key)
 
 
 class CUDACallConv(MinimalCallConv):
