@@ -369,7 +369,28 @@ class CUDATargetContext(BaseContext):
         # fpm.finalize()
 
     def get_ufunc_info(self, ufunc_key):
-        return ufunc_db.get_ufunc_info(ufunc_key)
+        import numpy as np
+        import math
+        from numba.np.npyfuncs import _check_arity_and_homogeneity
+        from numba.cuda.mathimpl import get_unary_impl_for_fn_and_ty
+
+        def np_real_sin_impl(context, builder, sig, args):
+            _check_arity_and_homogeneity(sig, args, 1)
+            sin_impl = get_unary_impl_for_fn_and_ty(math.sin, sig.args[0])
+            return sin_impl(context, builder, sig, args)
+
+        if ufunc_key == np.sin:
+            res = {
+                'f->f': np_real_sin_impl,
+                'd->d': np_real_sin_impl,
+                # No complex impl for PoC
+                # 'F->F': np_complex_sin_impl,
+                # 'D->D': np_complex_sin_impl
+            }
+        else:
+            res = ufunc_db.get_ufunc_info(ufunc_key)
+
+        return res
 
 
 class CUDACallConv(MinimalCallConv):
