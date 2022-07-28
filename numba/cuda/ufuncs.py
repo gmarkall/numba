@@ -21,6 +21,7 @@ def get_ufunc_info(ufunc_key):
 
 def _fill_ufunc_db(ufunc_db):
     from numba.np.npyfuncs import _check_arity_and_homogeneity
+    from numba.np.npyfuncs import np_complex_sin_impl
 
     def _np_real_sin_impl(context, builder, sig, args):
         _check_arity_and_homogeneity(sig, args, 1)
@@ -29,5 +30,7 @@ def _fill_ufunc_db(ufunc_db):
 
     _ufunc_db[np.sin] = {
         'f->f': _np_real_sin_impl,
-        'd->d': _np_real_sin_impl
+        'd->d': _np_real_sin_impl,
+        'F->F': np_complex_sin_impl,
+        'D->D': np_complex_sin_impl,
     }

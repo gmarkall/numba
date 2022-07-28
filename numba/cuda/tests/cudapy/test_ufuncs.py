@@ -1,7 +1,7 @@
 import numpy as np
 import warnings
 
-from numba import cuda
+from numba import cuda, types
 from numba.cuda.descriptor import cuda_target
 from numba.cuda.testing import CUDATestCase, unittest
 from numba.tests.support import CompilationCache
@@ -23,6 +23,22 @@ class TestUFuncs(BaseUFuncTest, CUDATestCase):
     def setUp(self):
         CUDATestCase.setUp(self)
         BaseUFuncTest.setUp(self)
+
+        # The base ufunc test does not run with complex inputs
+        self.inputs.extend([
+            (np.complex64(-0.5 - 0.5j), types.complex64),
+            (np.complex64(0.0), types.complex64),
+            (np.complex64(0.5 + 0.5j), types.complex64),
+
+            (np.complex64(-0.5 - 0.5j), types.complex128),
+            (np.complex64(0.0), types.complex128),
+            (np.complex64(0.5 + 0.5j), types.complex128),
+
+            (np.array([-0.5 - 0.5j, 0.0, 0.5 + 0.5j], dtype='c8'),
+             types.Array(types.complex64, 1, 'C')),
+            (np.array([-0.5 - 0.5j, 0.0, 0.5 + 0.5j], dtype='c16'),
+             types.Array(types.complex128, 1, 'C')),
+        ])
 
     # Copied from TestUFuncs in the main tests
     def basic_ufunc_test(self, ufunc, flags=no_pyobj_flags,
