@@ -177,9 +177,13 @@ class CompilationCache(object):
     This can make tests significantly faster (or less slow).
     """
 
-    def __init__(self):
-        self.typingctx = typing.Context()
-        self.targetctx = cpu.CPUContext(self.typingctx, 'cpu')
+    def __init__(self, target=None):
+        from numba.core.registry import cpu_target
+
+        if target is None:
+            target = cpu_target
+
+        self.target = target
         self.cr_cache = {}
 
     def compile(self, func, args, return_type=None, flags=DEFAULT_FLAGS):
@@ -187,7 +191,6 @@ class CompilationCache(object):
         Compile the function or retrieve an already compiled result
         from the cache.
         """
-        from numba.core.registry import cpu_target
 
         cache_key = (func, args, return_type, flags)
         if cache_key in self.cr_cache:
@@ -195,9 +198,11 @@ class CompilationCache(object):
         else:
             # Register the contexts in case for nested @jit or @overload calls
             # (same as compile_isolated())
-            with cpu_target.nested_context(self.typingctx, self.targetctx):
-                cr = compile_extra(self.typingctx, self.targetctx, func,
-                                   args, return_type, flags, locals={})
+            typingctx = self.target.typing_context
+            targetctx = self.target.target_context
+            with self.target.nested_context(typingctx, targetctx):
+                cr = compile_extra(typingctx, targetctx, func, args,
+                                   return_type, flags, locals={})
             self.cr_cache[cache_key] = cr
         return cr
 
