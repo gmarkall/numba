@@ -22,9 +22,12 @@ def get_ufunc_info(ufunc_key):
 
 
 def _fill_ufunc_db(ufunc_db):
-    from numba.cpython import cmathimpl
+    from numba.cpython import cmathimpl, mathimpl
     from numba.np.npyfuncs import _check_arity_and_homogeneity
-    from numba.np.npyfuncs import (np_complex_cos_impl, np_complex_sin_impl)
+    # FIXME: These could really have more efficient implementations for CUDA
+    # that make use of libdevice
+    from numba.np.npyfuncs import (np_complex_acosh_impl, np_complex_cos_impl,
+                                   np_complex_sin_impl)
 
     def _np_real_sin_impl(context, builder, sig, args):
         _check_arity_and_homogeneity(sig, args, 1)
@@ -165,6 +168,21 @@ def _fill_ufunc_db(ufunc_db):
 
         return out._getvalue()
 
+    def _np_real_asinh_impl(context, builder, sig, args):
+        _check_arity_and_homogeneity(sig, args, 1)
+        asinh_impl = get_unary_impl_for_fn_and_ty(math.asinh, sig.args[0])
+        return asinh_impl(context, builder, sig, args)
+
+    def _np_real_acosh_impl(context, builder, sig, args):
+        _check_arity_and_homogeneity(sig, args, 1)
+        acosh_impl = get_unary_impl_for_fn_and_ty(math.acosh, sig.args[0])
+        return acosh_impl(context, builder, sig, args)
+
+    def _np_real_atanh_impl(context, builder, sig, args):
+        _check_arity_and_homogeneity(sig, args, 1)
+        atanh_impl = get_unary_impl_for_fn_and_ty(math.atanh, sig.args[0])
+        return atanh_impl(context, builder, sig, args)
+
     _ufunc_db[np.sin] = {
         'f->f': _np_real_sin_impl,
         'd->d': _np_real_sin_impl,
@@ -237,3 +255,38 @@ def _fill_ufunc_db(ufunc_db):
         'F->F': _np_complex_tanh_impl,
         'D->D': _np_complex_tanh_impl,
     }
+
+    _ufunc_db[np.arcsinh] = {
+        'f->f': _np_real_asinh_impl,
+        'd->d': _np_real_asinh_impl,
+        'F->F': cmathimpl.asinh_impl,
+        'D->D': cmathimpl.asinh_impl,
+    }
+
+    _ufunc_db[np.arccosh] = {
+        'f->f': _np_real_acosh_impl,
+        'd->d': _np_real_acosh_impl,
+        'F->F': np_complex_acosh_impl,
+        'D->D': np_complex_acosh_impl,
+    }
+
+    _ufunc_db[np.arctanh] = {
+        'f->f': _np_real_atanh_impl,
+        'd->d': _np_real_atanh_impl,
+        'F->F': cmathimpl.atanh_impl,
+        'D->D': cmathimpl.atanh_impl,
+    }
+
+    ufunc_db[np.deg2rad] = {
+        'f->f': mathimpl.radians_float_impl,
+        'd->d': mathimpl.radians_float_impl,
+    }
+
+    ufunc_db[np.radians] = ufunc_db[np.deg2rad]
+
+    ufunc_db[np.rad2deg] = {
+        'f->f': mathimpl.degrees_float_impl,
+        'd->d': mathimpl.degrees_float_impl,
+    }
+
+    ufunc_db[np.degrees] = ufunc_db[np.rad2deg]
