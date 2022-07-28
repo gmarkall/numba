@@ -2,9 +2,9 @@ import numpy as np
 import warnings
 
 from numba import cuda, types
-from numba.cuda.descriptor import cuda_target
+#from numba.cuda.descriptor import cuda_target
 from numba.cuda.testing import CUDATestCase, unittest
-from numba.tests.support import CompilationCache
+#from numba.tests.support import CompilationCache
 from numba.tests.test_ufuncs import BaseUFuncTest, no_pyobj_flags
 
 
@@ -143,7 +143,8 @@ class TestUFuncs(BaseUFuncTest, CUDATestCase):
                         raise
 
     def _init_cache(self):
-        self.cache = CompilationCache(cuda_target)
+        pass
+        #self.cache = CompilationCache(cuda_target)
 
     ############################################################################
     # Trigonometric Functions
