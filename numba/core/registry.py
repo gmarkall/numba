@@ -1,29 +1,15 @@
 import contextlib
 
-from numba.core.descriptors import TargetDescriptor
+from numba.core.descriptors import NestableTargetDescriptor, NestedContext
 from numba.core import utils, typing, dispatcher, cpu
 
 # -----------------------------------------------------------------------------
 # Default CPU target descriptors
 
-class _NestedContext(object):
-    _typing_context = None
-    _target_context = None
 
-    @contextlib.contextmanager
-    def nested(self, typing_context, target_context):
-        old_nested = self._typing_context, self._target_context
-        try:
-            self._typing_context = typing_context
-            self._target_context = target_context
-            yield
-        finally:
-            self._typing_context, self._target_context = old_nested
-
-
-class CPUTarget(TargetDescriptor):
+class CPUTarget(NestableTargetDescriptor):
     options = cpu.CPUTargetOptions
-    _nested = _NestedContext()
+    _nested = NestedContext()
 
     @utils.cached_property
     def _toplevel_target_context(self):
@@ -34,35 +20,6 @@ class CPUTarget(TargetDescriptor):
     def _toplevel_typing_context(self):
         # Lazily-initialized top-level typing context, for all threads
         return typing.Context()
-
-    @property
-    def target_context(self):
-        """
-        The target context for CPU targets.
-        """
-        nested = self._nested._target_context
-        if nested is not None:
-            return nested
-        else:
-            return self._toplevel_target_context
-
-    @property
-    def typing_context(self):
-        """
-        The typing context for CPU targets.
-        """
-        nested = self._nested._typing_context
-        if nested is not None:
-            return nested
-        else:
-            return self._toplevel_typing_context
-
-    def nested_context(self, typing_context, target_context):
-        """
-        A context manager temporarily replacing the contexts with the
-        given ones, for the current thread of execution.
-        """
-        return self._nested.nested(typing_context, target_context)
 
 
 # The global CPU target
