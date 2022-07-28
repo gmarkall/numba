@@ -167,7 +167,7 @@ class TestUFuncs(BaseUFuncTest, CUDATestCase):
         self.basic_ufunc_test(np.arctan, flags=flags, kinds='cf')
 
     def test_arctan2_ufunc(self, flags=no_pyobj_flags):
-        self.basic_ufunc_test(np.arctan2, flags=flags, kinds='cf')
+        self.basic_ufunc_test(np.arctan2, flags=flags, kinds='f')
 
     def test_hypot_ufunc(self, flags=no_pyobj_flags):
         self.basic_ufunc_test(np.hypot, kinds='f')
