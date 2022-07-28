@@ -135,6 +135,9 @@ class BaseUFuncTest(MemoryLeakMixin):
             (np.array([0,1], dtype=np.uint8), types.Array(types.uint8, 1, 'C')),
             (np.array([0,1], dtype=np.uint16), types.Array(types.uint16, 1, 'C')),
             ]
+        self._init_cache()
+
+    def _init_cache(self):
         self.cache = CompilationCache()
 
     def _determine_output_type(self, input_type, int_output_type=None,
