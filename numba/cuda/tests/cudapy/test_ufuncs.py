@@ -12,7 +12,6 @@ def _make_ufunc_usecase(ufunc):
     ldict = {}
     arg_str = ','.join(['a{0}'.format(i) for i in range(ufunc.nargs)])
     func_str = f'def fn({arg_str}):\n    np.{ufunc.__name__}({arg_str})'
-    print(func_str)
     exec(func_str, globals(), ldict)
     fn = ldict['fn']
     fn.__name__ = '{0}_usecase'.format(ufunc.__name__)
@@ -116,9 +115,7 @@ class TestUFuncs(BaseUFuncTest, CUDATestCase):
                             and str(thiswarn.message).startswith(warnmsg)):
                         invalid_flag = True
 
-            print(f"Running with {args} {results}")
             cfunc[1, 1](*args, *results)
-            print(f"Got {results}")
 
             for expected_i, result_i in zip(expected, results):
                 msg = '\n'.join(["ufunc '{0}' failed",
