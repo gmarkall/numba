@@ -445,8 +445,6 @@ class DeviceGUFuncVectorize(_BaseUFuncBuilder):
         self.identity = parse_identity(identity)
         self.signature = sig
         self.inputsig, self.outputsig = parse_signature(self.signature)
-        assert len(self.outputsig) == 1, "only support 1 output"
-        # { arg_dtype: (return_dtype), cudakernel }
         self.kernelmap = OrderedDict()
 
     @property
@@ -640,24 +638,23 @@ class GenerializedUFunc(object):
         self.kernelmap = kernelmap
         self.engine = engine
         self.max_blocksize = 2 ** 30
-        assert self.engine.nout == 1, "only support single output"
 
     def __call__(self, *args, **kws):
         callsteps = self._call_steps(self.engine.nin, self.engine.nout,
                                      args, kws)
         callsteps.prepare_inputs()
         indtypes, schedule, outdtype, kernel = self._schedule(
-            callsteps.norm_inputs, callsteps.output)
+            callsteps.norm_inputs, callsteps.outputs)
         callsteps.adjust_input_types(indtypes)
         callsteps.allocate_outputs(schedule, outdtype)
         callsteps.prepare_kernel_parameters()
         newparams, newretval = self._broadcast(schedule,
                                                callsteps.kernel_parameters,
-                                               callsteps.kernel_returnvalue)
+                                               callsteps.kernel_returnvalues)
         callsteps.launch_kernel(kernel, schedule.loopn, newparams + [newretval])
         return callsteps.post_process_result()
 
-    def _schedule(self, inputs, out):
+    def _schedule(self, inputs, outs):
         input_shapes = [a.shape for a in inputs]
         schedule = self.engine.schedule(input_shapes)
 
@@ -674,8 +671,12 @@ class GenerializedUFunc(object):
             outdtype, kernel = self.kernelmap[idtypes]
 
         # check output
-        if out is not None and schedule.output_shapes[0] != out.shape:
-            raise ValueError('output shape mismatch')
+        if outs:
+            shapes_match = all([sched_shape == out.shape
+                                for (sched_shape, out) in
+                                    zip(schedule.output_shapes, outs)])
+            if not shapes_match:
+                raise ValueError('output shape mismatch')
 
         return idtypes, schedule, outdtype, kernel
 
@@ -696,18 +697,19 @@ class GenerializedUFunc(object):
     def _broadcast(self, schedule, params, retval):
         assert schedule.loopn > 0, "zero looping dimension"
 
-        odim = 1 if not schedule.loopdims else schedule.loopn
+        odims = (1,) if not schedule.loopdims else schedule.loopn
         newparams = []
         for p, cs in zip(params, schedule.ishapes):
             if not cs and p.size == 1:
                 # Broadcast scalar input
-                devary = self._broadcast_scalar_input(p, odim)
+                devary = self._broadcast_scalar_input(p, odims)
                 newparams.append(devary)
             else:
                 # Broadcast vector input
-                newparams.append(self._broadcast_array(p, odim, cs))
-        newretval = retval.reshape(odim, *schedule.oshapes[0])
-        return newparams, newretval
+                newparams.append(self._broadcast_array(p, odims, cs))
+        newretvals = [retval.reshape(odim, *oshape) for (retval, oshape)
+                      in zip(retvals, schedule.oshapes)]
+        return newparams, newretvals
 
     def _broadcast_array(self, ary, newdim, innerdim):
         newshape = (newdim,) + innerdim
@@ -736,29 +738,31 @@ class GUFuncCallSteps(object):
     __slots__ = [
         'args',
         'kwargs',
-        'output',
+        'outputs',
         'norm_inputs',
-        'kernel_returnvalue',
+        'kernel_returnvalues',
         'kernel_parameters',
         '_is_device_array',
         '_need_device_conversion',
     ]
 
     def __init__(self, nin, nout, args, kwargs):
-        if nout > 1:
-            raise ValueError('multiple output is not supported')
         self.args = args
         self.kwargs = kwargs
 
         user_output_is_device = False
-        self.output = self.kwargs.get('out')
-        if self.output is not None:
-            user_output_is_device = self.is_device_array(self.output)
-            if user_output_is_device:
-                self.output = self.as_device_array(self.output)
+        outputs = self.kwargs.get('out')
+        if outputs:
+            def ensure_numba_device_array(arr):
+                if self.is_device_array(arr):
+                    arr = self.as_device_array(arr)
+                return arr
+
+            self.outputs = [ensure_numba_device_array(arr) for arr in outputs]
+        self.outputs = outputs
         self._is_device_array = [self.is_device_array(a) for a in self.args]
-        self._need_device_conversion = (not any(self._is_device_array) and
-                                        not user_output_is_device)
+        self._need_device_conversion = not any(self._is_device_array) #and
+                                       # not user_output_is_device)
 
         # Normalize inputs
         inputs = []
@@ -771,11 +775,11 @@ class GUFuncCallSteps(object):
         # Check if there are extra arguments for outputs.
         unused_inputs = inputs[nin:]
         if unused_inputs:
-            if self.output is not None:
+            if self.outputs is not None:
                 raise ValueError("cannot specify 'out' as both a positional "
                                  "and keyword argument")
             else:
-                [self.output] = unused_inputs
+                self.outputs = unused_inputs
 
     def adjust_input_types(self, indtypes):
         """
@@ -796,12 +800,12 @@ class GUFuncCallSteps(object):
 
     def allocate_outputs(self, schedule, outdtype):
         # allocate output
-        if self._need_device_conversion or self.output is None:
-            retval = self.device_array(shape=schedule.output_shapes[0],
-                                       dtype=outdtype)
+        if self._need_device_conversion or self.outputs is None:
+            retvals = [self.device_array(shape=shape, dtype=outdtype)
+                       for shape in schedule.output_shapes]
         else:
-            retval = self.output
-        self.kernel_returnvalue = retval
+            retvals = self.outputs
+        self.kernel_returnvalues = retvals
 
     def prepare_kernel_parameters(self):
         params = []
@@ -815,12 +819,14 @@ class GUFuncCallSteps(object):
 
     def post_process_result(self):
         if self._need_device_conversion:
-            out = self.to_host(self.kernel_returnvalue, self.output)
+            outs = [self.to_host(retval, output)
+                    for retval, output in zip(self.kernel_returnvalues,
+                                              self.outputs)]
         elif self.output is None:
-            out = self.kernel_returnvalue
+            outs = self.kernel_returnvalues
         else:
-            out = self.output
-        return out
+            outs = self.outputs
+        return outs
 
     def prepare_inputs(self):
         pass
