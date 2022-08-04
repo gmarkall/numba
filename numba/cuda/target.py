@@ -6,7 +6,7 @@ from numba.core import typing, types, debuginfo, itanium_mangler, cgutils
 from numba.core.dispatcher import Dispatcher
 from numba.core.utils import cached_property
 from numba.core.base import BaseContext
-from numba.core.callconv import MinimalCallConv
+from numba.core.callconv import CPUCallConv, excinfo_ptr_t
 from numba.core.typing import cmathdecl
 
 from .cudadrv import nvvm
@@ -185,8 +185,8 @@ class CUDATargetContext(BaseContext):
         wrapfnty = ir.FunctionType(ir.VoidType(), argtys)
         wrapper_module = self.create_module("cuda.kernel.wrapper")
         fnty = ir.FunctionType(ir.IntType(32),
-                               [self.call_conv.get_return_type(types.pyobject)]
-                               + argtys)
+                               [self.call_conv.get_return_type(types.pyobject),
+                                ir.PointerType(excinfo_ptr_t)] + argtys)
         func = ir.Function(wrapper_module, fnty, fndesc.llvm_func_name)
 
         prefixed = itanium_mangler.prepend_namespace(func.name, ns='cudapy')
@@ -368,5 +368,5 @@ class CUDATargetContext(BaseContext):
         # fpm.finalize()
 
 
-class CUDACallConv(MinimalCallConv):
+class CUDACallConv(CPUCallConv):
     pass
