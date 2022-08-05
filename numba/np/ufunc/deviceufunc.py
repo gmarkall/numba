@@ -648,10 +648,10 @@ class GenerializedUFunc(object):
         callsteps.adjust_input_types(indtypes)
         callsteps.allocate_outputs(schedule, outdtype)
         callsteps.prepare_kernel_parameters()
-        newparams, newretval = self._broadcast(schedule,
+        newparams, newretvals = self._broadcast(schedule,
                                                callsteps.kernel_parameters,
                                                callsteps.kernel_returnvalues)
-        callsteps.launch_kernel(kernel, schedule.loopn, newparams + [newretval])
+        callsteps.launch_kernel(kernel, schedule.loopn, newparams + newretvals)
         return callsteps.post_process_result()
 
     def _schedule(self, inputs, outs):
@@ -671,11 +671,12 @@ class GenerializedUFunc(object):
             outdtype, kernel = self.kernelmap[idtypes]
 
         # check output
-        if outs:
+        if outs is not None:
             shapes_match = all([sched_shape == out.shape
                                 for (sched_shape, out) in
                                     zip(schedule.output_shapes, outs)])
             if not shapes_match:
+                breakpoint()
                 raise ValueError('output shape mismatch')
 
         return idtypes, schedule, outdtype, kernel
@@ -752,13 +753,16 @@ class GUFuncCallSteps(object):
 
         user_output_is_device = False
         outputs = self.kwargs.get('out')
-        if outputs:
+        if outputs is not None:
             def ensure_numba_device_array(arr):
                 if self.is_device_array(arr):
                     arr = self.as_device_array(arr)
                 return arr
 
-            self.outputs = [ensure_numba_device_array(arr) for arr in outputs]
+            if not isinstance(outputs, list):
+                outputs = [outputs]
+
+            outputs = [ensure_numba_device_array(arr) for arr in outputs]
         self.outputs = outputs
         self._is_device_array = [self.is_device_array(a) for a in self.args]
         self._need_device_conversion = not any(self._is_device_array) #and
