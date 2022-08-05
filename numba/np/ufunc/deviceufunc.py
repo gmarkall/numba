@@ -826,6 +826,8 @@ class GUFuncCallSteps(object):
 
     def post_process_result(self):
         if self._need_device_conversion:
+            if self.outputs is None:
+                breakpoint()
             outs = [self.to_host(retval, output)
                     for retval, output in zip(self.kernel_returnvalues,
                                               self.outputs)]
