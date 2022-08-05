@@ -694,7 +694,7 @@ class GenerializedUFunc(object):
         else:
             raise TypeError("no matching signature")
 
-    def _broadcast(self, schedule, params, retval):
+    def _broadcast(self, schedule, params, retvals):
         assert schedule.loopn > 0, "zero looping dimension"
 
         odims = (1,) if not schedule.loopdims else schedule.loopn
@@ -707,12 +707,12 @@ class GenerializedUFunc(object):
             else:
                 # Broadcast vector input
                 newparams.append(self._broadcast_array(p, odims, cs))
-        newretvals = [retval.reshape(odim, *oshape) for (retval, oshape)
+        newretvals = [retval.reshape(odims, *oshape) for (retval, oshape)
                       in zip(retvals, schedule.oshapes)]
         return newparams, newretvals
 
-    def _broadcast_array(self, ary, newdim, innerdim):
-        newshape = (newdim,) + innerdim
+    def _broadcast_array(self, ary, newdims, innerdim):
+        newshape = newdims + innerdim
         # No change in shape
         if ary.shape == newshape:
             return ary
