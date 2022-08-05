@@ -698,7 +698,7 @@ class GenerializedUFunc(object):
     def _broadcast(self, schedule, params, retvals):
         assert schedule.loopn > 0, "zero looping dimension"
 
-        odims = (1,) if not schedule.loopdims else schedule.loopn
+        odims = (1,) if not schedule.loopdims else (schedule.loopn,)
         newparams = []
         for p, cs in zip(params, schedule.ishapes):
             if not cs and p.size == 1:
@@ -713,7 +713,10 @@ class GenerializedUFunc(object):
         return newparams, newretvals
 
     def _broadcast_array(self, ary, newdims, innerdim):
-        newshape = newdims + innerdim
+        try:
+            newshape = newdims + innerdim
+        except TypeError:
+            breakpoint()
         # No change in shape
         if ary.shape == newshape:
             return ary
