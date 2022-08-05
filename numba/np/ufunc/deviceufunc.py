@@ -707,8 +707,8 @@ class GenerializedUFunc(object):
             else:
                 # Broadcast vector input
                 newparams.append(self._broadcast_array(p, odims, cs))
-        newretvals = [retval.reshape(odims, *oshape) for (retval, oshape)
-                      in zip(retvals, schedule.oshapes)]
+        newretvals = [retval.reshape(odim, *oshape) for (retval, odim, oshape)
+                      in zip(retvals, odims, schedule.oshapes)]
         return newparams, newretvals
 
     def _broadcast_array(self, ary, newdims, innerdim):
