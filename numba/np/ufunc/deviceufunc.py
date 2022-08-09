@@ -754,22 +754,36 @@ class GUFuncCallSteps(object):
         self.args = args
         self.kwargs = kwargs
 
-        user_output_is_device = False
-        outputs = self.kwargs.get('out')
-        if outputs is not None:
-            def ensure_numba_device_array(arr):
-                if self.is_device_array(arr):
-                    arr = self.as_device_array(arr)
-                return arr
-
-            if not isinstance(outputs, list):
-                outputs = [outputs]
-
-            outputs = [ensure_numba_device_array(arr) for arr in outputs]
-        self.outputs = outputs
+        user_outputs_are_device = []
+        outputs = self.kwargs.get('out', [])
+        self.outputs = []
+        for output in outputs:
+            user_output_is_device = self.is_device_array(output)
+            if user_output_is_device:
+                self.outputs.append(self.as_device_array(output))
+            else:
+                self.outputs.append(output)
+            user_outputs_are_device.append(user_output_is_device)
         self._is_device_array = [self.is_device_array(a) for a in self.args]
-        self._need_device_conversion = not any(self._is_device_array) #and
-                                       # not user_output_is_device)
+        self._need_device_conversion = (not any(self._is_device_array) and
+                                        not any(user_outputs_are_device))
+
+#        user_output_is_device = False
+#        outputs = self.kwargs.get('out')
+#        if outputs is not None:
+#            def ensure_numba_device_array(arr):
+#                if self.is_device_array(arr):
+#                    arr = self.as_device_array(arr)
+#                return arr
+#
+#            if not isinstance(outputs, list):
+#                outputs = [outputs]
+#
+#            outputs = [ensure_numba_device_array(arr) for arr in outputs]
+#        self.outputs = outputs
+#        self._is_device_array = [self.is_device_array(a) for a in self.args]
+#        self._need_device_conversion = not any(self._is_device_array) #and
+#                                       # not user_output_is_device)
 
         # Normalize inputs
         inputs = []
