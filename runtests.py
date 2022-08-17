@@ -2,6 +2,11 @@
 import runpy
 import os
 
+from cubinlinker.patch import patch_numba_linker_if_needed
+
+os.environ['PTXCOMPILER_APPLY_NUMBA_CODEGEN_PATCH'] = '1'
+patch_numba_linker_if_needed()
+
 if bool(os.environ.get('NUMBA_USE_TYPEGUARD')):
     # The typeguard import hook must be installed prior to importing numba.
     # Therefore, this cannot be part of the numba package.
