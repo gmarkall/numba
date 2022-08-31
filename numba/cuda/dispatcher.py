@@ -37,7 +37,7 @@ class _Kernel(serialize.ReduceMixin):
     @global_compiler_lock
     def __init__(self, py_func, argtypes, link=None, debug=False,
                  lineinfo=False, inline=False, fastmath=False, extensions=None,
-                 max_registers=None, opt=True, device=False):
+                 max_registers=None, opt=True, device=False, dlcm=None):
 
         if device:
             raise RuntimeError('Cannot compile a device function as a kernel')
@@ -72,18 +72,24 @@ class _Kernel(serialize.ReduceMixin):
             'opt': 3 if opt else 0
         }
 
+        linker_options = {
+            'dlcm': dlcm
+        }
+
         cres = compile_cuda(self.py_func, types.void, self.argtypes,
                             debug=self.debug,
                             lineinfo=self.lineinfo,
                             inline=inline,
                             fastmath=fastmath,
-                            nvvm_options=nvvm_options)
+                            nvvm_options=nvvm_options,
+                            linker_options=linker_options)
         tgt_ctx = cres.target_context
         code = self.py_func.__code__
         filename = code.co_filename
         linenum = code.co_firstlineno
         lib, kernel = tgt_ctx.prepare_cuda_kernel(cres.library, cres.fndesc,
                                                   debug, nvvm_options,
+                                                  linker_options,
                                                   filename, linenum,
                                                   max_registers)
 
@@ -797,11 +803,16 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
                     'fastmath': fastmath
                 }
 
+                linker_options = {
+                    'dlcm': self.targetoptions.get('dlcm')
+                }
+
                 cres = compile_cuda(self.py_func, None, args,
                                     debug=debug,
                                     inline=inline,
                                     fastmath=fastmath,
-                                    nvvm_options=nvvm_options)
+                                    nvvm_options=nvvm_options,
+                                    linker_options=linker_options)
                 self.overloads[args] = cres
 
                 cres.target_context.insert_user_function(cres.entry_point,

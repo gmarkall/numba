@@ -138,7 +138,7 @@ class CUDATargetContext(BaseContext):
                                       uid=uid)
 
     def prepare_cuda_kernel(self, codelib, fndesc, debug,
-                            nvvm_options, filename, linenum,
+                            nvvm_options, linker_options, filename, linenum,
                             max_registers=None):
         """
         Adapt a code library ``codelib`` with the numba compiled CUDA kernel
@@ -165,7 +165,8 @@ class CUDATargetContext(BaseContext):
         library = self.codegen().create_library(f'{codelib.name}_kernel_',
                                                 entry_name=kernel_name,
                                                 nvvm_options=nvvm_options,
-                                                max_registers=max_registers)
+                                                max_registers=max_registers,
+                                                linker_options=linker_options)
         library.add_linking_library(codelib)
         wrapper = self.generate_kernel_wrapper(library, fndesc, kernel_name,
                                                debug, filename, linenum)

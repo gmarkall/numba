@@ -53,7 +53,7 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
     """
 
     def __init__(self, codegen, name, entry_name=None, max_registers=None,
-                 nvvm_options=None):
+                 nvvm_options=None, linker_options=None):
         """
         codegen:
             Codegen object.
@@ -66,6 +66,8 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
             The maximum register usage to aim for when linking.
         nvvm_options:
                 Dict of options to pass to NVVM.
+        linker_options:
+                Dict of options to pass to the linker.
         """
         super().__init__(codegen, name)
 
@@ -93,6 +95,9 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         if nvvm_options is None:
             nvvm_options = {}
         self._nvvm_options = nvvm_options
+        if linker_options is None:
+            linker_options = {}
+        self._linker_options = linker_options
         self._entry_name = entry_name
 
     def get_llvm_str(self):
@@ -166,7 +171,8 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         if cubin:
             return cubin
 
-        linker = driver.Linker.new(max_registers=self._max_registers, cc=cc)
+        linker = driver.Linker.new(max_registers=self._max_registers, cc=cc,
+                                   options=self._linker_options)
 
         ptxes = self._get_ptxes(cc=cc)
         for ptx in ptxes:

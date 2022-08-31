@@ -2583,11 +2583,11 @@ class Linker(metaclass=ABCMeta):
     """Abstract base class for linkers"""
 
     @classmethod
-    def new(cls, max_registers=0, lineinfo=False, cc=None):
+    def new(cls, max_registers=0, lineinfo=False, cc=None, options=None):
         if USE_NV_BINDING:
-            return CudaPythonLinker(max_registers, lineinfo, cc)
+            return CudaPythonLinker(max_registers, lineinfo, cc, options)
         else:
-            return CtypesLinker(max_registers, lineinfo, cc)
+            return CtypesLinker(max_registers, lineinfo, cc, options)
 
     @abstractmethod
     def __init__(self, max_registers, lineinfo, cc):
@@ -2648,7 +2648,18 @@ class CtypesLinker(Linker):
     """
     Links for current device if no CC given
     """
-    def __init__(self, max_registers=0, lineinfo=False, cc=None):
+    def __init__(self, max_registers=0, lineinfo=False, cc=None, options=None):
+        jit_cache_mode = 0
+        if options:
+            dlcm = options.get('dlcm')
+            if dlcm == 'cg':
+                jit_cache_mode = 1
+            elif dlcm == 'ca':
+                jit_cache_mode = 2
+
+        self.jit_cache_mode = jit_cache_mode
+        print(f"JIT cache mode is {jit_cache_mode}")
+
         logsz = config.CUDA_LOG_SIZE
         linkerinfo = (c_char * logsz)()
         linkererrors = (c_char * logsz)()
@@ -2659,6 +2670,7 @@ class CtypesLinker(Linker):
             enums.CU_JIT_ERROR_LOG_BUFFER: addressof(linkererrors),
             enums.CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES: c_void_p(logsz),
             enums.CU_JIT_LOG_VERBOSE: c_void_p(1),
+            enums.CU_JIT_CACHE_MODE: self.jit_cache_mode,
         }
         if max_registers:
             options[enums.CU_JIT_MAX_REGISTERS] = c_void_p(max_registers)
@@ -2701,9 +2713,21 @@ class CtypesLinker(Linker):
         ptxbuf = c_char_p(ptx)
         namebuf = c_char_p(name.encode('utf8'))
         self._keep_alive += [ptxbuf, namebuf]
+
+        options = {
+            enums.CU_JIT_CACHE_MODE: self.jit_cache_mode,
+        }
+
+        raw_keys = list(options.keys())
+        raw_values = list(options.values())
+
+        option_keys = (drvapi.cu_jit_option * len(raw_keys))(*raw_keys)
+        option_vals = (c_void_p * len(raw_values))(*raw_values)
+
         try:
             driver.cuLinkAddData(self.handle, enums.CU_JIT_INPUT_PTX,
-                                 ptxbuf, len(ptx), namebuf, 0, None, None)
+                                 ptxbuf, len(ptx), namebuf,
+                                 len(raw_keys), option_keys, option_vals)
         except CudaAPIError as e:
             raise LinkerError("%s\n%s" % (e, self.error_log))
 

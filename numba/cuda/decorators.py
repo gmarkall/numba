@@ -12,7 +12,7 @@ _msg_deprecated_signature_arg = ("Deprecated keyword argument `{0}`. "
 
 
 def jit(func_or_sig=None, device=False, inline=False, link=[], debug=None,
-        opt=True, cache=False, **kws):
+        opt=True, cache=False, dlcm=None, **kws):
     """
     JIT compile a python function conforming to the CUDA Python specification.
     If a signature is supplied, then a function is returned that takes a
@@ -101,6 +101,7 @@ def jit(func_or_sig=None, device=False, inline=False, link=[], debug=None,
             targetoptions['fastmath'] = fastmath
             targetoptions['device'] = device
             targetoptions['extensions'] = extensions
+            targetoptions['dlcm'] = dlcm
 
             disp = CUDADispatcher(func, targetoptions=targetoptions)
 
@@ -145,6 +146,7 @@ def jit(func_or_sig=None, device=False, inline=False, link=[], debug=None,
                 targetoptions['fastmath'] = fastmath
                 targetoptions['device'] = device
                 targetoptions['extensions'] = extensions
+                targetoptions['dlcm'] = dlcm
                 disp = CUDADispatcher(func_or_sig, targetoptions=targetoptions)
 
                 if cache:

@@ -22,11 +22,26 @@ def _nvvm_options_type(x):
         return x
 
 
+def _cuda_linker_options_type(x):
+    if x is None:
+        return None
+
+    else:
+        assert isinstance(x, dict)
+        return x
+
+
 class CUDAFlags(Flags):
     nvvm_options = Option(
         type=_nvvm_options_type,
         default=None,
         doc="NVVM options",
+    )
+
+    linker_options = Option(
+        type=_cuda_linker_options_type,
+        default=None,
+        doc="CUDA Linker Options",
     )
 
 
@@ -102,7 +117,9 @@ class CreateLibrary(LoweringPass):
         codegen = state.targetctx.codegen()
         name = state.func_id.func_qualname
         nvvm_options = state.flags.nvvm_options
-        state.library = codegen.create_library(name, nvvm_options=nvvm_options)
+        linker_options = state.flags.linker_options
+        state.library = codegen.create_library(name, nvvm_options=nvvm_options,
+                                               linker_options=linker_options)
         # Enable object caching upfront so that the library can be serialized.
         state.library.enable_object_caching()
 
@@ -180,7 +197,8 @@ class CUDACompiler(CompilerBase):
 
 @global_compiler_lock
 def compile_cuda(pyfunc, return_type, args, debug=False, lineinfo=False,
-                 inline=False, fastmath=False, nvvm_options=None):
+                 inline=False, fastmath=False, nvvm_options=None,
+                 linker_options=None):
     from .descriptor import cuda_target
     typingctx = cuda_target.typing_context
     targetctx = cuda_target.target_context
@@ -205,6 +223,8 @@ def compile_cuda(pyfunc, return_type, args, debug=False, lineinfo=False,
         flags.fastmath = True
     if nvvm_options:
         flags.nvvm_options = nvvm_options
+    if linker_options:
+        flags.linker_options = linker_options
 
     # Run compilation pipeline
     cres = compiler.compile_extra(typingctx=typingctx,
@@ -224,7 +244,7 @@ def compile_cuda(pyfunc, return_type, args, debug=False, lineinfo=False,
 
 @global_compiler_lock
 def compile_ptx(pyfunc, args, debug=False, lineinfo=False, device=False,
-                fastmath=False, cc=None, opt=True):
+                fastmath=False, cc=None, opt=True, dlcm=None):
     """Compile a Python function to PTX for a given set of argument types.
 
     :param pyfunc: The Python function to compile.
@@ -264,9 +284,14 @@ def compile_ptx(pyfunc, args, debug=False, lineinfo=False, device=False,
         'opt': 3 if opt else 0
     }
 
+    linker_options = {
+        'dlcm': dlcm
+    }
+
     cres = compile_cuda(pyfunc, None, args, debug=debug, lineinfo=lineinfo,
                         fastmath=fastmath,
-                        nvvm_options=nvvm_options)
+                        nvvm_options=nvvm_options,
+                        linker_options=linker_options)
     resty = cres.signature.return_type
     if device:
         lib = cres.library
