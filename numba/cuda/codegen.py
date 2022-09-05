@@ -4,7 +4,7 @@ from warnings import warn
 from numba.core import config, serialize
 from numba.core.codegen import Codegen, CodeLibrary
 from numba.core.errors import NumbaInvalidConfigWarning
-from .cudadrv import devices, driver, nvvm, runtime
+from numba.cuda.cudadrv import devices, driver, nvvm, runtime
 
 import ctypes
 import numpy as np
@@ -140,16 +140,11 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
             # NVVM one at a time, because it does not support multiple modules
             # with debug enabled:
             # https://docs.nvidia.com/cuda/nvvm-ir-spec/index.html#source-level-debugging-support
-            ptxes = [nvvm.llvm_to_ptx(ir, **options) for ir in irs]
+            ptxes = [nvvm.llvm_to_ptx(ir, options) for ir in irs]
         else:
             # Otherwise, we compile all modules with NVVM at once because this
             # results in better optimization than separate compilation.
-            ptxes = [nvvm.llvm_to_ptx(irs, **options)]
-
-        # Sometimes the result from NVVM contains trailing whitespace and
-        # nulls, which we strip so that the assembly dump looks a little
-        # tidier.
-        ptxes = [x.decode().strip('\x00').strip() for x in ptxes]
+            ptxes = [nvvm.llvm_to_ptx(irs, options)]
 
         if config.DUMP_ASSEMBLY:
             print(("ASSEMBLY %s" % self._name).center(80, '-'))

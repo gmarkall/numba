@@ -674,12 +674,15 @@ def llvm_replace(llvmir):
     return llvmir
 
 
-def llvm_to_ptx(llvmir, **opts):
+def llvm_to_ptx(llvmir, options=None):
+    if options is None:
+        options = {}
+
     if isinstance(llvmir, str):
         llvmir = [llvmir]
 
-    if opts.pop('fastmath', False):
-        opts.update({
+    if options.pop('fastmath', False):
+        options.update({
             'ftz': True,
             'fma': True,
             'prec_div': False,
@@ -694,7 +697,12 @@ def llvm_to_ptx(llvmir, **opts):
         cu.add_module(mod.encode('utf8'))
     cu.lazy_add_module(libdevice.get())
 
-    return cu.compile(**opts)
+    ptx = cu.compile(**options)
+
+    # Sometimes the result from NVVM contains trailing whitespace and
+    # nulls, which we strip so that the assembly dump looks a little
+    # tidier.
+    return ptx.decode().strip('\x00').strip()
 
 
 re_metadata_def = re.compile(r"\!\d+\s*=")

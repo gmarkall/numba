@@ -50,7 +50,7 @@ class TestConstStringCodegen(unittest.TestCase):
                              r"19\s+x\s+i8\]", str(mod))
         self.assertEqual(len(matches), 1)
 
-        ptx = llvm_to_ptx(str(mod)).decode('ascii')
+        ptx = llvm_to_ptx(str(mod))
         matches = list(re.findall(r"\.const.*__conststring__", ptx))
 
         self.assertEqual(len(matches), 1)
