@@ -1,7 +1,7 @@
 import numpy as np
 from numba import cuda
 from numba.core.config import ENABLE_CUDASIM
-from numba.cuda.testing import CUDATestCase
+from numba.cuda.testing import CUDATestCase, skip_with_nvptx
 import unittest
 
 # Avoid recompilation of the sum_reduce function by keeping it at global scope
@@ -15,6 +15,7 @@ class TestReduction(CUDATestCase):
         got = sum_reduce(A)
         self.assertEqual(expect, got)
 
+    @skip_with_nvptx("Cannot select: intrinsic %llvm.nvvm.bar.warp.sync")
     def test_sum_reduce(self):
         if ENABLE_CUDASIM:
             # Minimal test set for the simulator (which only wraps
@@ -42,6 +43,7 @@ class TestReduction(CUDATestCase):
         got = sum_reduce(dA)
         self.assertEqual(expect, got)
 
+    @skip_with_nvptx("Cannot select: intrinsic %llvm.nvvm.bar.warp.sync")
     def test_prod_reduce(self):
         prod_reduce = cuda.reduce(lambda a, b: a * b)
         A = (np.arange(64, dtype=np.float64) + 1)
@@ -49,6 +51,7 @@ class TestReduction(CUDATestCase):
         got = prod_reduce(A, init=1)
         np.testing.assert_allclose(expect, got)
 
+    @skip_with_nvptx("Cannot select: intrinsic %llvm.nvvm.bar.warp.sync")
     def test_max_reduce(self):
         max_reduce = cuda.Reduce(lambda a, b: max(a, b))
         A = (np.arange(3717, dtype=np.float64) + 1)
@@ -56,6 +59,7 @@ class TestReduction(CUDATestCase):
         got = max_reduce(A, init=0)
         self.assertEqual(expect, got)
 
+    @skip_with_nvptx("Cannot select: intrinsic %llvm.nvvm.bar.warp.sync")
     def test_non_identity_init(self):
         init = 3
         A = (np.arange(10, dtype=np.float64) + 1)
@@ -63,6 +67,7 @@ class TestReduction(CUDATestCase):
         got = sum_reduce(A, init=init)
         self.assertEqual(expect, got)
 
+    @skip_with_nvptx("Cannot select: intrinsic %llvm.nvvm.bar.warp.sync")
     def test_result_on_device(self):
         A = (np.arange(10, dtype=np.float64) + 1)
         got = cuda.to_device(np.zeros(1, dtype=np.float64))

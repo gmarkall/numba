@@ -3,7 +3,8 @@ import numpy as np
 from numba import config, cuda
 from numba.core.errors import TypingError
 from numba.cuda.cudadrv.nvvm import NVVM
-from numba.cuda.testing import unittest, skip_on_cudasim, CUDATestCase
+from numba.cuda.testing import (unittest, skip_on_cudasim, CUDATestCase,
+                                skip_with_nvptx)
 from llvmlite import ir
 
 
@@ -68,6 +69,7 @@ class TestConstString(CUDATestCase):
         if NVVM().is_nvvm70:
             self.skipTest('Character sequences are permitted with NVVM 7.0')
 
+    @skip_with_nvptx("Symbol name with unsupported characters")
     def test_assign_const_unicode_string(self):
         self.skip_on_nvvm34()
 
@@ -108,6 +110,7 @@ class TestConstString(CUDATestCase):
         expected[-1] = b''
         np.testing.assert_equal(arr, expected)
 
+    @skip_with_nvptx("Symbol name with unsupported characters")
     def test_assign_const_string_in_record(self):
         self.skip_on_nvvm34()
 

@@ -1,6 +1,7 @@
 import numpy as np
 from numba import cuda, int32, int64, float32, float64
-from numba.cuda.testing import unittest, CUDATestCase, skip_on_cudasim
+from numba.cuda.testing import (unittest, CUDATestCase, skip_on_cudasim,
+                                skip_with_nvptx)
 from numba.core import config
 
 
@@ -100,6 +101,7 @@ def _safe_cc_check(cc):
 
 @skip_on_cudasim("Warp Operations are not yet implemented on cudasim")
 class TestCudaWarpOperations(CUDATestCase):
+    @skip_with_nvptx("Cannot select: intrinsic %llvm.nvvm.match.any.sync.i32")
     def test_useful_syncwarp(self):
         compiled = cuda.jit("void(int32[:])")(useful_syncwarp)
         nelem = 32
@@ -199,6 +201,7 @@ class TestCudaWarpOperations(CUDATestCase):
         compiled[1, nelem](ary)
         self.assertTrue(np.all(ary == np.uint32(0xffffffff)))
 
+    @skip_with_nvptx("Cannot select: intrinsic %llvm.nvvm.match.any.sync.i32")
     @unittest.skipUnless(_safe_cc_check((7, 0)),
                          "Matching requires at least Volta Architecture")
     def test_match_any_sync(self):
@@ -210,6 +213,7 @@ class TestCudaWarpOperations(CUDATestCase):
         compiled[1, nelem](ary_in, ary_out)
         self.assertTrue(np.all(ary_out == exp))
 
+    @skip_with_nvptx("Cannot select: intrinsic %llvm.nvvm.match.any.sync.i32")
     @unittest.skipUnless(_safe_cc_check((7, 0)),
                          "Matching requires at least Volta Architecture")
     def test_match_all_sync(self):
@@ -223,6 +227,7 @@ class TestCudaWarpOperations(CUDATestCase):
         compiled[1, nelem](ary_in, ary_out)
         self.assertTrue(np.all(ary_out == 0))
 
+    @skip_with_nvptx("Cannot select: intrinsic %llvm.nvvm.match.any.sync.i32")
     @unittest.skipUnless(_safe_cc_check((7, 0)),
                          "Independent scheduling requires at least Volta "
                          "Architecture")

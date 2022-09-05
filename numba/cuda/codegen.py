@@ -4,6 +4,7 @@ from warnings import warn
 from numba.core import config, serialize
 from numba.core.codegen import Codegen, CodeLibrary
 from numba.core.errors import NumbaInvalidConfigWarning
+from numba.cuda import nvptx
 from numba.cuda.cudadrv import devices, driver, nvvm, runtime
 
 import ctypes
@@ -135,16 +136,23 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
 
         irs = self.llvm_strs
 
+        if config.CUDA_BACKEND == 'NVPTX':
+            backend = nvptx
+        elif config.CUDA_BACKEND == 'NVVM':
+            backend = nvvm
+        else:
+            raise RuntimeError(f"Unknown CUDA backend {config.CUDA_BACKEND}")
+
         if options.get('debug', False):
             # If we're compiling with debug, we need to compile modules with
             # NVVM one at a time, because it does not support multiple modules
             # with debug enabled:
             # https://docs.nvidia.com/cuda/nvvm-ir-spec/index.html#source-level-debugging-support
-            ptxes = [nvvm.llvm_to_ptx(ir, options) for ir in irs]
+            ptxes = [backend.llvm_to_ptx(ir, options) for ir in irs]
         else:
             # Otherwise, we compile all modules with NVVM at once because this
             # results in better optimization than separate compilation.
-            ptxes = [nvvm.llvm_to_ptx(irs, options)]
+            ptxes = [backend.llvm_to_ptx(irs, options)]
 
         if config.DUMP_ASSEMBLY:
             print(("ASSEMBLY %s" % self._name).center(80, '-'))

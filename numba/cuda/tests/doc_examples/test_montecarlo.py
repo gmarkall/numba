@@ -1,6 +1,6 @@
 import unittest
 
-from numba.cuda.testing import CUDATestCase, skip_on_cudasim
+from numba.cuda.testing import CUDATestCase, skip_on_cudasim, skip_with_nvptx
 from numba.tests.support import captured_stdout
 
 
@@ -21,6 +21,7 @@ class TestMonteCarlo(CUDATestCase):
         self._captured_stdout.__exit__(None, None, None)
         super().tearDown()
 
+    @skip_with_nvptx("Cannot select: intrinsic %llvm.nvvm.bar.warp.sync")
     def test_ex_montecarlo(self):
         # ex_montecarlo.import.begin
         import numba

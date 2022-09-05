@@ -3,7 +3,7 @@ from textwrap import dedent
 
 from numba import cuda, uint32, uint64, float32, float64
 from numba.cuda.testing import (unittest, CUDATestCase, skip_unless_cc_50,
-                                cc_X_or_above)
+                                cc_X_or_above, skip_with_nvptx)
 from numba.core import config
 
 
@@ -559,6 +559,7 @@ class TestCudaAtomics(CUDATestCase):
                 self.assertIn('atom.cas.b64', asm)
 
     @skip_unless_cc_50
+    @skip_with_nvptx
     def test_atomic_add_double(self):
         idx = np.random.randint(0, 32, size=32, dtype=np.int64)
         ary = np.zeros(32, np.float64)
@@ -579,6 +580,7 @@ class TestCudaAtomics(CUDATestCase):
         self.assertCorrectFloat64Atomics(cuda_fn)
         self.assertCorrectFloat64Atomics(wrap_fn)
 
+    @skip_with_nvptx
     def test_atomic_add_double_2(self):
         ary = np.random.randint(0, 32, size=32).astype(np.float64).reshape(4, 8)
         ary_wrap = ary.copy()
@@ -595,6 +597,7 @@ class TestCudaAtomics(CUDATestCase):
         self.assertCorrectFloat64Atomics(cuda_fn)
         self.assertCorrectFloat64Atomics(cuda_fn_wrap)
 
+    @skip_with_nvptx
     def test_atomic_add_double_3(self):
         ary = np.random.randint(0, 32, size=32).astype(np.float64).reshape(4, 8)
         orig = ary.copy()
@@ -605,6 +608,7 @@ class TestCudaAtomics(CUDATestCase):
         self.assertCorrectFloat64Atomics(cuda_func)
 
     @skip_unless_cc_50
+    @skip_with_nvptx
     def test_atomic_add_double_global(self):
         idx = np.random.randint(0, 32, size=32, dtype=np.int64)
         ary = np.zeros(32, np.float64)
@@ -626,6 +630,7 @@ class TestCudaAtomics(CUDATestCase):
         self.assertCorrectFloat64Atomics(cuda_func, shared=False)
         self.assertCorrectFloat64Atomics(wrap_cuda_func, shared=False)
 
+    @skip_with_nvptx
     def test_atomic_add_double_global_2(self):
         ary = np.random.randint(0, 32, size=32).astype(np.float64).reshape(4, 8)
         ary_wrap = ary.copy()
@@ -643,6 +648,7 @@ class TestCudaAtomics(CUDATestCase):
         self.assertCorrectFloat64Atomics(cuda_func, shared=False)
         self.assertCorrectFloat64Atomics(wrap_cuda_func, shared=False)
 
+    @skip_with_nvptx
     def test_atomic_add_double_global_3(self):
         ary = np.random.randint(0, 32, size=32).astype(np.float64).reshape(4, 8)
         orig = ary.copy()

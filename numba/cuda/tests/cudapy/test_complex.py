@@ -3,7 +3,7 @@ import itertools
 
 import numpy as np
 
-from numba.cuda.testing import unittest, CUDATestCase
+from numba.cuda.testing import unittest, CUDATestCase, skip_with_nvptx
 from numba.core import types
 from numba import cuda
 from numba.tests.complex_usecases import (real_usecase, imag_usecase,
@@ -259,6 +259,7 @@ class TestCMath(BaseComplexTest):
                               ignore_sign_on_zero=True)
 
 
+@skip_with_nvptx("Cannot select: t49: f64,ch = AtomicLoadFAdd<(load ...")
 class TestAtomicOnComplexComponents(CUDATestCase):
     # Based on the reproducer from Issue #8309. array.real and array.imag could
     # not be used because they required returning an array from a generated

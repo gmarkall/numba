@@ -123,6 +123,7 @@ class _EnvReloader(object):
         self.validate()
 
     def validate(self):
+        global CUDA_BACKEND
         global CUDA_USE_NVIDIA_BINDING
 
         if CUDA_USE_NVIDIA_BINDING:  # noqa: F821
@@ -142,6 +143,10 @@ class _EnvReloader(object):
                               "environment variable "
                               "CUDA_PYTHON_CUDA_PER_THREAD_DEFAULT_STREAM to 1 "
                               "instead.")
+
+        if CUDA_BACKEND not in ("NVVM", "NVPTX"):
+            warnings.warn('Unrecognised CUDA backend. Defaulting to NVVM.')
+            CUDA_BACKEND = "NVVM"
 
     def process_environ(self, environ):
         def _readenv(name, ctor, default):
@@ -431,6 +436,9 @@ class _EnvReloader(object):
                                                      'cuda', 'include')
         CUDA_INCLUDE_PATH = _readenv("NUMBA_CUDA_INCLUDE_PATH", str,
                                      default_cuda_include_path)
+
+        # Whether to generate code using NVPTX or NVVM
+        CUDA_BACKEND = _readenv("NUMBA_CUDA_BACKEND", str, "NVVM")
 
         # Threading settings
 

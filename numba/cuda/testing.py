@@ -60,6 +60,11 @@ def ensure_supported_ccs_initialized():
         nvvm.get_supported_ccs()
 
 
+def skip_with_nvptx(reason):
+    is_nvptx = config.CUDA_BACKEND == "NVPTX"
+    return unittest.skipIf(is_nvptx, reason)
+
+
 def skip_on_cudasim(reason):
     """Skip this test if running on the CUDA simulator"""
     return unittest.skipIf(config.ENABLE_CUDASIM, reason)
