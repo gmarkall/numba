@@ -1152,7 +1152,7 @@ class IRPreservingTestPipeline(CompilerBase):
     """ Same as the standard pipeline, but preserves the func_ir into the
     metadata store after legalisation, useful for testing IR changes"""
 
-    def define_pipelines(self):
+    def define_pipeline(self):
         pipeline = DefaultPassBuilder.define_nopython_pipeline(
             self.state, "ir_preserving_custom_pipe")
         # mangle the default pipeline and inject DCE and IR preservation ahead
@@ -1163,7 +1163,7 @@ class IRPreservingTestPipeline(CompilerBase):
         pipeline.add_pass_after(PreserveIR, IRLegalization)
 
         pipeline.finalize()
-        return [pipeline]
+        return pipeline
 
 
 def print_azure_matrix():

@@ -76,9 +76,11 @@ class DUFunc(serialize.ReduceMixin, _internal._DUFunc):
     # _internal.c:dufunc_init()
     __base_kwargs = set(('identity', '_keepalive', 'nin', 'nout'))
 
-    def __init__(self, py_func, identity=None, cache=False, targetoptions={}):
+    def __init__(self, py_func, identity=None, cache=False, targetoptions=None):
         if is_jitted(py_func):
             py_func = py_func.py_func
+        if targetoptions is None:
+            targetoptions = {}
         dispatcher = jit(_target='npyufunc',
                          cache=cache,
                          **targetoptions)(py_func)

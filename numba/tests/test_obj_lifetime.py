@@ -400,11 +400,11 @@ class TestExtendingVariableLifetimes(SerialMixin, TestCase):
         def get_ir(extend_lifetimes):
             class IRPreservingCompiler(CompilerBase):
 
-                def define_pipelines(self):
+                def define_pipeline(self):
                     pm = DefaultPassBuilder.define_nopython_pipeline(self.state)
                     pm.add_pass_after(PreserveIR, IRLegalization)
                     pm.finalize()
-                    return [pm]
+                    return pm
 
             @njit(pipeline_class=IRPreservingCompiler)
             def foo():
@@ -450,11 +450,11 @@ class TestExtendingVariableLifetimes(SerialMixin, TestCase):
         def get_ir(**options):
             class IRPreservingCompiler(CompilerBase):
 
-                def define_pipelines(self):
+                def define_pipeline(self):
                     pm = DefaultPassBuilder.define_nopython_pipeline(self.state)
                     pm.add_pass_after(PreserveIR, IRLegalization)
                     pm.finalize()
-                    return [pm]
+                    return pm
 
             @njit(pipeline_class=IRPreservingCompiler, **options)
             def foo():

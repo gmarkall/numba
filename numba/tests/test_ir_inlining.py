@@ -1479,12 +1479,12 @@ class TestInlineMiscIssues(TestCase):
 
         class CustomCompiler(CompilerBase):
 
-            def define_pipelines(self):
+            def define_pipeline(self):
                 pm = DefaultPassBuilder.define_nopython_pipeline(self.state)
                 # Run the inliner twice!
                 pm.add_pass_after(InlineOverloads, InlineOverloads)
                 pm.finalize()
-                return [pm]
+                return pm
 
         def bar(x):
             ...

@@ -883,7 +883,7 @@ class TestBranchPruneSSA(MemoryLeakMixin, TestCase):
     # Tests SSA rewiring of phi nodes after branch pruning.
 
     class SSAPrunerCompiler(CompilerBase):
-        def define_pipelines(self):
+        def define_pipeline(self):
             # This is a simple pipeline that does branch pruning on IR in SSA
             # form, then types and lowers as per the standard nopython pipeline.
             pm = PassManager("testing pm")
@@ -900,7 +900,7 @@ class TestBranchPruneSSA(MemoryLeakMixin, TestCase):
             lowering_passes = dpb.define_nopython_lowering_pipeline(self.state)
             pm.passes.extend(lowering_passes.passes)
             pm.finalize()
-            return [pm]
+            return pm
 
     def test_ssa_update_phi(self):
         # This checks that dead branch pruning is rewiring phi nodes correctly

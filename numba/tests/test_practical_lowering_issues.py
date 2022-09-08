@@ -165,12 +165,12 @@ class TestLowering(MemoryLeakMixin, TestCase):
                 return True
 
         class CustomPipeline(CompilerBase):
-            def define_pipelines(self):
+            def define_pipeline(self):
                 pm = DefaultPassBuilder.define_nopython_pipeline(self.state)
                 pm.add_pass_after(ForceStaticGetitemLiteral,
                                   NopythonTypeInference)
                 pm.finalize()
-                return [pm]
+                return pm
 
         @njit(pipeline_class=CustomPipeline)
         def foo(arr):

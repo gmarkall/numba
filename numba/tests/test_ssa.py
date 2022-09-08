@@ -364,13 +364,13 @@ class TestReportedSSAIssues(SSABaseTest):
         from numba.core.typed_passes import PreLowerStripPhis
 
         class CustomPipeline(CompilerBase):
-            def define_pipelines(self):
+            def define_pipeline(self):
                 pm = DefaultPassBuilder.define_objectmode_pipeline(self.state)
                 # Force SSA reconstruction and stripping
                 pm.add_pass_after(ReconstructSSA, IRProcessing)
                 pm.add_pass_after(PreLowerStripPhis, ReconstructSSA)
                 pm.finalize()
-                return [pm]
+                return pm
 
         @jit("(intp, intp, intp)", looplift=False,
              pipeline_class=CustomPipeline)
@@ -476,11 +476,11 @@ class TestReportedSSAIssues(SSABaseTest):
                 return True
 
         class CustomPipeline(CompilerBase):
-            def define_pipelines(self):
+            def define_pipeline(self):
                 pm = DefaultPassBuilder.define_nopython_pipeline(self.state)
                 pm.add_pass_after(CheckSSAMinimal, ReconstructSSA)
                 pm.finalize()
-                return [pm]
+                return pm
 
         @njit(pipeline_class=CustomPipeline)
         def while_for(n, max_iter=1):
@@ -536,7 +536,7 @@ class TestSROAIssues(MemoryLeakMixin, TestCase):
                 return mutated
 
         class CustomCompiler(CompilerBase):
-            def define_pipelines(self):
+            def define_pipeline(self):
                 pm = DefaultPassBuilder.define_nopython_pipeline(
                     self.state, "custom_pipeline",
                 )
@@ -546,7 +546,7 @@ class TestSROAIssues(MemoryLeakMixin, TestCase):
                 # Capture IR post lowering
                 pm.add_pass_after(PreserveIR, NativeLowering)
                 pm.finalize()
-                return [pm]
+                return pm
 
         @njit(pipeline_class=CustomCompiler)
         def udt(arr):

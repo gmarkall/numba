@@ -833,11 +833,11 @@ class TestTargetOffload(TestCase):
 
         # DPU compiler pipeline, compiles with offload to the DPU target
         class DPUOffloadCompiler(CompilerBase):
-            def define_pipelines(self):
+            def define_pipeline(self):
                 pm = DefaultPassBuilder.define_nopython_pipeline(self.state)
                 pm.add_pass_after(DispatcherSwitcher, PreLowerStripPhis)
                 pm.finalize()
-                return [pm]
+                return pm
 
         # Now compile for CPU, but with the DispatcherSwitcher pass in place
         # that switches CPU calls for DPU calls

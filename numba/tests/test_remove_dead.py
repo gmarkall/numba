@@ -272,7 +272,7 @@ class TestRemoveDead(unittest.TestCase):
             remove_dead(). Copy propagation can replace B in the example code
             which this pipeline avoids.
             """
-            def define_pipelines(self):
+            def define_pipeline(self):
                 name = 'test parfor aliasing'
                 pm = PassManager(name)
                 pm.add_pass(TranslateByteCode, "analyzing bytecode")
@@ -293,7 +293,7 @@ class TestRemoveDead(unittest.TestCase):
                 pm.add_pass(NativeLowering, "native lowering")
                 pm.add_pass(NoPythonBackend, "nopython mode backend")
                 pm.finalize()
-                return [pm]
+                return pm
 
         test_res = numba.jit(pipeline_class=TestPipeline)(func)()
         py_res = func()

@@ -115,11 +115,11 @@ class TestPassManagerFunctionality(TestCase):
 
         class TestCompiler(Compiler):
 
-            def define_pipelines(self):
+            def define_pipeline(self):
                 pm = DefaultPassBuilder.define_nopython_pipeline(self.state)
                 pm.add_pass_after(_InjectDelsPass, inject_after)
                 pm.finalize()
-                return [pm]
+                return pm
 
         return TestCompiler
 

@@ -99,7 +99,7 @@ class TestMiscErrorHandling(unittest.TestCase):
     def test_use_of_ir_unknown_loc(self):
         # for context see # 3390
         class TestPipeline(CompilerBase):
-            def define_pipelines(self):
+            def define_pipeline(self):
                 name = 'bad_DCE_pipeline'
                 pm = PassManager(name)
                 pm.add_pass(TranslateByteCode, "analyzing bytecode")
@@ -113,7 +113,7 @@ class TestMiscErrorHandling(unittest.TestCase):
                 pm.add_pass(NativeLowering, "native lowering")
                 pm.add_pass(NoPythonBackend, "nopython mode backend")
                 pm.finalize()
-                return [pm]
+                return pm
 
         @njit(pipeline_class=TestPipeline)
         def f(a):

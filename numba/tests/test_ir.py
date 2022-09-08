@@ -521,7 +521,7 @@ class TestIRPedanticChecks(TestCase):
                 raise AssertionError("unreachable")
 
         class MyCompiler(CompilerBase):
-            def define_pipelines(self):
+            def define_pipeline(self):
                 pm = PassManager("testing pm")
                 pm.add_pass(TranslateByteCode, "analyzing bytecode")
                 pm.add_pass(IRProcessing, "processing IR")
@@ -529,7 +529,7 @@ class TestIRPedanticChecks(TestCase):
                 pm.add_pass(ReconstructSSA, "ssa")
                 pm.add_pass(FailPass, "_fail")
                 pm.finalize()
-                return [pm]
+                return pm
 
         @njit(pipeline_class=MyCompiler)
         def dummy(x):

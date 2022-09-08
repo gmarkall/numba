@@ -145,7 +145,7 @@ class CUDALegalization(AnalysisPass):
 
 
 class CUDACompiler(CompilerBase):
-    def define_pipelines(self):
+    def define_pipeline(self):
         dpb = DefaultPassBuilder
         pm = PassManager('cuda')
 
@@ -160,7 +160,7 @@ class CUDACompiler(CompilerBase):
         pm.passes.extend(lowering_passes.passes)
 
         pm.finalize()
-        return [pm]
+        return pm
 
     def define_cuda_lowering_pipeline(self, state):
         pm = PassManager('cuda_lowering')

@@ -461,8 +461,8 @@ class CompilerBase(object):
         FixupArgs().run_pass(self.state)
         return self._compile_ir()
 
-    def define_pipelines(self):
-        """Child classes override this to customize the pipelines in use.
+    def define_pipeline(self):
+        """Child classes override this to customize the pipeline in use.
         """
         raise NotImplementedError()
 
@@ -471,46 +471,38 @@ class CompilerBase(object):
         Populate and run compiler pipeline
         """
         with ConfigStack().enter(self.state.flags.copy()):
-            pms = self.define_pipelines()
-            for pm in pms:
-                pipeline_name = pm.pipeline_name
-                func_name = "%s.%s" % (self.state.func_id.modname,
-                                       self.state.func_id.func_qualname)
+            pm = self.define_pipeline()
 
-                event("Pipeline: %s for %s" % (pipeline_name, func_name))
-                self.state.metadata['pipeline_times'] = {pipeline_name:
-                                                         pm.exec_times}
-                is_final_pipeline = pm == pms[-1]
-                res = None
-                try:
-                    pm.run(self.state)
-                    if self.state.cr is not None:
-                        break
-                except _EarlyPipelineCompletion as e:
-                    res = e.result
-                    break
-                except Exception as e:
-                    if (utils.use_new_style_errors() and not
-                            isinstance(e, errors.NumbaError)):
-                        raise e
+            pipeline_name = pm.pipeline_name
+            func_name = "%s.%s" % (self.state.func_id.modname,
+                                   self.state.func_id.func_qualname)
 
-                    self.state.status.fail_reason = e
-                    if is_final_pipeline:
-                        raise e
-            else:
-                raise CompilerError("All available pipelines exhausted")
+            event("Pipeline: %s for %s" % (pipeline_name, func_name))
+            self.state.metadata['pipeline_times'] = {pipeline_name:
+                                                     pm.exec_times}
+            res = None
+            try:
+                pm.run(self.state)
+                res = self.state.cr
+            except _EarlyPipelineCompletion as e:
+                res = e.result
+            except Exception as e:
+                if (utils.use_new_style_errors() and not
+                        isinstance(e, errors.NumbaError)):
+                    raise e
+
+                self.state.status.fail_reason = e
+                raise e
+
+            if res is None:
+                raise CompilerError("Pipeline failed")
 
             # Pipeline is done, remove self reference to release refs to user
             # code
             self.state.pipeline = None
 
             # organise a return
-            if res is not None:
-                # Early pipeline completion
-                return res
-            else:
-                assert self.state.cr is not None
-                return self.state.cr
+            return res
 
     def _compile_bytecode(self):
         """
@@ -531,16 +523,12 @@ class Compiler(CompilerBase):
     """The default compiler
     """
 
-    def define_pipelines(self):
-        # this maintains the objmode fallback behaviour
-        pms = []
-        if not self.state.flags.force_pyobject:
-            pms.append(DefaultPassBuilder.define_nopython_pipeline(self.state))
-        if self.state.status.can_fallback or self.state.flags.force_pyobject:
-            pms.append(
-                DefaultPassBuilder.define_objectmode_pipeline(self.state)
-            )
-        return pms
+    def define_pipeline(self):
+        flags = self.state.flags
+        if not (flags.force_pyobject or flags.enable_pyobject):
+            return DefaultPassBuilder.define_nopython_pipeline(self.state)
+        else:
+            return DefaultPassBuilder.define_objectmode_pipeline(self.state)
 
 
 class DefaultPassBuilder(object):

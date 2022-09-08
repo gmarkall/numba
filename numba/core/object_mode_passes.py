@@ -139,7 +139,7 @@ class ObjectModeBackEnd(LoweringPass):
 
         # Warn, deprecated behaviour, code compiled in objmode without
         # force_pyobject indicates fallback from nopython mode
-        if not state.flags.force_pyobject:
+        if not (state.flags.force_pyobject or state.flags.enable_pyobject):
             # first warn about object mode and yes/no to lifted loops
             if len(state.lifted) > 0:
                 warn_msg = ('Function "%s" was compiled in object mode without'

@@ -301,7 +301,7 @@ class TestVectorizeDecor(TestCase):
 
     def test_guvectorize_objectmode(self):
         ufunc = guvectorize(['(int32[:,:], int32[:,:], int32[:,:])'],
-                            "(x,y),(x,y)->(x,y)")(guadd_obj)
+                            "(x,y),(x,y)->(x,y)", forceobj=True)(guadd_obj)
         a = np.arange(10, dtype='int32').reshape(2, 5)
         b = ufunc(a, a)
         self.assertPreciseEqual(a + a, b)
@@ -311,7 +311,7 @@ class TestVectorizeDecor(TestCase):
         Test passing of scalars to object mode gufuncs.
         """
         ufunc = guvectorize(['(int32[:,:], int32, int32[:,:])'],
-                            "(x,y),()->(x,y)")(guadd_scalar_obj)
+                            "(x,y),()->(x,y)", forceobj=True)(guadd_scalar_obj)
         a = np.arange(10, dtype='int32').reshape(2, 5)
         b = ufunc(a, 3)
         self.assertPreciseEqual(a + 3, b)

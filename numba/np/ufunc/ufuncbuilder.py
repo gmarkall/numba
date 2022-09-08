@@ -32,10 +32,10 @@ class UFuncTargetOptions(_options_mixin, TargetOptions):
 
     def finalize(self, flags, options):
         if not flags.is_set("enable_pyobject"):
-            flags.enable_pyobject = True
+            flags.enable_pyobject = False
 
         if not flags.is_set("enable_looplift"):
-            flags.enable_looplift = True
+            flags.enable_looplift = False
 
         flags.inherit_if_not_set("nrt", default=True)
 

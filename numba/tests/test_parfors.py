@@ -2735,11 +2735,11 @@ class TestParforsMisc(TestParforsBase):
 
         class BreakParforsCompiler(CompilerBase):
 
-            def define_pipelines(self):
+            def define_pipeline(self):
                 pm = DefaultPassBuilder.define_nopython_pipeline(self.state)
                 pm.add_pass_after(BreakParfors, IRLegalization)
                 pm.finalize()
-                return [pm]
+                return pm
 
 
         @njit(parallel=True, pipeline_class=BreakParforsCompiler)

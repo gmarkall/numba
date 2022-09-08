@@ -105,10 +105,10 @@ def gen_pipeline(state, test_pass):
 class InlineTestPipeline(compiler.CompilerBase):
     """compiler pipeline for testing inlining after optimization
     """
-    def define_pipelines(self):
+    def define_pipeline(self):
         pm = gen_pipeline(self.state, InlineTestPass)
         pm.finalize()
-        return [pm]
+        return pm
 
 class TestInlining(TestCase):
     """
@@ -266,10 +266,10 @@ class TestInlining(TestCase):
 
         class InlineTestPipelinePrune(compiler.CompilerBase):
 
-            def define_pipelines(self):
+            def define_pipeline(self):
                 pm = gen_pipeline(self.state, PruningInlineTestPass)
                 pm.finalize()
-                return [pm]
+                return pm
 
         # make sure inline_closure_call runs in full pipeline
         j_func = njit(pipeline_class=InlineTestPipelinePrune)(test_impl)

@@ -784,14 +784,14 @@ class TyperCompiler(numba.core.compiler.CompilerBase):
     but not lowering).
     """
 
-    def define_pipelines(self):
+    def define_pipeline(self):
         pm = numba.core.compiler_machinery.PassManager("custom_pipeline")
         pm.add_pass(TranslateByteCode, "analyzing bytecode")
         pm.add_pass(IRProcessing, "processing IR")
         pm.add_pass(PartialTypeInference, "do partial typing")
         pm.add_pass_after(DummyCR, PartialTypeInference)
         pm.finalize()
-        return [pm]
+        return pm
 
 
 def get_func_typing_errs(func, arg_types):

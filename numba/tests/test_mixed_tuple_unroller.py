@@ -82,7 +82,7 @@ class TestLoopCanonicalisation(MemoryLeakMixin, TestCase):
     def get_pipeline(use_canonicaliser, use_partial_typing=False):
         class NewCompiler(CompilerBase):
 
-            def define_pipelines(self):
+            def define_pipeline(self):
                 pm = PassManager("custom_pipeline")
 
                 # untyped
@@ -115,7 +115,7 @@ class TestLoopCanonicalisation(MemoryLeakMixin, TestCase):
                 # finalise the contents
                 pm.finalize()
 
-                return [pm]
+                return pm
         return NewCompiler
 
     # generate variants
@@ -1854,7 +1854,7 @@ def capture(real_pass):
 class CapturingCompiler(CompilerBase):
     """ Simple pipeline that wraps passes with the ResultCapturer pass"""
 
-    def define_pipelines(self):
+    def define_pipeline(self):
         pm = PassManager("Capturing Compiler")
 
         def add_pass(x, y):
@@ -1876,7 +1876,7 @@ class CapturingCompiler(CompilerBase):
         add_pass(NativeLowering, "native lowering")
         add_pass(NoPythonBackend, "nopython mode backend")
         pm.finalize()
-        return [pm]
+        return pm
 
 
 class TestLiteralUnrollPassTriggering(TestCase):
