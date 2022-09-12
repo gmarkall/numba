@@ -14,24 +14,28 @@ def gen_view(a,b):
     return impl
 
 
-class TestViewIntFloat(TestCase):
+class TestViewIntFloatBase:
     """ This tests the 'view' method on NumPy scalars. """
 
     def do_testing(self, inputs, dtypes):
         for value, initial_type, expected in inputs:
             for target_type, result in zip(dtypes, expected):
-                view = njit(gen_view(initial_type, target_type))
-                if not np.isnan(result):
-                    # check against predefined value
-                    self.assertEqual(view(value), target_type(result))
-                    # check against numpy
-                    self.assertEqual(view(value),
-                                     view.py_func(value))
-                else:
-                    # check that our implementation results in nan
-                    self.assertTrue(np.isnan(view(value)))
-                    # check that numpy results in nan
-                    self.assertTrue(np.isnan(view.py_func(value)))
+                with self.subTest(value=value, initial_type=initial_type,
+                                  target_type=target_type):
+                    print(value, initial_type, target_type, end='... ')
+                    view = self.jit(gen_view(initial_type, target_type))
+                    if not np.isnan(result):
+                        # check against predefined value
+                        self.assertEqual(view(value), target_type(result))
+                        # check against numpy
+                        self.assertEqual(view(value),
+                                         view.py_func(value))
+                    else:
+                        # check that our implementation results in nan
+                        self.assertTrue(np.isnan(view(value)))
+                        # check that numpy results in nan
+                        self.assertTrue(np.isnan(view.py_func(value)))
+                    print("OK")
 
     def test_8_bits(self):
         dtypes = (np.uint8, np.int8)
@@ -88,3 +92,11 @@ class TestViewIntFloat(TestCase):
     def test_exceptions64(self):
         for pair in ((np.int32, np.int64), (np.int64, np.int32)):
             self.do_testing_exceptions(pair)
+
+
+class TestViewIntFloat(TestViewIntFloatBase, TestCase):
+    @classmethod
+    def setUpClass(cls):
+        def jit(self, f):
+            return njit(f)
+        cls.jit = jit

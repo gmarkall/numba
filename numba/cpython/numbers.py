@@ -1359,5 +1359,5 @@ def scalar_view(scalar, viewty):
         return impl
 
 
-overload_method(types.Float, 'view')(scalar_view)
-overload_method(types.Integer, 'view')(scalar_view)
+overload_method(types.Float, 'view', target='generic')(scalar_view)
+overload_method(types.Integer, 'view', target='generic')(scalar_view)
