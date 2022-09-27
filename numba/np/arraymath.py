@@ -13,7 +13,6 @@ import warnings
 import llvmlite.ir
 import numpy as np
 
-from numba import generated_jit
 from numba.core import types, cgutils
 from numba.core.extending import overload, overload_method, register_jitable
 from numba.np.numpy_support import as_dtype, type_can_asarray
@@ -4551,7 +4550,11 @@ def _cross_operation(a, b, out):
     out[..., 2] = cp2
 
 
-@generated_jit
+def _cross(a, b):
+    pass
+
+
+@overload(_cross)
 def _cross_impl(a, b):
     dtype = np.promote_types(as_dtype(a.dtype), as_dtype(b.dtype))
     if a.ndim == 1 and b.ndim == 1:
@@ -4583,7 +4586,7 @@ def np_cross(a, b):
             ))
 
         if a_.shape[-1] == 3 or b_.shape[-1] == 3:
-            return _cross_impl(a_, b_)
+            return _cross(a_, b_)
         else:
             raise ValueError((
                 "Dimensions for both inputs is 2.\n"
@@ -4613,8 +4616,12 @@ def _cross2d_operation(a, b):
     return np.asarray(cp)
 
 
-@generated_jit
 def cross2d(a, b):
+    pass
+
+
+@overload
+def cross2d_impl(a, b):
     if not type_can_asarray(a) or not type_can_asarray(b):
         raise TypingError("Inputs must be array-like.")
 
