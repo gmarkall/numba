@@ -6,10 +6,10 @@ import ctypes
 import random
 
 from numba.tests.support import TestCase
-from numba import generated_jit, _helperlib, jit, typed, types
+from numba import _helperlib, jit, typed, types
 from numba.core.config import IS_32BITS
 from numba.core.datamodel.models import UniTupleModel
-from numba.extending import register_model, typeof_impl, unbox
+from numba.extending import overload, register_model, typeof_impl, unbox
 
 
 DKIX_EMPTY = -1
@@ -617,16 +617,19 @@ class TestDictImpl(TestCase):
         def unbox_parametrized(typ, obj, context):
             return context.unbox(types.UniTuple(typ.dtype, len(typ)), obj)
 
-        @generated_jit
         def dict_vs_cache_vs_parametrized(v):
+            pass
+
+        @overload(dict_vs_cache_vs_parametrized)
+        def dict_vs_cache_vs_parametrized_impl(v):
             typ = v
 
-            def objmode_vs_cache_vs_parametrized_impl(v):
+            def impl(v):
                 # typed.List shows same behaviour after fix for #6397
                 d = typed.Dict.empty(types.unicode_type, typ)
                 d['data'] = v
 
-            return objmode_vs_cache_vs_parametrized_impl
+            return impl
 
         @jit(nopython=True, cache=True)
         def set_parametrized_data(x, y):
