@@ -1317,34 +1317,50 @@ def prepare_ptp_input(a):
         return arr
 
 
-def _compute_current_val_impl_gen(op):
-    def _compute_current_val_impl(current_val, val):
-        if isinstance(current_val, types.Complex):
-            # The sort order for complex numbers is lexicographic. If both the
-            # real and imaginary parts are non-nan then the order is determined
-            # by the real parts except when they are equal, in which case the
-            # order is determined by the imaginary parts.
-            # https://github.com/numpy/numpy/blob/577a86e/numpy/core/fromnumeric.py#L874-L877    # noqa: E501
-            def impl(current_val, val):
-                if op(val.real, current_val.real):
-                    return val
-                elif (val.real == current_val.real
-                        and op(val.imag, current_val.imag)):
-                    return val
-                return current_val
-        else:
-            def impl(current_val, val):
-                return val if op(val, current_val) else current_val
-        return impl
-    return _compute_current_val_impl
+def _compute_current_val_impl_gen(op, current_val, val):
+    if isinstance(current_val, types.Complex):
+        # The sort order for complex numbers is lexicographic. If both the
+        # real and imaginary parts are non-nan then the order is determined
+        # by the real parts except when they are equal, in which case the
+        # order is determined by the imaginary parts.
+        # https://github.com/numpy/numpy/blob/577a86e/numpy/core/fromnumeric.py#L874-L877    # noqa: E501
+        def impl(current_val, val):
+            if op(val.real, current_val.real):
+                return val
+            elif (val.real == current_val.real
+                    and op(val.imag, current_val.imag)):
+                return val
+            return current_val
+    else:
+        def impl(current_val, val):
+            return val if op(val, current_val) else current_val
+    return impl
 
 
-_compute_a_max = generated_jit(_compute_current_val_impl_gen(greater_than))
-_compute_a_min = generated_jit(_compute_current_val_impl_gen(less_than))
+def _compute_a_max(current_val, val):
+    pass
 
 
-@generated_jit
+def _compute_a_min(current_val, val):
+    pass
+
+
+@overload(_compute_a_max)
+def _compute_a_max_impl(current_val, val):
+    return _compute_current_val_impl_gen(operator.gt, current_val, val)
+
+
+@overload(_compute_a_min)
+def _compute_a_min_impl(current_val, val):
+    return _compute_current_val_impl_gen(operator.lt, current_val, val)
+
+
 def _early_return(val):
+    pass
+
+
+@overload(_early_return)
+def _early_return_impl(val):
     UNUSED = 0
     if isinstance(val, types.Complex):
         def impl(val):
