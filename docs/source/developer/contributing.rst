@@ -150,6 +150,8 @@ Note that Numba's CI and the conda recipe for Linux build with the ``--werror``
 and ``--wall`` flags, so any contributions that change the CPython extensions
 should be tested with these flags too.
 
+.. _running-tests:
+
 Running tests
 '''''''''''''
 
@@ -289,7 +291,7 @@ circumstances should ``type: ignore`` comments be used.
 
 If you are contributing a new feature, we encourage you to use type hints, even if the file is not currently in the
 checklist. If you want to contribute type hints to enable a new file to be in the checklist, please add the file to the
-``files`` variable in ``mypy.ini``, and decide what level of compliance you are targetting. Level 3 is basic static
+``files`` variable in ``mypy.ini``, and decide what level of compliance you are targeting. Level 3 is basic static
 checks, while levels 2 and 1 represent stricter checking. The levels are described in details in ``mypy.ini``.
 
 There is potential for confusion between the Numba module ``typing`` and Python built-in module ``typing`` used for type

@@ -18,7 +18,7 @@ from numba.core.config import IS_WIN32, IS_32BITS
 from numba.core.utils import pysignature
 from numba.np.extensions import cross2d
 from numba.tests.support import (TestCase, CompilationCache, MemoryLeakMixin,
-                                 needs_blas, needs_subprocess)
+                                 needs_blas)
 import unittest
 
 
@@ -382,6 +382,10 @@ def np_cross(a, b):
     return np.cross(a, b)
 
 
+def nb_cross2d(a, b):
+    return cross2d(a, b)
+
+
 def flip_lr(a):
     return np.fliplr(a)
 
@@ -517,6 +521,15 @@ class TestNPFunctions(MemoryLeakMixin, TestCase):
         x_types = [typeof(v) for v in x_values]
         check(x_types, x_values, ulps=2)
 
+    def test_sinc_exceptions(self):
+        pyfunc = sinc
+        cfunc = jit(nopython=True)(pyfunc)
+
+        with self.assertRaises(TypingError) as raises:
+            cfunc('str')
+        self.assertIn('Argument "x" must be a Number or array-like',
+                      str(raises.exception))
+
     def test_contains(self):
         def arrs():
             a_0 = np.arange(10, 50)
@@ -611,6 +624,15 @@ class TestNPFunctions(MemoryLeakMixin, TestCase):
         x_values = np.array(x_values)
         x_types = [types.complex64, types.complex128]
         check(x_types, x_values)
+
+    def test_angle_exceptions(self):
+        pyfunc = angle1
+        cfunc = jit(nopython=True)(pyfunc)
+
+        with self.assertRaises(TypingError) as raises:
+            cfunc('hello')
+        self.assertIn('Argument "z" must be a complex or Array[complex]',
+                      str(raises.exception))
 
     def test_array_equal(self):
         def arrays():
@@ -867,6 +889,9 @@ class TestNPFunctions(MemoryLeakMixin, TestCase):
             yield 4.234
             yield True
             yield None
+            yield np.timedelta64(10, 'Y')
+            yield np.datetime64('nat')
+            yield np.datetime64(1, 'Y')
 
         pyfunc = isscalar
         cfunc = jit(nopython=True)(pyfunc)
@@ -1101,6 +1126,28 @@ class TestNPFunctions(MemoryLeakMixin, TestCase):
         cfunc = jit(nopython=True)(nonconst_side)
         with self.assertTypingError():
             cfunc([1,2], 1, side='right')
+
+        # Test unordered values
+        a = np.array([1, 2, 0])
+        v = np.array(
+            [
+                [5, 4],
+                [6, 7],
+                [2, 1],
+                [0, 3],
+            ]
+        )
+        check(a, v)
+
+        a = np.array([9, 1, 4, 2, 0, 3, 7, 6, 8])
+        v = np.array(
+            [
+                [5, 10],
+                [10, 5],
+                [-1, 5],
+            ]
+        )
+        check(a, v)
 
     def test_digitize(self):
         pyfunc = digitize
@@ -4410,7 +4457,7 @@ class TestNPFunctions(MemoryLeakMixin, TestCase):
 
     def test_cross2d(self):
         pyfunc = np_cross
-        cfunc = cross2d
+        cfunc = njit(nb_cross2d)
         pairs = [
             # 2x2 (n-dims)
             (
@@ -4455,7 +4502,7 @@ class TestNPFunctions(MemoryLeakMixin, TestCase):
             self.assertPreciseEqual(expected, got)
 
     def test_cross2d_exceptions(self):
-        cfunc = cross2d
+        cfunc = njit(nb_cross2d)
         self.disable_leak_check()
 
         # test incompatible dimensions for ndim == 1
@@ -4796,8 +4843,8 @@ def foo():
             cfunc(np.float64(7))
 
     @unittest.skipUnless(numpy_version >= (1, 22), "Needs NumPy >= 1.22")
-    @needs_subprocess
-    def test_np_MachAr_deprecation_np122_impl(self):
+    @TestCase.run_test_in_subprocess
+    def test_np_MachAr_deprecation_np122(self):
         # Tests that Numba is replaying the NumPy 1.22 deprecation warning
         # raised on the getattr of 'MachAr' on the NumPy module.
         # Needs to be run in a subprocess as the warning is generated from the
@@ -4813,13 +4860,6 @@ def foo():
 
         self.assertEqual(len(w), 1)
         self.assertIn('`np.MachAr` is deprecated', str(w[0]))
-
-    @unittest.skipUnless(numpy_version >= (1, 22), "Needs NumPy >= 1.22")
-    def test_np_MachAr_deprecation_np122(self):
-        test_name = 'test_np_MachAr_deprecation_np122_impl'
-        self.subprocess_test_runner(test_module=self.__module__,
-                                    test_class=type(self).__name__,
-                                    test_name=test_name,)
 
 
 if __name__ == '__main__':
