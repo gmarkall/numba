@@ -4,6 +4,8 @@ from numba.cuda.cudadrv.nvvm import LibDevice
 ll.initialize_all_targets()
 ll.initialize_all_asmprinters()
 
+# Doc ref: https://releases.llvm.org/11.0.1/docs/NVPTXUsage.html
+
 
 def llvm_to_ptx(irs, options):
     #print(options)
