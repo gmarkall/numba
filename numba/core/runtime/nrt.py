@@ -14,7 +14,7 @@ _nrt_mstats = namedtuple("nrt_mstats", ["alloc", "free", "mi_alloc", "mi_free"])
 
 class _Runtime(object):
     def __init__(self):
-        self._init = False
+        self._init = True
 
     @global_compiler_lock
     def initialize(self, ctx):

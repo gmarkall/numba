@@ -387,7 +387,9 @@ class BaseNativeLowering(abc.ABC, LoweringPass):
         calltypes = state.calltypes
         flags = state.flags
         metadata = state.metadata
-        pre_stats = llvm.passmanagers.dump_refprune_stats()
+        print("about to dump")
+        #pre_stats = llvm.passmanagers.dump_refprune_stats()
+        print("dumped")
 
         msg = ("Function %s failed at nopython "
                "mode lowering" % (state.func_id.func_name,))
@@ -402,6 +404,7 @@ class BaseNativeLowering(abc.ABC, LoweringPass):
             with targetctx.push_code_library(library):
                 lower = self.lowering_class(targetctx, library, fndesc, interp,
                                             metadata=metadata)
+                print("lowering")
                 lower.lower()
                 if not flags.no_cpython_wrapper:
                     lower.create_cpython_wrapper(flags.release_gil)
@@ -417,6 +420,7 @@ class BaseNativeLowering(abc.ABC, LoweringPass):
                                       (types.Optional, types.Generator)):
                             pass
                         else:
+                            print("creating wrapper")
                             lower.create_cfunc_wrapper()
 
                 env = lower.env
@@ -428,6 +432,7 @@ class BaseNativeLowering(abc.ABC, LoweringPass):
                 state['cr'] = _LowerResult(fndesc, call_helper,
                                            cfunc=None, env=env)
             else:
+                print("preparing for execution")
                 # Prepare for execution
                 # Insert native function for use by other jitted-functions.
                 # We also register its library to allow for inlining.
@@ -437,8 +442,10 @@ class BaseNativeLowering(abc.ABC, LoweringPass):
                                            cfunc=cfunc, env=env)
 
             # capture pruning stats
+            print("about to dump 2")
             post_stats = llvm.passmanagers.dump_refprune_stats()
             metadata['prune_stats'] = post_stats - pre_stats
+            print("finished dump 2")
 
             # Save the LLVM pass timings
             metadata['llvm_pass_timings'] = library.recorded_timings
