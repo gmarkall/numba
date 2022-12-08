@@ -11,6 +11,24 @@ from numba.core.runtime import _nrt_python as _nrt
 
 _nrt_mstats = namedtuple("nrt_mstats", ["alloc", "free", "mi_alloc", "mi_free"])
 
+_nrt_helpers = {}
+
+
+def get_nrt_helpers():
+    if _nrt_helpers:
+        return _nrt_helpers
+
+    for py_name in _nrt.c_helpers:
+        if py_name.startswith("_"):
+            # internal API
+            c_name = py_name
+        else:
+            c_name = "NRT_" + py_name
+        c_address = _nrt.c_helpers[py_name]
+        _nrt_helpers[c_name] = c_address
+
+    return _nrt_helpers
+
 
 class _Runtime(object):
     def __init__(self):
@@ -32,13 +50,7 @@ class _Runtime(object):
             _nrt.memsys_enable_stats()
 
         # Register globals into the system
-        for py_name in _nrt.c_helpers:
-            if py_name.startswith("_"):
-                # internal API
-                c_name = py_name
-            else:
-                c_name = "NRT_" + py_name
-            c_address = _nrt.c_helpers[py_name]
+        for c_name, c_address in get_nrt_helpers().items():
             ll.add_symbol(c_name, c_address)
 
         # Compile atomic operations

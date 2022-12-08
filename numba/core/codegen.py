@@ -10,10 +10,10 @@ import llvmlite.binding as ll
 import llvmlite.ir as llvmir
 
 from abc import abstractmethod, ABCMeta
-from numba.core import utils, config, cgutils
+from numba.core import base, utils, config, cgutils
 from numba.core.llvm_bindings import create_pass_manager_builder
 from numba.core.runtime.nrtopt import remove_redundant_nrt_refct
-from numba.core.runtime import rtsys
+from numba.core.runtime import nrt, rtsys
 from numba.core.compiler_lock import require_global_compiler_lock
 from numba.core.errors import NumbaInvalidConfigWarning
 from numba.misc.inspection import disassemble_elf_to_cfg
@@ -991,12 +991,12 @@ class JITCodeLibrary(CPUCodeLibrary):
         if not ee.is_symbol_defined(name):
             return 0
         else:
-            return self._codegen._engine.get_function_address(name)
+            return self._codegen._engine.lookup(name)
 
     def _finalize_specific(self):
         self._codegen._scan_and_fix_unresolved_refs(self._final_module)
-        with self._recorded_timings.record("Finalize object"):
-            self._codegen._engine.finalize_object()
+        #with self._recorded_timings.record("Finalize object"):
+        #    self._codegen._engine.finalize_object()
 
 
 class RuntimeLinker(object):
@@ -1057,7 +1057,7 @@ class RuntimeLinker(object):
 def _proxy(old):
     @functools.wraps(old)
     def wrapper(self, *args, **kwargs):
-        return old(self._ee, *args, **kwargs)
+        return old(self._lljit, *args, **kwargs)
     return wrapper
 
 
@@ -1066,8 +1066,16 @@ class JitEngine(object):
     Since the symbol tracking is incomplete  (doesn't consider
     loaded code object), we are not putting it in llvmlite.
     """
-    def __init__(self, ee):
-        self._ee = ee
+    def __init__(self, lljit):
+        self._lljit = lljit
+
+        for c_name, c_address in base.get_global_helpers().items():
+            self._lljit.define_symbol(c_name, c_address)
+
+        for c_name, c_address in nrt.get_nrt_helpers().items():
+            self._lljit.define_symbol(c_name, c_address)
+
+        self._lljit.add_current_process_search()
         # Track symbol defined via codegen'd Module
         # but not any cached object.
         # NOTE: `llvm::ExecutionEngine` will catch duplicated symbols and
@@ -1091,29 +1099,29 @@ class JitEngine(object):
             self._defined_symbols |= {gv.name for gv in gsets
                                       if not gv.is_declaration}
 
-    def add_module(self, module):
+    def add_ir_module(self, module):
         """Override ExecutionEngine.add_module
         to keep info about defined symbols.
         """
         self._load_defined_symbols(module)
-        return self._ee.add_module(module)
+        return self._lljit.add_ir_module(module)
 
     def add_global_mapping(self, gv, addr):
         """Override ExecutionEngine.add_global_mapping
         to keep info about defined symbols.
         """
         self._defined_symbols.add(gv.name)
-        return self._ee.add_global_mapping(gv, addr)
+        print("Add global mapping")
+        return self._lljit.add_global_mapping(gv, addr)
 
     #
     # The remaining methods are re-export of the ExecutionEngine APIs
     #
-    set_object_cache = _proxy(ll.ExecutionEngine.set_object_cache)
-    finalize_object = _proxy(ll.ExecutionEngine.finalize_object)
-    get_function_address = _proxy(ll.ExecutionEngine.get_function_address)
-    get_global_value_address = _proxy(
-        ll.ExecutionEngine.get_global_value_address
-        )
+    #set_object_cache = _proxy(ll.ExecutionEngine.set_object_cache)
+    #finalize_object = _proxy(ll.ExecutionEngine.finalize_object)
+    get_function_address = _proxy(ll.LLJIT.lookup)
+    lookup = _proxy(ll.LLJIT.lookup)
+    get_global_value_address = _proxy( ll.LLJIT.lookup)
 
 
 class Codegen(metaclass=ABCMeta):
@@ -1178,7 +1186,8 @@ class CPUCodegen(Codegen):
         self._tm_features = self._customize_tm_features()
         self._customize_tm_options(tm_options)
         tm = target.create_target_machine(**tm_options)
-        engine = ll.create_mcjit_compiler(llvm_module, tm)
+        engine = ll.create_lljit_compiler(tm)
+        engine.add_ir_module(llvm_module)
 
         if config.ENABLE_PROFILING:
             engine.enable_jit_events()
@@ -1193,8 +1202,8 @@ class CPUCodegen(Codegen):
                                                     cost="cheap")
         self._mpm_full = self._module_pass_manager()
 
-        self._engine.set_object_cache(self._library_class._object_compiled_hook,
-                                      self._library_class._object_getbuffer_hook)
+        #self._engine.set_object_cache(self._library_class._object_compiled_hook,
+        #                              self._library_class._object_getbuffer_hook)
 
     def _create_empty_module(self, name):
         ir_module = llvmir.Module(cgutils.normalize_ir_text(name))
@@ -1391,7 +1400,7 @@ class JITCPUCodegen(CPUCodegen):
         return self._get_host_cpu_features()
 
     def _add_module(self, module):
-        self._engine.add_module(module)
+        self._engine.add_ir_module(module)
         # XXX: disabling remove module due to MCJIT engine leakage in
         #      removeModule.  The removeModule causes consistent access
         #      violation with certain test combinations.
