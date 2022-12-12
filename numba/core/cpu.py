@@ -168,7 +168,7 @@ class CPUContext(BaseContext):
             # calls to compiler-rt
             intrinsics.fix_divmod(mod)
 
-        #library.add_linking_library(rtsys.library)
+        library.add_linking_library(rtsys.library)
 
     def create_cpython_wrapper(self, library, fndesc, env, call_helper,
                                release_gil=False):

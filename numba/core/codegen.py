@@ -995,8 +995,7 @@ class JITCodeLibrary(CPUCodeLibrary):
             return self._codegen._engine.lookup(name)
 
     def _finalize_specific(self):
-        pass
-        #self._codegen._scan_and_fix_unresolved_refs(self._final_module)
+        self._codegen._scan_and_fix_unresolved_refs(self._final_module)
         #with self._recorded_timings.record("Finalize object"):
         #    self._codegen._engine.finalize_object()
 
@@ -1106,7 +1105,7 @@ class JitEngine(object):
         """
         self._defined_symbols.add(gv.name)
         print("Add global mapping")
-        #return self._ee.add_global_mapping(gv, addr)
+        return self._lljit.add_global_mapping(gv, addr)
 
     #
     # The remaining methods are re-export of the ExecutionEngine APIs
