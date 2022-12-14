@@ -40,6 +40,7 @@ class _Runtime(object):
                 c_name = "NRT_" + py_name
             c_address = _nrt.c_helpers[py_name]
             ll.add_symbol(c_name, c_address)
+            ll.define_symbol(c_name, c_address)
 
         # Compile atomic operations
         self._library = nrtdynmod.compile_nrt_functions(ctx)

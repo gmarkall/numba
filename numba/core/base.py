@@ -150,21 +150,25 @@ def _load_global_helpers():
     """
     # This is Py_None's real C name
     ll.add_symbol("_Py_NoneStruct", id(None))
+    ll.define_symbol("_Py_NoneStruct", id(None))
 
     # Add Numba C helper functions
     for c_helpers in (_helperlib.c_helpers, _dynfunc.c_helpers):
         for py_name, c_address in c_helpers.items():
             c_name = "numba_" + py_name
             ll.add_symbol(c_name, c_address)
+            ll.define_symbol(c_name, c_address)
 
     # Add Numpy C helpers (npy_XXX)
     for c_name, c_address in _helperlib.npymath_exports.items():
         ll.add_symbol(c_name, c_address)
+        ll.define_symbol(c_name, c_address)
 
     # Add all built-in exception classes
     for obj in utils.builtins.__dict__.values():
         if isinstance(obj, type) and issubclass(obj, BaseException):
             ll.add_symbol("PyExc_%s" % (obj.__name__), id(obj))
+            ll.define_symbol("PyExc_%s" % (obj.__name__), id(obj))
 
 
 class BaseContext(object):
