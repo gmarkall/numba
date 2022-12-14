@@ -443,8 +443,8 @@ class BaseNativeLowering(abc.ABC, LoweringPass):
 
             # capture pruning stats
             print("about to dump 2")
-            post_stats = llvm.passmanagers.dump_refprune_stats()
-            metadata['prune_stats'] = post_stats - pre_stats
+            #post_stats = llvm.passmanagers.dump_refprune_stats()
+            #metadata['prune_stats'] = post_stats - pre_stats
             print("finished dump 2")
 
             # Save the LLVM pass timings
