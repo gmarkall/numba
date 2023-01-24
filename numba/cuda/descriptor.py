@@ -1,10 +1,18 @@
 from numba.core.descriptors import TargetDescriptor
-from numba.core.options import TargetOptions
+from numba.core.options import DefaultOptionsMixin, TargetOptions
 from .target import CUDATargetContext, CUDATypingContext
 
 
-class CUDATargetOptions(TargetOptions):
-    pass
+class CUDAOptionsMixin:
+    opt = TargetOptions.Mapping('opt')
+    lineinfo = TargetOptions.Mapping('lineinfo')
+
+
+class CUDATargetOptions(DefaultOptionsMixin, CUDAOptionsMixin, TargetOptions):
+
+    def finalize(self, flags, options):
+        breakpoint()
+        flags.inherit_if_not_set('lineinfo')
 
 
 class CUDATarget(TargetDescriptor):

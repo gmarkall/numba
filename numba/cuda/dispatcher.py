@@ -830,7 +830,8 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
                                     lineinfo=lineinfo,
                                     inline=inline,
                                     fastmath=fastmath,
-                                    nvvm_options=nvvm_options)
+                                    nvvm_options=nvvm_options,
+                                    targetoptions=self.targetoptions)
                 self.overloads[args] = cres
 
                 cres.target_context.insert_user_function(cres.entry_point,

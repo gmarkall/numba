@@ -117,14 +117,14 @@ class TestCudaLineInfo(CUDATestCase):
         sig = (int32[:],)
         self._check(caller, sig=sig, expect=False)
 
-    def test_lineinfo_in_device_function(self):
+    def test_lineinfo_in_device_function(self, explicitly_requested=False):
         if not NVVM().is_nvvm70:
             self.skipTest("lineinfo not generated for NVVM 3.4")
 
         # First we define a device function / kernel pair and run the usual
         # checks on the generated LLVM and PTX.
 
-        @cuda.jit(lineinfo=True)
+        @cuda.jit(lineinfo=explicitly_requested)
         def callee(x):
             x[0] += 1
 
@@ -207,6 +207,9 @@ class TestCudaLineInfo(CUDATestCase):
                          f'"Expected {expected_subprograms} DISubprograms; '
                          f'got {subprograms}')
 
+    def test_lineinfo_in_device_function_explicitly_requested(self):
+        self.test_lineinfo_in_device_function(explicitly_requested=True)
+    
     def test_debug_and_lineinfo_warning(self):
         with warnings.catch_warnings(record=True) as w:
             # We pass opt=False to prevent the warning about opt and debug

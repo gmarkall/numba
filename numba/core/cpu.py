@@ -9,7 +9,7 @@ from numba.core.callwrapper import PyCallWrapper
 from numba.core.base import BaseContext
 from numba.core import (utils, types, config, cgutils, callconv, codegen,
                         externals, fastmathpass, intrinsics)
-from numba.core.options import TargetOptions, include_default_options
+from numba.core.options import DefaultOptionsMixin, TargetOptions
 from numba.core.runtime import rtsys
 from numba.core.compiler_lock import global_compiler_lock
 import numba.core.entrypoints
@@ -258,30 +258,7 @@ class CPUContext(BaseContext):
 # ----------------------------------------------------------------------------
 # TargetOptions
 
-_options_mixin = include_default_options(
-    "nopython",
-    "forceobj",
-    "looplift",
-    "_nrt",
-    "debug",
-    "boundscheck",
-    "nogil",
-    "no_rewrites",
-    "no_cpython_wrapper",
-    "no_cfunc_wrapper",
-    "parallel",
-    "fastmath",
-    "error_model",
-    "inline",
-    "forceinline",
-    # Add "target_backend" as a accepted option for the CPU in @jit(...)
-    "target_backend",
-    "_dbg_extend_lifetimes",
-    "_dbg_optnone",
-)
-
-
-class CPUTargetOptions(_options_mixin, TargetOptions):
+class CPUTargetOptions(DefaultOptionsMixin, TargetOptions):
     def finalize(self, flags, options):
         if not flags.is_set("enable_pyobject"):
             flags.enable_pyobject = True

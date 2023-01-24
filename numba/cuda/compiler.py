@@ -180,12 +180,17 @@ class CUDACompiler(CompilerBase):
 
 @global_compiler_lock
 def compile_cuda(pyfunc, return_type, args, debug=False, lineinfo=False,
-                 inline=False, fastmath=False, nvvm_options=None):
+                 inline=False, fastmath=False, nvvm_options=None,
+                 targetoptions=None):
     from .descriptor import cuda_target
     typingctx = cuda_target.typing_context
     targetctx = cuda_target.target_context
 
     flags = CUDAFlags()
+
+    from numba.cuda.descriptor import cuda_target
+    if targetoptions:
+        cuda_target.options.parse_as_flags(flags, targetoptions)
     # Do not compile (generate native code), just lower (to LLVM)
     flags.no_compile = True
     flags.no_cpython_wrapper = True

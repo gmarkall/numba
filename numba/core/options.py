@@ -107,3 +107,26 @@ def include_default_options(*args):
     glbs = {k: getattr(DefaultOptions, k) for k in args}
 
     return type("OptionMixins", (), glbs)
+
+
+DefaultOptionsMixin = include_default_options(
+    "nopython",
+    "forceobj",
+    "looplift",
+    "_nrt",
+    "debug",
+    "boundscheck",
+    "nogil",
+    "no_rewrites",
+    "no_cpython_wrapper",
+    "no_cfunc_wrapper",
+    "parallel",
+    "fastmath",
+    "error_model",
+    "inline",
+    "forceinline",
+    # Add "target_backend" as a accepted option for the CPU in @jit(...)
+    "target_backend",
+    "_dbg_extend_lifetimes",
+    "_dbg_optnone",
+)

@@ -46,9 +46,6 @@ class CUDATypingContext(typing.BaseContext):
                     raise ValueError('using cpu function on device '
                                      'but its compilation is disabled')
                 targetoptions = val.targetoptions.copy()
-                targetoptions['device'] = True
-                targetoptions['debug'] = targetoptions.get('debug', False)
-                targetoptions['opt'] = targetoptions.get('opt', True)
                 disp = CUDADispatcher(val.py_func, targetoptions)
                 # cache the device function for future use and to avoid
                 # duplicated copy of the same function.
