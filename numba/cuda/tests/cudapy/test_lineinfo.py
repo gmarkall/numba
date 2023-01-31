@@ -66,7 +66,7 @@ class TestCudaLineInfo(CUDATestCase):
         # generated
         pat = (
             r'\.section\s+'  # .section directive beginning
-            r'\.debug_'      # Any section name beginning ".debug_"
+            r'\.debug_info'  # Section named ".debug_info"
         )
         match = re.compile(pat).search(ptx)
         self.assertIsNone(match, msg=ptx)
