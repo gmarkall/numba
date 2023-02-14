@@ -782,7 +782,6 @@ class CPUCodeLibrary(CodeLibrary):
         """
         Make the underlying LLVM module ready to use.
         """
-        print("Finalizing")
         self._finalize_dynamic_globals()
         self._verify_declare_only_symbols()
 
