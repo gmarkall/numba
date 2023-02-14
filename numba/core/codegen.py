@@ -10,10 +10,10 @@ import llvmlite.binding as ll
 import llvmlite.ir as llvmir
 
 from abc import abstractmethod, ABCMeta
-from numba.core import utils, config, cgutils
+from numba.core import base, utils, config, cgutils
 from numba.core.llvm_bindings import create_pass_manager_builder
 from numba.core.runtime.nrtopt import remove_redundant_nrt_refct
-from numba.core.runtime import rtsys
+from numba.core.runtime import nrt, rtsys
 from numba.core.compiler_lock import require_global_compiler_lock
 from numba.core.errors import NumbaInvalidConfigWarning
 from numba.misc.inspection import disassemble_elf_to_cfg
@@ -1069,6 +1069,12 @@ class JitEngine(object):
     """
     def __init__(self, lljit):
         self._lljit = lljit
+
+        for c_name, c_address in base.get_global_helpers().items():
+            self._lljit.define_symbol(c_name, c_address)
+
+        for c_name, c_address in nrt.get_nrt_helpers().items():
+            self._lljit.define_symbol(c_name, c_address)
         # Track symbol defined via codegen'd Module
         # but not any cached object.
         # NOTE: `llvm::ExecutionEngine` will catch duplicated symbols and
