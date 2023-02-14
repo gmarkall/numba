@@ -759,7 +759,7 @@ class CPUCodeLibrary(CodeLibrary):
 
         # Optimize the module after all dependences are linked in above,
         # to allow for inlining.
-        # self._optimize_final_module()
+        self._optimize_final_module()
 
         self._final_module.verify()
         self._finalize_final_module()
@@ -1075,6 +1075,8 @@ class JitEngine(object):
 
         for c_name, c_address in nrt.get_nrt_helpers().items():
             self._lljit.define_symbol(c_name, c_address)
+
+        self._lljit.add_current_process_search()
         # Track symbol defined via codegen'd Module
         # but not any cached object.
         # NOTE: `llvm::ExecutionEngine` will catch duplicated symbols and
