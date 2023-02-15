@@ -28,6 +28,11 @@ class CUDAFlags(Flags):
         default=None,
         doc="NVVM options",
     )
+    lineinfo = Option(
+        type=bool,
+        default=False,
+        doc="Generate lineinfo",
+    )
 
 
 # The CUDACompileResult (CCR) has a specially-defined entry point equal to its

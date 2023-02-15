@@ -230,7 +230,7 @@ class TargetConfig(metaclass=_MetaTargetConfig):
             if cstk:
                 # inherit
                 top = cstk.top()
-                setattr(self, name, getattr(top, name))
+                setattr(self, name, getattr(top, name, default))
             elif default is not _NotSet:
                 setattr(self, name, default)
 

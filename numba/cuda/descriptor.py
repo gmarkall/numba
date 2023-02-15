@@ -11,7 +11,7 @@ class CUDAOptionsMixin:
 class CUDATargetOptions(DefaultOptionsMixin, CUDAOptionsMixin, TargetOptions):
 
     def finalize(self, flags, options):
-        breakpoint()
+        #breakpoint()
         flags.inherit_if_not_set('lineinfo')
 
 
