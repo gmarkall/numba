@@ -724,17 +724,19 @@ class CPUCodeLibrary(CodeLibrary):
         self._raise_if_finalized()
         assert isinstance(ir_module, llvmir.Module)
         ir = cgutils.normalize_ir_text(str(ir_module))
-        ll_module = ll.parse_assembly(ir)
-        ll_module.name = ir_module.name
-        ll_module.verify()
-        self.add_llvm_module(ll_module)
+        print("in add_ir_module")
+        #ll_module = ll.parse_assembly(ir)
+        #ll_module.name = ir_module.name
+        #ll_module.verify()
+        #self.add_llvm_module(ll_module)
 
     def add_llvm_module(self, ll_module):
-        self._optimize_functions(ll_module)
+        pass
+        #self._optimize_functions(ll_module)
         # TODO: we shouldn't need to recreate the LLVM module object
-        if not config.LLVM_REFPRUNE_PASS:
-            ll_module = remove_redundant_nrt_refct(ll_module)
-        self._final_module.link_in(ll_module)
+        #if not config.LLVM_REFPRUNE_PASS:
+        #    ll_module = remove_redundant_nrt_refct(ll_module)
+        #self._final_module.link_in(ll_module)
 
     def finalize(self):
         require_global_compiler_lock()
@@ -1269,6 +1271,7 @@ class CPUCodegen(Codegen):
         """
         Guard against some well-known LLVM bug(s).
         """
+        return
         # Check the locale bug at https://github.com/numba/numba/issues/1569
         # Note we can't cache the result as locale settings can change
         # across a process's lifetime.  Also, for this same reason,

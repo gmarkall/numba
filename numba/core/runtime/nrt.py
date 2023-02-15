@@ -54,7 +54,7 @@ class _Runtime(object):
             ll.add_symbol(c_name, c_address)
 
         # Compile atomic operations
-        self._library = nrtdynmod.compile_nrt_functions(ctx)
+        #self._library = nrtdynmod.compile_nrt_functions(ctx)
         self._init = True
 
     def _init_guard(self):
