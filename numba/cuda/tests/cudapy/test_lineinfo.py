@@ -124,7 +124,16 @@ class TestCudaLineInfo(CUDATestCase):
         # First we define a device function / kernel pair and run the usual
         # checks on the generated LLVM and PTX.
 
-        @cuda.jit(lineinfo=explicitly_requested)
+        # This seems like an odd pattern at first glance, but the intention is
+        # to ensure that 'lineinfo' doesn't appear at all in the kwargs dict
+        # given to the cuda.jit() decorator if we're not explicitly requesting
+        # lineinfo.
+        if explicitly_requested:
+            devfn_decorator = cuda.jit(lineinfo=True)
+        else:
+            devfn_decorator = cuda.jit
+
+        @devfn_decorator
         def callee(x):
             x[0] += 1
 
@@ -141,51 +150,32 @@ class TestCudaLineInfo(CUDATestCase):
         ptx = caller.inspect_asm(sig)
         ptxlines = ptx.splitlines()
 
-        # To check the device function, we need to identify its boundaries.
+        # Check that there is no device function in the PTX
 
-        # A line beginning with ".weak .func"
+        # A line beginning with ".weak .func" that identifies a device function
         devfn_start = re.compile(r'^\.weak\s*\.func')
 
-        # Identify the beginning of the function.
-        start = None
-
-        for lineno, line in enumerate(ptxlines):
+        for line in ptxlines:
             if devfn_start.match(line) is not None:
-                # We will begin our search on the line following the
-                # declaration
-                start = lineno + 1
-                break
+                self.fail(f"Found device function in PTX:\n\n{ptx}")
 
-        if start is None:
-            self.fail(f'Could not identify device function in:\n\n{ptx}')
+        # Scan for .loc directives taht refer to an inlined device function
 
-        # Identify the end of the function
-        end = None
-
-        for offset, line in enumerate(ptxlines[start:]):
-            # Assume the end of the function is a line with an unindented '}'
-            if line[:1] == '}':
-                end = start + offset
-                break
-
-        if end is None:
-            self.fail(f'Could not identify end of device function in:\n\n{ptx}')
-
-        # Scan for .loc directives in the device function.
         loc_directive = self._loc_directive_regex()
         found = False
 
-        for line in ptxlines[start:end]:
+        for line in ptxlines:
             if loc_directive.search(line) is not None:
-                found = True
-                break
+                if 'inlined_at' in line:
+                    found = True
+                    break
 
         if not found:
             # Join one line either side so the function as a whole is shown,
             # i.e. including the declaration and parameter list, and the
             # closing brace.
-            devfn = "\n".join(ptxlines[start - 1:end + 1])
-            self.fail(f'.loc directive not found in:\n\n{devfn}')
+            self.fail(f'No .loc directive with inlined_at info found'
+                      f'in:\n\n{ptx}')
 
         # We also inspect the LLVM to ensure that there's debug info for each
         # subprogram (function). A lightweight way to check this is to ensure
@@ -209,7 +199,7 @@ class TestCudaLineInfo(CUDATestCase):
 
     def test_lineinfo_in_device_function_explicitly_requested(self):
         self.test_lineinfo_in_device_function(explicitly_requested=True)
-    
+
     def test_debug_and_lineinfo_warning(self):
         with warnings.catch_warnings(record=True) as w:
             # We pass opt=False to prevent the warning about opt and debug
