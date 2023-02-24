@@ -23,6 +23,7 @@ from llvmlite import ir
 
 from numba.np.numpy_support import as_dtype
 from numba.core import types, cgutils, config, errors
+from numba.core.codegen import get_lljit_compiler
 from numba.core.typing import signature
 from numba.np.ufunc.wrappers import _wrapper_info
 from numba.np.ufunc import ufuncbuilder
@@ -511,9 +512,16 @@ def _launch_threads():
             if not lib:
                 raise_with_hint(requirements)
 
+            lljit = get_lljit_compiler()
+
             ll.add_symbol('numba_parallel_for', lib.parallel_for)
             ll.add_symbol('do_scheduling_signed', lib.do_scheduling_signed)
             ll.add_symbol('do_scheduling_unsigned', lib.do_scheduling_unsigned)
+            lljit.define_symbol('numba_parallel_for', lib.parallel_for)
+            lljit.define_symbol('do_scheduling_signed',
+                                lib.do_scheduling_signed)
+            lljit.define_symbol('do_scheduling_unsigned',
+                                lib.do_scheduling_unsigned)
 
             launch_threads = CFUNCTYPE(None, c_int)(lib.launch_threads)
             launch_threads(NUM_THREADS)
@@ -528,9 +536,14 @@ def _launch_threads():
 
 def _load_threading_functions(lib):
 
+    lljit = get_lljit_compiler()
+
     ll.add_symbol('get_num_threads', lib.get_num_threads)
     ll.add_symbol('set_num_threads', lib.set_num_threads)
     ll.add_symbol('get_thread_id', lib.get_thread_id)
+    lljit.define_symbol('get_num_threads', lib.get_num_threads)
+    lljit.define_symbol('set_num_threads', lib.set_num_threads)
+    lljit.define_symbol('get_thread_id', lib.get_thread_id)
 
     global _set_num_threads
     _set_num_threads = CFUNCTYPE(None, c_int)(lib.set_num_threads)
@@ -545,6 +558,10 @@ def _load_threading_functions(lib):
     ll.add_symbol('set_parallel_chunksize', lib.set_parallel_chunksize)
     ll.add_symbol('get_parallel_chunksize', lib.get_parallel_chunksize)
     ll.add_symbol('get_sched_size', lib.get_sched_size)
+    lljit.define_symbol('set_parallel_chunksize', lib.set_parallel_chunksize)
+    lljit.define_symbol('get_parallel_chunksize', lib.get_parallel_chunksize)
+    lljit.define_symbol('get_sched_size', lib.get_sched_size)
+
     global _set_parallel_chunksize
     _set_parallel_chunksize = CFUNCTYPE(c_uint,
                                         c_uint)(lib.set_parallel_chunksize)

@@ -1166,6 +1166,27 @@ class Codegen(metaclass=ABCMeta):
         return self._library_class._unserialize(self, serialized)
 
 
+_lljit_compilers = {}
+
+
+def get_lljit_compiler(tm=None):
+    if _lljit_compilers:
+        # If we don't know what the tm is, just return the one compiler we have
+        if tm is None:
+            return next(iter(_lljit_compilers.values()))
+
+        # If we do know it, it has to be the same as the one we've already seen
+        # because we don't want multiple lljits floating around
+        if tm not in _lljit_compilers:
+            raise RuntimeError("Only one target machine supported for now")
+        return _lljit_compilers[tm]
+
+    # First call, so create a new lljit compiler for this tm
+    lljit = ll.create_lljit_compiler(tm)
+    _lljit_compilers[tm] = lljit
+    return lljit
+
+
 class CPUCodegen(Codegen):
 
     def __init__(self, module_name):
@@ -1186,7 +1207,7 @@ class CPUCodegen(Codegen):
         self._tm_features = self._customize_tm_features()
         self._customize_tm_options(tm_options)
         tm = target.create_target_machine(**tm_options)
-        engine = ll.create_lljit_compiler(tm)
+        engine = get_lljit_compiler(tm)
         engine.add_ir_module(llvm_module)
 
         if config.ENABLE_PROFILING:
