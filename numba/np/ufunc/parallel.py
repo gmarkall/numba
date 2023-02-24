@@ -23,7 +23,7 @@ from llvmlite import ir
 
 from numba.np.numpy_support import as_dtype
 from numba.core import types, cgutils, config, errors
-from numba.core.codegen import get_lljit_compiler
+from numba.core.codegen import get_lljit_and_tm
 from numba.core.typing import signature
 from numba.np.ufunc.wrappers import _wrapper_info
 from numba.np.ufunc import ufuncbuilder
@@ -512,7 +512,7 @@ def _launch_threads():
             if not lib:
                 raise_with_hint(requirements)
 
-            lljit = get_lljit_compiler()
+            lljit, _ = get_lljit_and_tm()
 
             ll.add_symbol('numba_parallel_for', lib.parallel_for)
             ll.add_symbol('do_scheduling_signed', lib.do_scheduling_signed)
@@ -536,7 +536,7 @@ def _launch_threads():
 
 def _load_threading_functions(lib):
 
-    lljit = get_lljit_compiler()
+    lljit, _ = get_lljit_and_tm()
 
     ll.add_symbol('get_num_threads', lib.get_num_threads)
     ll.add_symbol('set_num_threads', lib.set_num_threads)

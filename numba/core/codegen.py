@@ -1069,11 +1069,20 @@ class JitEngine(object):
     def __init__(self, lljit):
         self._lljit = lljit
 
+        # XXX: Obviously not a good pattern!
         for c_name, c_address in base.get_global_helpers().items():
-            self._lljit.define_symbol(c_name, c_address)
+            try:
+                self._lljit.define_symbol(c_name, c_address)
+            except RuntimeError as e:
+                if 'Duplicate definition' not in str(e):
+                    raise e
 
         for c_name, c_address in nrt.get_nrt_helpers().items():
-            self._lljit.define_symbol(c_name, c_address)
+            try:
+                self._lljit.define_symbol(c_name, c_address)
+            except RuntimeError as e:
+                if 'Duplicate definition' not in str(e):
+                    raise e
 
         self._lljit.add_current_process_search()
         # Track symbol defined via codegen'd Module
@@ -1169,22 +1178,35 @@ class Codegen(metaclass=ABCMeta):
 _lljit_compilers = {}
 
 
-def get_lljit_compiler(tm=None):
+def get_lljit_and_tm(tm_options=None):
+    if tm_options is None:
+        if not _lljit_compilers:
+            raise RuntimeError("Can't get the lljit and tm when none exist "
+                               "without tm_options")
+        return next(iter(_lljit_compilers.values()))
+
+    #print(f'TM options: {tm_options}')
+    # Freeze the tm options for a key
+    tm_options_key = tuple(sorted(tm_options.items()))
+
     if _lljit_compilers:
-        # If we don't know what the tm is, just return the one compiler we have
-        if tm is None:
-            return next(iter(_lljit_compilers.values()))
-
-        # If we do know it, it has to be the same as the one we've already seen
-        # because we don't want multiple lljits floating around
-        if tm not in _lljit_compilers:
+        if tm_options_key not in _lljit_compilers:
+            # If we do know it, it has to be the same as the one we've already seen
+            # because we don't want multiple lljits floating around
+            print(f'Seen tm: {next(iter(_lljit_compilers.keys()))}')
+            print(f'Got tm:  {tm}')
+            breakpoint()
             raise RuntimeError("Only one target machine supported for now")
-        return _lljit_compilers[tm]
 
-    # First call, so create a new lljit compiler for this tm
+        print("Returning the seen TM")
+        return _lljit_compilers[tm_options_key]
+
+    # First call, so create a new lljit compiler for these tm_options
+    target = ll.Target.from_triple(ll.get_process_triple())
+    tm = target.create_target_machine(**tm_options)
     lljit = ll.create_lljit_compiler(tm)
-    _lljit_compilers[tm] = lljit
-    return lljit
+    _lljit_compilers[tm_options_key] = lljit, tm
+    return lljit, tm
 
 
 class CPUCodegen(Codegen):
@@ -1202,12 +1224,10 @@ class CPUCodegen(Codegen):
     def _init(self, llvm_module):
         assert list(llvm_module.global_variables) == [], "Module isn't empty"
 
-        target = ll.Target.from_triple(ll.get_process_triple())
         tm_options = dict(opt=config.OPT)
         self._tm_features = self._customize_tm_features()
         self._customize_tm_options(tm_options)
-        tm = target.create_target_machine(**tm_options)
-        engine = get_lljit_compiler(tm)
+        engine, tm = get_lljit_and_tm(tm_options)
         engine.add_ir_module(llvm_module)
 
         if config.ENABLE_PROFILING:
