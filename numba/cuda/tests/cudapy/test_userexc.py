@@ -15,7 +15,7 @@ regex_pattern = (
 class TestUserExc(CUDATestCase):
 
     def test_user_exception(self):
-        @cuda.jit("void(int32)", debug=True)
+        @cuda.jit("void(int32)", exceptions=True)
         def test_exc(x):
             if x == 1:
                 raise MyError

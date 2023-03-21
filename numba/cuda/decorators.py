@@ -31,11 +31,15 @@ def jit(func_or_sig=None, device=False, cache=False, extensions=None,
     :param link: A list of files containing PTX or CUDA C/C++ source to link
        with the function
     :type link: list
-    :param debug: If True, check for exceptions thrown when executing the
-       kernel. Since this degrades performance, this should only be used for
-       debugging purposes. If set to True, then ``opt`` should be set to False.
+    :param debug: If True, debug info is generated for compiled kernels. Since
+       this degrades performance, this should only be used for debugging
+       purposes.  If set to True, then ``opt`` should be set to False.
        Defaults to False.  (The default value can be overridden by setting
        environment variable ``NUMBA_CUDA_DEBUGINFO=1``.)
+    :param exceptions: If True, check for exceptions thrown when executing
+       the kernel. Since this degrades performance, this should only be used
+       for debugging purposes. Defaults to False.  (The default value can be
+       overridden by setting environment variable ``NUMBA_CUDA_EXCEPTIONS=1``.)
     :param fastmath: When True, enables fastmath optimizations as outlined in
        the :ref:`CUDA Fast Math documentation <cuda-fast-math>`.
     :param max_registers: Request that the kernel is limited to using at most
@@ -59,6 +63,9 @@ def jit(func_or_sig=None, device=False, cache=False, extensions=None,
 
     if config.CUDA_DEBUGINFO_DEFAULT and 'debug' not in options:
         options['debug'] = True
+
+    if config.CUDA_EXCEPTIONS_DEFAULT and 'exceptions' not in options:
+        options['exceptions'] = True
 
     link = options.get('link')
     debug = options.get('debug')

@@ -194,8 +194,8 @@ class TestFastMathOption(CUDATestCase):
             r[0] = x / y
 
         sig = (float32[::1], float32, float32)
-        fastver = cuda.jit(sig, fastmath=True, debug=True)(f10)
-        precver = cuda.jit(sig, debug=True)(f10)
+        fastver = cuda.jit(sig, fastmath=True, exceptions=True)(f10)
+        precver = cuda.jit(sig, exceptions=True)(f10)
         nelem = 10
         ary = np.empty(nelem, dtype=np.float32)
         with self.assertRaises(ZeroDivisionError):

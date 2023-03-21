@@ -517,6 +517,9 @@ class _EnvReloader(object):
             "NUMBA_LLVM_PASS_TIMINGS", int, 0,
         )
 
+        # Default value for the `exceptions` flag of CUDA kernels
+        CUDA_EXCEPTIONS_DEFAULT = _readenv("NUMBA_CUDA_EXCEPTIONS", int, 0)
+
         # Inject the configuration values into the module globals
         for name, value in locals().copy().items():
             if name.isupper():

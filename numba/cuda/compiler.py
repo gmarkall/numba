@@ -185,8 +185,8 @@ class CUDACompiler(CompilerBase):
 
 @global_compiler_lock
 def compile_cuda(pyfunc, return_type, args, debug=False, lineinfo=False,
-                 inline=False, fastmath=False, nvvm_options=None,
-                 cc=None):
+                 exceptions=False, inline=False, fastmath=False,
+                 nvvm_options=None, cc=None):
     if cc is None:
         raise ValueError('Compute Capability must be supplied')
 
@@ -211,7 +211,7 @@ def compile_cuda(pyfunc, return_type, args, debug=False, lineinfo=False,
     if lineinfo:
         flags.dbg_directives_only = True
 
-    if debug:
+    if exceptions:
         flags.error_model = 'python'
     else:
         flags.error_model = 'numpy'
@@ -243,8 +243,8 @@ def compile_cuda(pyfunc, return_type, args, debug=False, lineinfo=False,
 
 
 @global_compiler_lock
-def compile_ptx(pyfunc, sig, debug=False, lineinfo=False, device=False,
-                fastmath=False, cc=None, opt=True):
+def compile_ptx(pyfunc, sig, debug=False, lineinfo=False, exceptions=False,
+                device=False, fastmath=False, cc=None, opt=True):
     """Compile a Python function to PTX for a given set of argument types.
 
     :param pyfunc: The Python function to compile.
@@ -258,6 +258,10 @@ def compile_ptx(pyfunc, sig, debug=False, lineinfo=False, device=False,
                      so we want debug info in the LLVM but only the line
                      mapping in the final PTX.
     :type lineinfo: bool
+    :param exceptions: Whether the generated code should check for exceptions
+                       during its execution. Exceptions are reported according
+                       to Numba's CUDA Calling Convention.
+    :type exceptions: bool
     :param device: Whether to compile a device function. Defaults to ``False``,
                    to compile global kernel functions.
     :type device: bool
@@ -287,8 +291,8 @@ def compile_ptx(pyfunc, sig, debug=False, lineinfo=False, device=False,
 
     cc = cc or config.CUDA_DEFAULT_PTX_CC
     cres = compile_cuda(pyfunc, return_type, args, debug=debug,
-                        lineinfo=lineinfo, fastmath=fastmath,
-                        nvvm_options=nvvm_options, cc=cc)
+                        lineinfo=lineinfo, exceptions=exceptions,
+                        fastmath=fastmath, nvvm_options=nvvm_options, cc=cc)
     resty = cres.signature.return_type
 
     if resty and not device and resty != types.void:
@@ -303,8 +307,8 @@ def compile_ptx(pyfunc, sig, debug=False, lineinfo=False, device=False,
         linenum = code.co_firstlineno
 
         lib, kernel = tgt.prepare_cuda_kernel(cres.library, cres.fndesc, debug,
-                                              lineinfo, nvvm_options, filename,
-                                              linenum)
+                                              lineinfo, exceptions,
+                                              nvvm_options, filename, linenum)
 
     ptx = lib.get_asm_str(cc=cc)
     return ptx, resty
