@@ -220,26 +220,26 @@ class CUDATargetContext(BaseContext):
             )
             debuginfo.mark_location(builder, linenum)
 
-        # Define error handling variable
-        def define_error_gv(postfix):
-            name = wrapfn.name + postfix
-            gv = cgutils.add_global_variable(wrapper_module, ir.IntType(32),
-                                             name)
-            gv.initializer = ir.Constant(gv.type.pointee, None)
-            return gv
-
-        gv_exc = define_error_gv("__errcode__")
-        gv_tid = []
-        gv_ctaid = []
-        for i in 'xyz':
-            gv_tid.append(define_error_gv("__tid%s__" % i))
-            gv_ctaid.append(define_error_gv("__ctaid%s__" % i))
-
         callargs = arginfo.from_arguments(builder, wrapfn.args)
         status, _ = self.call_conv.call_function(
             builder, func, types.void, argtypes, callargs)
 
         if debug:
+            # Define error handling variable
+            def define_error_gv(postfix):
+                name = wrapfn.name + postfix
+                gv = cgutils.add_global_variable(wrapper_module, ir.IntType(32),
+                                                 name)
+                gv.initializer = ir.Constant(gv.type.pointee, None)
+                return gv
+
+            gv_exc = define_error_gv("__errcode__")
+            gv_tid = []
+            gv_ctaid = []
+            for i in 'xyz':
+                gv_tid.append(define_error_gv("__tid%s__" % i))
+                gv_ctaid.append(define_error_gv("__ctaid%s__" % i))
+
             # Check error status
             with cgutils.if_likely(builder, status.is_ok):
                 builder.ret_void()
