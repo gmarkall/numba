@@ -44,7 +44,8 @@ class _Kernel(serialize.ReduceMixin):
     object launches the kernel on the device.
     '''
 
-    def __init__(self, py_func, argtypes, extensions, cres, targetoptions):
+    def __init__(self, py_func, argtypes, extensions, cres, lib, kernel,
+                 targetoptions):
         # _DispatcherBase.nopython_signatures() expects this attribute to be
         # present, because it assumes an overload is a CompileResult. In the
         # CUDA target, _Kernel instances are stored instead, so we provide this
@@ -64,26 +65,8 @@ class _Kernel(serialize.ReduceMixin):
         self.argtypes = argtypes
         self.targetoptions = targetoptions
         self.extensions = extensions
-        debug = targetoptions.get('debug')
-        lineinfo = targetoptions.get('lineinfo')
-        exceptions = targetoptions.get('exceptions')
-        fastmath = targetoptions.get('fastmath')
-        opt = targetoptions.get('opt', True)
-        max_registers = targetoptions.get('max_registers')
-
-        nvvm_options = {
-            'fastmath': fastmath,
-            'opt': 3 if opt else 0
-        }
 
         tgt_ctx = cres.target_context
-        code = self.py_func.__code__
-        filename = code.co_filename
-        linenum = code.co_firstlineno
-        lib, kernel = tgt_ctx.prepare_cuda_kernel(cres.library, cres.fndesc,
-                                                  debug, lineinfo, exceptions,
-                                                  nvvm_options, filename,
-                                                  linenum, max_registers)
 
         link = self.targetoptions.get('link', [])
 
@@ -870,8 +853,31 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
                 raise RuntimeError("Compilation disabled")
 
             cres = self.compile(argtypes)
+
+            debug = self.targetoptions.get('debug')
+            lineinfo = self.targetoptions.get('lineinfo')
+            exceptions = self.targetoptions.get('exceptions')
+            opt = self.targetoptions.get('opt', True)
+            fastmath = self.targetoptions.get('fastmath')
+            max_registers = self.targetoptions.get('max_registers')
+
+            code = self.py_func.__code__
+            filename = code.co_filename
+            linenum = code.co_firstlineno
+
+            nvvm_options = {
+                'opt': 3 if opt else 0,
+                'fastmath': fastmath
+            }
+
+            tgt_ctx = cres.target_context
+            lib, kernel = tgt_ctx.prepare_cuda_kernel(cres.library, cres.fndesc,
+                                                      debug, lineinfo,
+                                                      exceptions, nvvm_options,
+                                                      filename, linenum,
+                                                      max_registers)
             kernel = _Kernel(self.py_func, argtypes, self.extensions,
-                             cres, self.targetoptions)
+                             cres, lib, kernel, self.targetoptions)
             # We call bind to force codegen, so that there is a cubin to cache
             kernel.bind()
             self._cache.save_overload(sig, kernel)
