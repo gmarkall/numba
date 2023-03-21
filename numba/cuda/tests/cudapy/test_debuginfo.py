@@ -17,7 +17,7 @@ class TestCudaDebugInfo(CUDATestCase):
     These tests only checks the compiled PTX for debuginfo section
     """
     def _getasm(self, fn, sig):
-        fn.compile(sig)
+        fn.compile_kernel(sig)
         return fn.inspect_asm(sig)
 
     def _check(self, fn, sig, expect):

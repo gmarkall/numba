@@ -132,9 +132,9 @@ def jit(func_or_sig=None, device=False, cache=False, extensions=None,
                 if device:
                     from numba.core import typeinfer
                     with typeinfer.register_dispatcher(disp):
-                        disp.compile_device(argtypes)
+                        disp.compile(argtypes)
                 else:
-                    disp.compile(argtypes)
+                    disp.compile_kernel(argtypes)
 
             disp._specialized = specialized
             disp.disable_compile()

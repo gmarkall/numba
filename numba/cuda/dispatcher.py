@@ -4,7 +4,7 @@ import sys
 import ctypes
 import functools
 
-from numba.core import config, serialize, sigutils, types, typing, utils
+from numba.core import config, serialize, sigutils, types
 from numba.core.caching import Cache, CacheImpl
 from numba.core.compiler_lock import global_compiler_lock
 from numba.core.dispatcher import Dispatcher
@@ -569,7 +569,7 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
     # Whether to fold named arguments and default values. Default values are
     # presently unsupported on CUDA, so we can leave this as False in all
     # cases.
-    _fold_args = False
+    _fold_args = True
 
     targetdescr = cuda_target
 
@@ -654,7 +654,7 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
         # Based on _DispatcherBase._compile_for_args.
         assert not kws
         argtypes = [self.typeof_pyval(a) for a in args]
-        return self.compile(tuple(argtypes))
+        return self.compile_kernel(tuple(argtypes))
 
     def typeof_pyval(self, val):
         # Based on _DispatcherBase.typeof_pyval, but differs from it to support
@@ -688,7 +688,7 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
         targetoptions = self.targetoptions
         specialization = CUDADispatcher(self.py_func,
                                         targetoptions=targetoptions)
-        specialization.compile(argtypes)
+        specialization.compile_kernel(argtypes)
         specialization.disable_compile()
         specialization._specialized = True
         self.specializations[cc, argtypes] = specialization
@@ -799,34 +799,7 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
             return {sig: overload.local_mem_per_thread
                     for sig, overload in self.overloads.items()}
 
-    def get_call_template(self, args, kws):
-        # Originally copied from _DispatcherBase.get_call_template. This
-        # version deviates slightly from the _DispatcherBase version in order
-        # to force casts when calling device functions. See e.g.
-        # TestDeviceFunc.test_device_casting, added in PR #7496.
-        """
-        Get a typing.ConcreteTemplate for this dispatcher and the given
-        *args* and *kws* types.  This allows resolution of the return type.
-
-        A (template, pysig, args, kws) tuple is returned.
-        """
-        # Ensure an exactly-matching overload is available if we can
-        # compile. We proceed with the typing even if we can't compile
-        # because we may be able to force a cast on the caller side.
-        if self._can_compile:
-            self.compile_device(tuple(args))
-
-        # Create function type for typing
-        func_name = self.py_func.__name__
-        name = "CallTemplate({0})".format(func_name)
-
-        call_template = typing.make_concrete_template(
-            name, key=func_name, signatures=self.nopython_signatures)
-        pysig = utils.pysignature(self.py_func)
-
-        return call_template, pysig, args, kws
-
-    def compile_device(self, args):
+    def compile(self, args):
         """Compile the device function for the given argument types.
 
         Each signature is compiled once by caching the compiled function inside
@@ -871,7 +844,7 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
         self._insert(c_sig, kernel, cuda=True)
         self.overloads[argtypes] = kernel
 
-    def compile(self, sig):
+    def compile_kernel(self, sig):
         '''
         Compile and bind to the current context a version of this kernel
         specialized for the given signature.
@@ -1005,3 +978,28 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
         """
         return dict(py_func=self.py_func,
                     targetoptions=self.targetoptions)
+
+    def recompile(self):
+        """
+        Recompile all signatures afresh.
+        """
+        # Copied from numba.core.Dispatcher, modified to recompile kernels
+        # rather than device functions (as is the expected behaviour of
+        # recompile()) - note that this will erroneously recompile device
+        # functions as kernels, but this has not been noticed as of the time
+        # this subclass implementation was written (when extending the CUDA
+        # target to support argument folding by reusing the Dispatcher class's
+        # get_call_template() method.
+        sigs = list(self.overloads)
+        old_can_compile = self._can_compile
+        # Ensure the old overloads are disposed of,
+        # including compiled functions.
+        self._make_finalizer()()
+        self._reset_overloads()
+        self._cache.flush()
+        self._can_compile = True
+        try:
+            for sig in sigs:
+                self.compile_kernel(sig)
+        finally:
+            self._can_compile = old_can_compile
