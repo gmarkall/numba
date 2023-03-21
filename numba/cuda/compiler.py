@@ -151,8 +151,8 @@ class CUDACompiler(CompilerBase):
 
 @global_compiler_lock
 def compile_cuda(pyfunc, return_type, args, debug=False, lineinfo=False,
-                 inline=False, fastmath=False, nvvm_options=None,
-                 cc=None):
+                 exceptions=False, inline=False, fastmath=False,
+                 nvvm_options=None, cc=None):
     if cc is None:
         raise ValueError('Compute Capability must be supplied')
 
@@ -177,7 +177,7 @@ def compile_cuda(pyfunc, return_type, args, debug=False, lineinfo=False,
     if lineinfo:
         flags.dbg_directives_only = True
 
-    if debug:
+    if exceptions:
         flags.error_model = 'python'
     else:
         flags.error_model = 'numpy'
@@ -255,7 +255,7 @@ def cabi_wrap_function(context, lib, fndesc, wrapper_function_name,
 @global_compiler_lock
 def compile(pyfunc, sig, debug=False, lineinfo=False, device=True,
             fastmath=False, cc=None, opt=True, abi="c", abi_info=None,
-            output='ptx'):
+            output='ptx', exceptions=False):
     """Compile a Python function to PTX or LTO-IR for a given set of argument
     types.
 
@@ -276,6 +276,10 @@ def compile(pyfunc, sig, debug=False, lineinfo=False, device=True,
                      mapping in the final output.
     :type lineinfo: bool
     :param device: Whether to compile a device function.
+    :param exceptions: Whether the generated code should check for exceptions
+                       during its execution. Exceptions are reported according
+                       to Numba's CUDA Calling Convention.
+    :type exceptions: bool
     :type device: bool
     :param fastmath: Whether to enable fast math flags (ftz=1, prec_sqrt=0,
                      prec_div=, and fma=1)
@@ -328,8 +332,8 @@ def compile(pyfunc, sig, debug=False, lineinfo=False, device=True,
 
     cc = cc or config.CUDA_DEFAULT_PTX_CC
     cres = compile_cuda(pyfunc, return_type, args, debug=debug,
-                        lineinfo=lineinfo, fastmath=fastmath,
-                        nvvm_options=nvvm_options, cc=cc)
+                        lineinfo=lineinfo, exceptions=exceptions,
+                        fastmath=fastmath, nvvm_options=nvvm_options, cc=cc)
     resty = cres.signature.return_type
 
     if resty and not device and resty != types.void:
@@ -349,8 +353,8 @@ def compile(pyfunc, sig, debug=False, lineinfo=False, device=True,
         linenum = code.co_firstlineno
 
         lib, kernel = tgt.prepare_cuda_kernel(cres.library, cres.fndesc, debug,
-                                              lineinfo, nvvm_options, filename,
-                                              linenum)
+                                              lineinfo, exceptions,
+                                              nvvm_options, filename, linenum)
 
     if lto:
         code = lib.get_ltoir(cc=cc)

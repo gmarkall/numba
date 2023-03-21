@@ -147,7 +147,7 @@ class CUDATargetContext(BaseContext):
                                       uid=uid)
 
     def prepare_cuda_kernel(self, codelib, fndesc, debug, lineinfo,
-                            nvvm_options, filename, linenum,
+                            exceptions, nvvm_options, filename, linenum,
                             max_registers=None):
         """
         Adapt a code library ``codelib`` with the numba compiled CUDA kernel
@@ -178,12 +178,12 @@ class CUDATargetContext(BaseContext):
                                                 max_registers=max_registers)
         library.add_linking_library(codelib)
         wrapper = self.generate_kernel_wrapper(library, fndesc, kernel_name,
-                                               debug, lineinfo, filename,
-                                               linenum)
+                                               debug, lineinfo, exceptions,
+                                               filename, linenum)
         return library, wrapper
 
     def generate_kernel_wrapper(self, library, fndesc, kernel_name, debug,
-                                lineinfo, filename, linenum):
+                                lineinfo, exceptions, filename, linenum):
         """
         Generate the kernel wrapper in the given ``library``.
         The function being wrapped is described by ``fndesc``.
@@ -219,7 +219,7 @@ class CUDATargetContext(BaseContext):
         status, _ = self.call_conv.call_function(
             builder, func, types.void, argtypes, callargs)
 
-        if debug:
+        if exceptions:
             # Define error handling variable
             def define_error_gv(postfix):
                 name = wrapfn.name + postfix

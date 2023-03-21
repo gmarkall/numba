@@ -22,10 +22,10 @@ class TestException(CUDATestCase):
                 ary.shape[-x]
 
         unsafe_foo = cuda.jit(foo)
-        safe_foo = cuda.jit(debug=True, opt=False)(foo)
+        safe_foo = cuda.jit(exceptions=True)(foo)
 
         if not config.ENABLE_CUDASIM:
-            # Simulator throws exceptions regardless of debug
+            # Simulator throws exceptions regardless of exceptions
             # setting
             unsafe_foo[1, 3](np.array([0, 1]))
 
@@ -34,7 +34,7 @@ class TestException(CUDATestCase):
         self.assertIn("tuple index out of range", str(cm.exception))
 
     def test_user_raise(self):
-        @cuda.jit(debug=True, opt=False)
+        @cuda.jit(exceptions=True)
         def foo(do_raise):
             if do_raise:
                 raise ValueError
@@ -43,16 +43,14 @@ class TestException(CUDATestCase):
         with self.assertRaises(ValueError):
             foo[1, 1](True)
 
-    def case_raise_causing_warp_diverge(self, with_debug_mode):
+    def case_raise_causing_warp_diverge(self, exceptions):
         """Testing issue #2655.
 
         Exception raising code can cause the compiler to miss location
         of unifying branch target and resulting in unexpected warp
         divergence.
         """
-        with_opt_mode = not with_debug_mode
-
-        @cuda.jit(debug=with_debug_mode, opt=with_opt_mode)
+        @cuda.jit(exceptions=exceptions)
         def problematic(x, y):
             tid = cuda.threadIdx.x
             ntid = cuda.blockDim.x
@@ -97,13 +95,13 @@ class TestException(CUDATestCase):
     def test_raise_causing_warp_diverge(self):
         """Test case for issue #2655.
         """
-        self.case_raise_causing_warp_diverge(with_debug_mode=False)
+        self.case_raise_causing_warp_diverge(exceptions=False)
 
     # The following two cases relate to Issue #7806: Division by zero stops the
     # kernel. https://github.com/numba/numba/issues/7806.
 
     def test_no_zero_division_error(self):
-        # When debug is False:
+        # When exceptions is False:
         # - Division by zero raises no exception
         # - Execution proceeds after a divide by zero
         @cuda.jit
@@ -120,11 +118,11 @@ class TestException(CUDATestCase):
         self.assertTrue(np.isinf(r[0]), 'Expected inf from div by zero')
         self.assertEqual(r[1], y[0], 'Expected execution to continue')
 
-    def test_zero_division_error_in_debug(self):
-        # When debug is True:
+    def test_zero_division_error_with_exceptions(self):
+        # When exceptions is True:
         # - Zero by division raises an exception
         # - Execution halts at the point of division by zero
-        @cuda.jit(debug=True, opt=False)
+        @cuda.jit(exceptions=True)
         def f(r, x, y):
             r[0] = y[0] / x[0]
             r[1] = y[0]
@@ -134,10 +132,10 @@ class TestException(CUDATestCase):
         y = np.ones(1)
 
         # Simulator and device behaviour differs slightly in the exception
-        # raised - in debug mode, the CUDA target uses the Python error model,
-        # which gives a ZeroDivision error. The simulator uses NumPy with the
-        # error mode for division by zero set to raise, which results in a
-        # FloatingPointError instead.
+        # raised - in exceptions mode, the CUDA target uses the Python error
+        # model, which gives a ZeroDivision error. The simulator uses NumPy
+        # with the error mode for division by zero set to raise, which results
+        # in a FloatingPointError instead.
         if config.ENABLE_CUDASIM:
             exc = FloatingPointError
         else:
@@ -160,7 +158,7 @@ class TestException(CUDATestCase):
         def f():
             raise ValueError(msg)
 
-        @cuda.jit(debug=True)
+        @cuda.jit(exceptions=True)
         def kernel():
             f()
 

@@ -66,6 +66,7 @@ class _Kernel(serialize.ReduceMixin):
         self.extensions = extensions
         debug = targetoptions.get('debug')
         lineinfo = targetoptions.get('lineinfo')
+        exceptions = targetoptions.get('exceptions')
         fastmath = targetoptions.get('fastmath')
         opt = targetoptions.get('opt', True)
         inline = targetoptions.get('inline')
@@ -80,6 +81,7 @@ class _Kernel(serialize.ReduceMixin):
         cres = compile_cuda(py_func, types.void, argtypes,
                             debug=debug,
                             lineinfo=lineinfo,
+                            exceptions=exceptions,
                             inline=inline,
                             fastmath=fastmath,
                             nvvm_options=nvvm_options,
@@ -89,9 +91,9 @@ class _Kernel(serialize.ReduceMixin):
         filename = code.co_filename
         linenum = code.co_firstlineno
         lib, kernel = tgt_ctx.prepare_cuda_kernel(cres.library, cres.fndesc,
-                                                  debug, lineinfo, nvvm_options,
-                                                  filename, linenum,
-                                                  max_registers)
+                                                  debug, lineinfo, exceptions,
+                                                  nvvm_options, filename,
+                                                  linenum, max_registers)
 
         link = self.targetoptions.get('link', [])
 
@@ -298,7 +300,7 @@ class _Kernel(serialize.ReduceMixin):
         # Prepare kernel
         cufunc = self._codelibrary.get_cufunc()
 
-        if self.targetoptions.get('debug'):
+        if self.targetoptions.get('exceptions'):
             excname = cufunc.name + "__errcode__"
             excmem, excsz = cufunc.module.get_global_symbol(excname)
             assert excsz == ctypes.sizeof(ctypes.c_int)
@@ -328,7 +330,7 @@ class _Kernel(serialize.ReduceMixin):
                              kernelargs,
                              cooperative=self.cooperative)
 
-        if self.targetoptions.get('debug'):
+        if self.targetoptions.get('exceptions'):
             driver.device_to_host(ctypes.addressof(excval), excmem, excsz)
             if excval.value != 0:
                 # An error occurred
@@ -828,6 +830,7 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
 
                 debug = self.targetoptions.get('debug')
                 lineinfo = self.targetoptions.get('lineinfo')
+                exceptions = self.targetoptions.get('exceptions')
                 inline = self.targetoptions.get('inline')
                 opt = self.targetoptions.get('opt', True)
                 fastmath = self.targetoptions.get('fastmath')
@@ -841,6 +844,7 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
                 cres = compile_cuda(self.py_func, restype, argtypes,
                                     debug=debug,
                                     lineinfo=lineinfo,
+                                    exceptions=exceptions,
                                     inline=inline,
                                     fastmath=fastmath,
                                     nvvm_options=nvvm_options,
