@@ -43,8 +43,7 @@ class _Kernel(serialize.ReduceMixin):
     object launches the kernel on the device.
     '''
 
-    @global_compiler_lock
-    def __init__(self, py_func, argtypes, extensions, targetoptions):
+    def __init__(self, py_func, argtypes, extensions, cres, targetoptions):
         # _DispatcherBase.nopython_signatures() expects this attribute to be
         # present, because it assumes an overload is a CompileResult. In the
         # CUDA target, _Kernel instances are stored instead, so we provide this
@@ -69,7 +68,6 @@ class _Kernel(serialize.ReduceMixin):
         exceptions = targetoptions.get('exceptions')
         fastmath = targetoptions.get('fastmath')
         opt = targetoptions.get('opt', True)
-        inline = targetoptions.get('inline')
         max_registers = targetoptions.get('max_registers')
 
         nvvm_options = {
@@ -77,15 +75,6 @@ class _Kernel(serialize.ReduceMixin):
             'opt': 3 if opt else 0
         }
 
-        cc = get_current_device().compute_capability
-        cres = compile_cuda(py_func, types.void, argtypes,
-                            debug=debug,
-                            lineinfo=lineinfo,
-                            exceptions=exceptions,
-                            inline=inline,
-                            fastmath=fastmath,
-                            nvvm_options=nvvm_options,
-                            cc=cc)
         tgt_ctx = cres.target_context
         code = self.py_func.__code__
         filename = code.co_filename
@@ -815,6 +804,7 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
             return {sig: overload.local_mem_per_thread
                     for sig, overload in self.overloads.items()}
 
+    @global_compiler_lock
     def compile(self, sig):
         """Compile the device function for the given argument types.
 
@@ -864,6 +854,7 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
         self._insert(c_sig, kernel, cuda=True)
         self.overloads[argtypes] = kernel
 
+    @global_compiler_lock
     def compile_kernel(self, sig):
         '''
         Compile and bind to the current context a version of this kernel
@@ -895,8 +886,9 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
             if not self._can_compile:
                 raise RuntimeError("Compilation disabled")
 
+            cres = self.compile(argtypes)
             kernel = _Kernel(self.py_func, argtypes, self.extensions,
-                             self.targetoptions)
+                             cres, self.targetoptions)
             # We call bind to force codegen, so that there is a cubin to cache
             kernel.bind()
             self._cache.save_overload(sig, kernel)
