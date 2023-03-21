@@ -225,55 +225,7 @@ class CUDATargetContext(BaseContext):
             builder, func, types.void, argtypes, callargs)
 
         if exceptions:
-            # Define error handling variable
-            def define_error_gv(postfix):
-                name = wrapfn.name + postfix
-                gv = cgutils.add_global_variable(wrapper_module, ir.IntType(32),
-                                                 name)
-                gv.initializer = ir.Constant(gv.type.pointee, None)
-                return gv
-
-            gv_exc = define_error_gv("__errcode__")
-            gv_tid = []
-            gv_ctaid = []
-            for i in 'xyz':
-                gv_tid.append(define_error_gv("__tid%s__" % i))
-                gv_ctaid.append(define_error_gv("__ctaid%s__" % i))
-
-            # Check error status
-            with cgutils.if_likely(builder, status.is_ok):
-                builder.ret_void()
-
-            with builder.if_then(builder.not_(status.is_python_exc)):
-                # User exception raised
-                old = ir.Constant(gv_exc.type.pointee, None)
-
-                # Use atomic cmpxchg to prevent rewriting the error status
-                # Only the first error is recorded
-
-                if nvvm.NVVM().is_nvvm70:
-                    xchg = builder.cmpxchg(gv_exc, old, status.code,
-                                           'monotonic', 'monotonic')
-                    changed = builder.extract_value(xchg, 1)
-                else:
-                    casfnty = ir.FunctionType(old.type, [gv_exc.type, old.type,
-                                                         old.type])
-
-                    cas_hack = "___numba_atomic_i32_cas_hack"
-                    casfn = ir.Function(wrapper_module, casfnty, name=cas_hack)
-                    xchg = builder.call(casfn, [gv_exc, old, status.code])
-                    changed = builder.icmp_unsigned('==', xchg, old)
-
-                # If the xchange is successful, save the thread ID.
-                sreg = nvvmutils.SRegBuilder(builder)
-                with builder.if_then(changed):
-                    for dim, ptr, in zip("xyz", gv_tid):
-                        val = sreg.tid(dim)
-                        builder.store(val, ptr)
-
-                    for dim, ptr, in zip("xyz", gv_ctaid):
-                        val = sreg.ctaid(dim)
-                        builder.store(val, ptr)
+            self.generate_exception_check(builder, wrapfn.name, status)
 
         builder.ret_void()
 
@@ -284,6 +236,56 @@ class CUDATargetContext(BaseContext):
         library.finalize()
         wrapfn = library.get_function(wrapfn.name)
         return wrapfn
+
+    def generate_exception_check(self, builder, name, status):
+        # Define error handling variable
+        def define_error_gv(postfix):
+            gv = cgutils.add_global_variable(builder.module, ir.IntType(32),
+                                             f'{name}{postfix}')
+            gv.initializer = ir.Constant(gv.type.pointee, None)
+            return gv
+
+        gv_exc = define_error_gv("__errcode__")
+        gv_tid = []
+        gv_ctaid = []
+        for i in 'xyz':
+            gv_tid.append(define_error_gv("__tid%s__" % i))
+            gv_ctaid.append(define_error_gv("__ctaid%s__" % i))
+
+        # Check error status
+        with cgutils.if_likely(builder, status.is_ok):
+            builder.ret_void()
+
+        with builder.if_then(builder.not_(status.is_python_exc)):
+            # User exception raised
+            old = ir.Constant(gv_exc.type.pointee, None)
+
+            # Use atomic cmpxchg to prevent rewriting the error status
+            # Only the first error is recorded
+
+            if nvvm.NVVM().is_nvvm70:
+                xchg = builder.cmpxchg(gv_exc, old, status.code,
+                                       'monotonic', 'monotonic')
+                changed = builder.extract_value(xchg, 1)
+            else:
+                casfnty = ir.FunctionType(old.type, [gv_exc.type, old.type,
+                                                     old.type])
+
+                cas_hack = "___numba_atomic_i32_cas_hack"
+                casfn = ir.Function(builder.module, casfnty, name=cas_hack)
+                xchg = builder.call(casfn, [gv_exc, old, status.code])
+                changed = builder.icmp_unsigned('==', xchg, old)
+
+            # If the xchange is successful, save the thread ID.
+            sreg = nvvmutils.SRegBuilder(builder)
+            with builder.if_then(changed):
+                for dim, ptr, in zip("xyz", gv_tid):
+                    val = sreg.tid(dim)
+                    builder.store(val, ptr)
+
+                for dim, ptr, in zip("xyz", gv_ctaid):
+                    val = sreg.ctaid(dim)
+                    builder.store(val, ptr)
 
     def make_constant_array(self, builder, aryty, arr):
         """
