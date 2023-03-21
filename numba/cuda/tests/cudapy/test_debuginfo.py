@@ -24,7 +24,7 @@ class TestCudaDebugInfo(CUDATestCase):
         self.skip_if_lto("Exceptions not supported with LTO")
 
     def _getasm(self, fn, sig):
-        fn.compile(sig)
+        fn.compile_kernel(sig)
         return fn.inspect_asm(sig)
 
     def _check(self, fn, sig, expect):

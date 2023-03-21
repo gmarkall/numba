@@ -21,7 +21,7 @@ class TestCudaLineInfo(CUDATestCase):
         return re.compile(pat)
 
     def _check(self, fn, sig, expect):
-        fn.compile(sig)
+        fn.compile_kernel(sig)
         llvm = fn.inspect_llvm(sig)
         ptx = fn.inspect_asm(sig)
         assertfn = self.assertIsNotNone if expect else self.assertIsNone

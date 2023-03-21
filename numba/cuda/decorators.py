@@ -1,5 +1,5 @@
 from warnings import warn
-from numba.core import types, config, sigutils
+from numba.core import config, sigutils
 from numba.core.errors import DeprecationError, NumbaInvalidConfigWarning
 from numba.cuda.compiler import declare_device_function
 from numba.cuda.dispatcher import CUDADispatcher
@@ -124,17 +124,12 @@ def jit(func_or_sig=None, device=False, cache=False, extensions=None,
                 disp.enable_caching()
 
             for sig in signatures:
-                argtypes, restype = sigutils.normalize_signature(sig)
-
-                if restype and not device and restype != types.void:
-                    raise TypeError("CUDA kernel must have void return type.")
-
                 if device:
                     from numba.core import typeinfer
                     with typeinfer.register_dispatcher(disp):
-                        disp.compile_device(argtypes, restype)
+                        disp.compile(sig)
                 else:
-                    disp.compile(argtypes)
+                    disp.compile_kernel(sig)
 
             disp._specialized = specialized
             disp.disable_compile()
