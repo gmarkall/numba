@@ -2,6 +2,7 @@ import warnings
 
 from llvmlite import ir
 from numba.cuda.cudadrv import nvvm, runtime
+from numba.cuda import compiler
 from numba.cuda.testing import unittest
 from numba.cuda.cudadrv.nvvm import LibDevice, NvvmError, NVVM
 from numba.cuda.testing import skip_on_cudasim
@@ -51,7 +52,7 @@ class TestNvvmDriver(unittest.TestCase):
         kernel = ir.Function(m, fty, name='mycudakernel')
         bldr = ir.IRBuilder(kernel.append_basic_block('entry'))
         bldr.ret_void()
-        nvvm.set_cuda_kernel(kernel)
+        compiler.set_cuda_kernel(kernel)
 
         m.data_layout = NVVM().data_layout
         ptx = nvvm.compile_ir(str(m)).decode('utf8')
@@ -70,7 +71,7 @@ class TestNvvmDriver(unittest.TestCase):
         kernel = ir.Function(m, fty, name='mycudakernel')
         bldr = ir.IRBuilder(kernel.append_basic_block('entry'))
         bldr.ret_void()
-        nvvm.set_cuda_kernel(kernel)
+        compiler.set_cuda_kernel(kernel)
 
         # Verify that the used list was correctly constructed
         used_lines = [line for line in str(m).splitlines()
@@ -119,7 +120,7 @@ class TestNvvmDriver(unittest.TestCase):
         kernel = ir.Function(m, fty, name='inlinekernel')
         builder = ir.IRBuilder(kernel.append_basic_block('entry'))
         builder.ret_void()
-        nvvm.set_cuda_kernel(kernel)
+        compiler.set_cuda_kernel(kernel)
 
         # Add the noinline attribute to trigger NVVM to generate a warning
         kernel.attributes.add('noinline')
