@@ -80,6 +80,15 @@ class CUDABackend(LoweringPass):
         lowered = state['cr']
         signature = typing.signature(state.return_type, *state.args)
 
+        ##breakpoint()
+        flags = state.flags
+        debug = flags.debuginfo and not flags.dbg_directives_only
+        lineinfo = flags.debuginfo and flags.dbg_directives_only
+        loc = state.func_ir.loc
+        exceptions = False # XXX: Need to have it passed through somehow
+        lib, kernel = prepare_cuda_kernel(state.targetctx, state.library,
+                                          lowered.fndesc, debug, lineinfo,
+                                          exceptions, loc.filename, loc.line)
         state.cr = cuda_compile_result(
             typing_context=state.typingctx,
             target_context=state.targetctx,
@@ -202,7 +211,7 @@ def set_cuda_kernel(func):
 
 
 def prepare_cuda_kernel(context, codelib, fndesc, debug, lineinfo, exceptions,
-                        nvvm_options, filename, linenum, max_registers=None):
+                        filename, linenum, max_registers=None):
     """
     Adapt a code library ``codelib`` with the numba compiled CUDA kernel
     with name ``fname`` and arguments ``argtypes`` for NVVM.
@@ -227,16 +236,11 @@ def prepare_cuda_kernel(context, codelib, fndesc, debug, lineinfo, exceptions,
     kernel_name = itanium_mangler.prepend_namespace(
         fndesc.llvm_func_name, ns='cudapy',
     )
-    codegen = context.codegen()
-    library = codegen.create_library(f'{codelib.name}_kernel_',
-                                     entry_name=kernel_name,
-                                     nvvm_options=nvvm_options,
-                                     max_registers=max_registers)
-    library.add_linking_library(codelib)
-    wrapper = generate_kernel_wrapper(context, library, fndesc, kernel_name,
+    codelib._entry_name = kernel_name # f'{codelib.name}_kernel_'
+    wrapper = generate_kernel_wrapper(context, codelib, fndesc, kernel_name,
                                       debug, lineinfo, exceptions, filename,
                                       linenum)
-    return library, wrapper
+    return codelib, wrapper
 
 
 def generate_kernel_wrapper(context, library, fndesc, kernel_name, debug,
@@ -251,11 +255,10 @@ def generate_kernel_wrapper(context, library, fndesc, kernel_name, debug,
     arginfo = context.get_arg_packer(argtypes)
     argtys = list(arginfo.argument_types)
     wrapfnty = ir.FunctionType(ir.VoidType(), argtys)
-    wrapper_module = context.create_module("cuda.kernel.wrapper")
-    fnty = ir.FunctionType(ir.IntType(32),
-                           [context.call_conv.get_return_type(types.pyobject)]
-                           + argtys)
-    func = ir.Function(wrapper_module, fnty, fndesc.llvm_func_name)
+    wrapper_module = library._module
+    for func in wrapper_module.functions:
+        if func.name == fndesc.llvm_func_name:
+            break
 
     prefixed = itanium_mangler.prepend_namespace(func.name, ns='cudapy')
     wrapfn = ir.Function(wrapper_module, wrapfnty, prefixed)
@@ -282,10 +285,10 @@ def generate_kernel_wrapper(context, library, fndesc, kernel_name, debug,
     builder.ret_void()
 
     set_cuda_kernel(wrapfn)
-    library.add_ir_module(wrapper_module)
+    #library.add_ir_module(wrapper_module)
     if debug or lineinfo:
         debuginfo.finalize()
-    library.finalize()
+    #library.finalize()
     wrapfn = library.get_function(wrapfn.name)
     return wrapfn
 
@@ -446,19 +449,7 @@ def compile_ptx(pyfunc, sig, debug=False, lineinfo=False, exceptions=False,
     if resty and not device and resty != types.void:
         raise TypeError("CUDA kernel must have void return type.")
 
-    if device:
-        lib = cres.library
-    else:
-        code = pyfunc.__code__
-        filename = code.co_filename
-        linenum = code.co_firstlineno
-        context = cres.target_context
-
-        lib, kernel = prepare_cuda_kernel(context, cres.library, cres.fndesc,
-                                          debug, lineinfo, exceptions,
-                                          nvvm_options, filename, linenum)
-
-    ptx = lib.get_asm_str(cc=cc)
+    ptx = cres.library.get_asm_str(cc=cc)
     return ptx, resty
 
 
