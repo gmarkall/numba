@@ -14,7 +14,7 @@ from llvmlite import ir
 
 from .error import NvvmError, NvvmSupportError, NvvmWarning
 from .libs import get_libdevice, open_libdevice, open_cudalib
-from numba.core import cgutils, config
+from numba.core import config
 
 
 logger = logging.getLogger(__name__)
@@ -895,21 +895,6 @@ def _replace_llvm_memset_declaration(m):
     params.insert(-1, 'i32')
     out = ', '.join(params)
     return '({})'.format(out)
-
-
-def set_cuda_kernel(lfunc):
-    mod = lfunc.module
-
-    mdstr = ir.MetaDataString(mod, "kernel")
-    mdvalue = ir.Constant(ir.IntType(32), 1)
-    md = mod.add_metadata((lfunc, mdstr, mdvalue))
-
-    nmd = cgutils.get_or_insert_named_metadata(mod, 'nvvm.annotations')
-    nmd.add(md)
-
-    # Marking a kernel 'noinline' causes NVVM to generate a warning, so remove
-    # it if it is present.
-    lfunc.attributes.discard('noinline')
 
 
 def add_ir_version(mod):

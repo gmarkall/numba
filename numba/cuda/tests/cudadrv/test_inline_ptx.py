@@ -1,5 +1,6 @@
 from llvmlite import ir
 
+from numba.cuda import compiler
 from numba.cuda.cudadrv import nvvm
 from numba.cuda.testing import unittest, ContextResettingTestCase
 from numba.cuda.testing import skip_on_cudasim
@@ -27,7 +28,7 @@ class TestCudaInlineAsm(ContextResettingTestCase):
 
         # generate ptx
         mod.data_layout = nvvm.NVVM().data_layout
-        nvvm.set_cuda_kernel(fn)
+        compiler.set_cuda_kernel(fn)
         nvvmir = str(mod)
         ptx = nvvm.llvm_to_ptx(nvvmir)
         self.assertTrue('rsqrt.approx.f32' in str(ptx))

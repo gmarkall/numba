@@ -1,5 +1,7 @@
+from llvmlite import ir
 from numba.core.typing.templates import ConcreteTemplate
-from numba.core import types, typing, funcdesc, config, compiler, sigutils
+from numba.core import (itanium_mangler, types, typing, funcdesc, config,
+                        compiler, sigutils, cgutils)
 from numba.core.compiler import (sanitize_compile_result_entries, CompilerBase,
                                  DefaultPassBuilder, Flags, Option,
                                  CompileResult)
@@ -11,6 +13,7 @@ from numba.core.typed_passes import (IRLegalization, NativeLowering,
                                      AnnotateTypes)
 from warnings import warn
 from numba.cuda.api import get_current_device
+from numba.cuda import nvvmutils
 
 
 def _nvvm_options_type(x):
@@ -183,6 +186,151 @@ class CUDACompiler(CompilerBase):
         return pm
 
 
+def set_cuda_kernel(func):
+    mod = func.module
+
+    mdstr = ir.MetaDataString(mod, "kernel")
+    mdvalue = ir.Constant(ir.IntType(32), 1)
+    md = mod.add_metadata((func, mdstr, mdvalue))
+
+    nmd = cgutils.get_or_insert_named_metadata(mod, 'nvvm.annotations')
+    nmd.add(md)
+
+    # Marking a kernel 'noinline' causes NVVM to generate a warning, so remove
+    # it if it is present.
+    func.attributes.discard('noinline')
+
+
+def prepare_cuda_kernel(context, codelib, fndesc, debug, lineinfo, exceptions,
+                        nvvm_options, filename, linenum, max_registers=None):
+    """
+    Adapt a code library ``codelib`` with the numba compiled CUDA kernel
+    with name ``fname`` and arguments ``argtypes`` for NVVM.
+    A new library is created with a wrapper function that can be used as
+    the kernel entry point for the given kernel.
+
+    Returns the new code library and the wrapper function.
+
+    Parameters:
+
+    context:       The target context
+    codelib:       The CodeLibrary containing the device function to wrap
+                   in a kernel call.
+    fndesc:        The FunctionDescriptor of the source function.
+    debug:         Whether to compile with debug.
+    lineinfo:      Whether to emit line info.
+    nvvm_options:  Dict of NVVM options used when compiling the new library.
+    filename:      The source filename that the function is contained in.
+    linenum:       The source line that the function is on.
+    max_registers: The max_registers argument for the code library.
+    """
+    kernel_name = itanium_mangler.prepend_namespace(
+        fndesc.llvm_func_name, ns='cudapy',
+    )
+    codegen = context.codegen()
+    library = codegen.create_library(f'{codelib.name}_kernel_',
+                                     entry_name=kernel_name,
+                                     nvvm_options=nvvm_options,
+                                     max_registers=max_registers)
+    library.add_linking_library(codelib)
+    wrapper = generate_kernel_wrapper(context, library, fndesc, kernel_name,
+                                      debug, lineinfo, exceptions, filename,
+                                      linenum)
+    return library, wrapper
+
+
+def generate_kernel_wrapper(context, library, fndesc, kernel_name, debug,
+                            lineinfo, exceptions, filename, linenum):
+    """
+    Generate the kernel wrapper in the given ``library``.
+    The function being wrapped is described by ``fndesc``.
+    The wrapper function is returned.
+    """
+
+    argtypes = fndesc.argtypes
+    arginfo = context.get_arg_packer(argtypes)
+    argtys = list(arginfo.argument_types)
+    wrapfnty = ir.FunctionType(ir.VoidType(), argtys)
+    wrapper_module = context.create_module("cuda.kernel.wrapper")
+    fnty = ir.FunctionType(ir.IntType(32),
+                           [context.call_conv.get_return_type(types.pyobject)]
+                           + argtys)
+    func = ir.Function(wrapper_module, fnty, fndesc.llvm_func_name)
+
+    prefixed = itanium_mangler.prepend_namespace(func.name, ns='cudapy')
+    wrapfn = ir.Function(wrapper_module, wrapfnty, prefixed)
+    builder = ir.IRBuilder(wrapfn.append_basic_block(''))
+
+    if debug or lineinfo:
+        directives_only = lineinfo and not debug
+        debuginfo = context.DIBuilder(module=wrapper_module,
+                                      filepath=filename,
+                                      cgctx=context,
+                                      directives_only=directives_only)
+        debuginfo.mark_subprogram(
+            wrapfn, kernel_name, fndesc.args, argtypes, linenum,
+        )
+        debuginfo.mark_location(builder, linenum)
+
+    callargs = arginfo.from_arguments(builder, wrapfn.args)
+    status, _ = context.call_conv.call_function(
+        builder, func, types.void, argtypes, callargs)
+
+    if exceptions:
+        generate_exception_check(builder, wrapfn.name, status)
+
+    builder.ret_void()
+
+    set_cuda_kernel(wrapfn)
+    library.add_ir_module(wrapper_module)
+    if debug or lineinfo:
+        debuginfo.finalize()
+    library.finalize()
+    wrapfn = library.get_function(wrapfn.name)
+    return wrapfn
+
+
+def generate_exception_check(builder, name, status):
+    # Define error handling variable
+    def define_error_gv(postfix):
+        gv = cgutils.add_global_variable(builder.module, ir.IntType(32),
+                                         f'{name}{postfix}')
+        gv.initializer = ir.Constant(gv.type.pointee, None)
+        return gv
+
+    gv_exc = define_error_gv("__errcode__")
+    gv_tid = []
+    gv_ctaid = []
+    for i in 'xyz':
+        gv_tid.append(define_error_gv("__tid%s__" % i))
+        gv_ctaid.append(define_error_gv("__ctaid%s__" % i))
+
+    # Check error status
+    with cgutils.if_likely(builder, status.is_ok):
+        builder.ret_void()
+
+    with builder.if_then(builder.not_(status.is_python_exc)):
+        # User exception raised
+        old = ir.Constant(gv_exc.type.pointee, None)
+
+        # Use atomic cmpxchg to prevent rewriting the error status
+        # Only the first error is recorded
+        xchg = builder.cmpxchg(gv_exc, old, status.code,
+                               'monotonic', 'monotonic')
+        changed = builder.extract_value(xchg, 1)
+
+        # If the xchange is successful, save the thread ID.
+        sreg = nvvmutils.SRegBuilder(builder)
+        with builder.if_then(changed):
+            for dim, ptr, in zip("xyz", gv_tid):
+                val = sreg.tid(dim)
+                builder.store(val, ptr)
+
+            for dim, ptr, in zip("xyz", gv_ctaid):
+                val = sreg.ctaid(dim)
+                builder.store(val, ptr)
+
+
 @global_compiler_lock
 def compile_cuda(pyfunc, return_type, args, debug=False, lineinfo=False,
                  exceptions=False, inline=False, fastmath=False,
@@ -301,14 +449,14 @@ def compile_ptx(pyfunc, sig, debug=False, lineinfo=False, exceptions=False,
     if device:
         lib = cres.library
     else:
-        tgt = cres.target_context
         code = pyfunc.__code__
         filename = code.co_filename
         linenum = code.co_firstlineno
+        context = cres.target_context
 
-        lib, kernel = tgt.prepare_cuda_kernel(cres.library, cres.fndesc, debug,
-                                              lineinfo, exceptions,
-                                              nvvm_options, filename, linenum)
+        lib, kernel = prepare_cuda_kernel(context, cres.library, cres.fndesc,
+                                          debug, lineinfo, exceptions,
+                                          nvvm_options, filename, linenum)
 
     ptx = lib.get_asm_str(cc=cc)
     return ptx, resty

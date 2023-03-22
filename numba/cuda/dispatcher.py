@@ -13,7 +13,7 @@ from numba.core.typing.typeof import Purpose, typeof
 
 from numba.cuda.api import get_current_device
 from numba.cuda.args import wrap_arg
-from numba.cuda.compiler import compile_cuda, CUDACompiler
+from numba.cuda.compiler import compile_cuda, CUDACompiler, prepare_cuda_kernel
 from numba.cuda.cudadrv import driver
 from numba.cuda.cudadrv.devices import get_context
 from numba.cuda.cudadrv.libs import get_cudalib
@@ -870,12 +870,11 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
                 'fastmath': fastmath
             }
 
-            tgt_ctx = cres.target_context
-            lib, kernel = tgt_ctx.prepare_cuda_kernel(cres.library, cres.fndesc,
-                                                      debug, lineinfo,
-                                                      exceptions, nvvm_options,
-                                                      filename, linenum,
-                                                      max_registers)
+            lib, kernel = prepare_cuda_kernel(cres.target_context,
+                                              cres.library, cres.fndesc, debug,
+                                              lineinfo, exceptions,
+                                              nvvm_options, filename, linenum,
+                                              max_registers)
             kernel = _Kernel(self.py_func, argtypes, self.extensions,
                              cres, lib, kernel, self.targetoptions)
             # We call bind to force codegen, so that there is a cubin to cache
