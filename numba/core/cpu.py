@@ -3,6 +3,7 @@ import platform
 import llvmlite.binding as ll
 from llvmlite import ir
 
+from functools import cached_property
 from numba import _dynfunc
 from numba.core.callwrapper import PyCallWrapper
 from numba.core.base import BaseContext
@@ -110,7 +111,7 @@ class CPUContext(BaseContext):
     def codegen(self):
         return self._internal_codegen
 
-    @property
+    @cached_property
     def call_conv(self):
         return callconv.CPUCallConv(self)
 
