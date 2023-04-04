@@ -139,7 +139,8 @@ Exception handling
 The ``raise`` statement is only supported in the following forms:
 
 * ``raise SomeException``
-* ``raise SomeException(<arguments>)``
+* ``raise SomeException(<arguments>)``: in :term:`nopython mode`, constructor
+  arguments must be :term:`compile-time constants <compile-time constant>`
 
 It is currently unsupported to re-raise an exception created in compiled code.
 

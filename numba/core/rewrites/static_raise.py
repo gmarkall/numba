@@ -1,4 +1,4 @@
-from numba.core import errors, ir, consts
+from numba.core import errors, ir
 from numba.core.rewrites import register_rewrite, Rewrite
 
 
@@ -36,13 +36,6 @@ class RewriteConstRaises(Rewrite):
                 msg = "Encountered unsupported constant type used for exception"
             raise errors.UnsupportedError(msg, loc)
 
-    def _try_infer_constant(self, func_ir, inst):
-        try:
-            return func_ir.infer_constant(inst.exception)
-        except consts.ConstantInferenceError:
-            # not a static exception
-            return None
-
     def match(self, func_ir, block, typemap, calltypes):
         self.raises = raises = {}
         self.tryraises = tryraises = {}
@@ -55,16 +48,9 @@ class RewriteConstRaises(Rewrite):
                 exc_type, exc_args = None, None
             else:
                 # raise <something> => find the definition site for <something>
-                const = self._try_infer_constant(func_ir, inst)
-
-                # failure to infer constant indicates this isn't a static
-                # exception
-                if const is None:
-                    continue
-
+                const = func_ir.infer_constant(inst.exception)
                 loc = inst.exception.loc
                 exc_type, exc_args = self._break_constant(const, loc)
-
             if isinstance(inst, ir.Raise):
                 raises[inst] = exc_type, exc_args
             elif isinstance(inst, ir.TryRaise):
