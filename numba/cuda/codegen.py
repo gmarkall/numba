@@ -112,6 +112,9 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
             self._llvm_strs = [str(mod) for mod in self.modules]
         return self._llvm_strs
 
+    def add_llvm_str(self, llvm_str):
+        self.llvm_strs.append(llvm_str)
+
     def get_llvm_str(self):
         return "\n\n".join(self.llvm_strs)
 

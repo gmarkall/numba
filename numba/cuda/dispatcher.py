@@ -46,7 +46,7 @@ class _Kernel(serialize.ReduceMixin):
     @global_compiler_lock
     def __init__(self, py_func, argtypes, link=None, debug=False,
                  lineinfo=False, inline=False, fastmath=False, extensions=None,
-                 max_registers=None, opt=True, device=False):
+                 max_registers=None, opt=True, device=False, extra_llvm=None):
 
         if device:
             raise RuntimeError('Cannot compile a device function as a kernel')
@@ -98,6 +98,14 @@ class _Kernel(serialize.ReduceMixin):
 
         if not link:
             link = []
+
+        if extra_llvm is None:
+            extra_llvm = []
+
+        for llvm_str in extra_llvm:
+            lib.add_llvm_str(llvm_str)
+
+        breakpoint()
 
         # A kernel needs cooperative launch if grid_sync is being used.
         self.cooperative = 'cudaCGGetIntrinsicHandle' in lib.get_asm_str()
