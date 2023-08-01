@@ -105,8 +105,6 @@ class _Kernel(serialize.ReduceMixin):
         for llvm_str in extra_llvm:
             lib.add_llvm_str(llvm_str)
 
-        breakpoint()
-
         # A kernel needs cooperative launch if grid_sync is being used.
         self.cooperative = 'cudaCGGetIntrinsicHandle' in lib.get_asm_str()
         # We need to link against cudadevrt if grid sync is being used.
