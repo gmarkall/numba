@@ -2594,16 +2594,16 @@ class Linker(metaclass=ABCMeta):
     """Abstract base class for linkers"""
 
     @classmethod
-    def new(cls, max_registers=0, lineinfo=False, cc=None):
+    def new(cls, max_registers=0, lineinfo=False, cc=None, global_symbols=None):
         if config.CUDA_ENABLE_MINOR_VERSION_COMPATIBILITY:
             return MVCLinker(max_registers, lineinfo, cc)
         elif USE_NV_BINDING:
             return CudaPythonLinker(max_registers, lineinfo, cc)
         else:
-            return CtypesLinker(max_registers, lineinfo, cc)
+            return CtypesLinker(max_registers, lineinfo, cc, global_symbols)
 
     @abstractmethod
-    def __init__(self, max_registers, lineinfo, cc):
+    def __init__(self, max_registers, lineinfo, cc, global_symbols):
         pass
 
     @property
@@ -2767,7 +2767,19 @@ class CtypesLinker(Linker):
     """
     Links for current device if no CC given
     """
-    def __init__(self, max_registers=0, lineinfo=False, cc=None):
+    def __init__(self, max_registers=0, lineinfo=False, cc=None,
+                 global_symbols=None):
+        self._global_symbols = global_symbols or {}
+        global_count = len(global_symbols)
+        encoded_names = [name.encode() for name in global_symbols]
+        symbol_names = [c_char_p(name) for name in encoded_names]
+        symbol_addresses = [c_void_p(address) for address in
+                            global_symbols.values()]
+        symbol_names_arr = (ctypes.c_char_p * global_count)(*symbol_names)
+        symbol_addresses_arr = (ctypes.c_void_p * global_count)(
+            *symbol_addresses
+        )
+
         logsz = config.CUDA_LOG_SIZE
         linkerinfo = (c_char * logsz)()
         linkererrors = (c_char * logsz)()
@@ -2778,11 +2790,21 @@ class CtypesLinker(Linker):
             enums.CU_JIT_ERROR_LOG_BUFFER: addressof(linkererrors),
             enums.CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES: c_void_p(logsz),
             enums.CU_JIT_LOG_VERBOSE: c_void_p(1),
+            30: c_void_p(1)
         }
         if max_registers:
             options[enums.CU_JIT_MAX_REGISTERS] = c_void_p(max_registers)
         if lineinfo:
             options[enums.CU_JIT_GENERATE_LINE_INFO] = c_void_p(1)
+
+        #if global_symbols:
+        #    options[enums.CU_JIT_GLOBAL_SYMBOL_COUNT] = c_void_p(global_count)
+        #    options[enums.CU_JIT_GLOBAL_SYMBOL_NAMES] = addressof(
+        #        symbol_names_arr
+        #    )
+        #    options[enums.CU_JIT_GLOBAL_SYMBOL_ADDRESSES] = addressof(
+        #        symbol_addresses_arr
+        #    )
 
         if cc is None:
             # No option value is needed, but we need something as a placeholder
@@ -2820,9 +2842,40 @@ class CtypesLinker(Linker):
         ptxbuf = c_char_p(ptx)
         namebuf = c_char_p(name.encode('utf8'))
         self._keep_alive += [ptxbuf, namebuf]
+
+        if False: #self._global_symbols:
+            global_symbols = self._global_symbols
+            global_count = len(self._global_symbols)
+            encoded_names = [name.encode() for name in global_symbols]
+            symbol_names = [c_char_p(name) for name in encoded_names]
+            symbol_addresses = [c_void_p(address) for address in
+                                global_symbols.values()]
+            symbol_names_arr = (ctypes.c_char_p * global_count)(*symbol_names)
+            symbol_addresses_arr = (ctypes.c_void_p * global_count)(
+                *symbol_addresses
+            )
+
+            options = {}
+            options[enums.CU_JIT_GLOBAL_SYMBOL_COUNT] = c_void_p(0)#global_count)
+            options[enums.CU_JIT_GLOBAL_SYMBOL_NAMES] = addressof(
+                symbol_names_arr
+            )
+            options[enums.CU_JIT_GLOBAL_SYMBOL_ADDRESSES] = addressof(
+                symbol_addresses_arr
+            )
+            raw_keys = list(options.keys())
+            raw_values = list(options.values())
+
+            option_keys = (drvapi.cu_jit_option * len(raw_keys))(*raw_keys)
+            option_vals = (c_void_p * len(raw_values))(*raw_values)
+            num_options = 1
+        else:
+            num_options, option_keys, option_vals = 0, None, None
+
         try:
             driver.cuLinkAddData(self.handle, enums.CU_JIT_INPUT_PTX,
-                                 ptxbuf, len(ptx), namebuf, 0, None, None)
+                                 ptxbuf, len(ptx), namebuf, num_options,
+                                 option_keys, option_vals)
         except CudaAPIError as e:
             raise LinkerError("%s\n%s" % (e, self.error_log))
 

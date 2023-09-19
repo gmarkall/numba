@@ -88,6 +88,8 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         self._linking_files = set()
         # Should we link libcudadevrt?
         self.needs_cudadevrt = False
+        # Globals whose address we provide to the linker
+        self._global_symbols = dict()
 
         # Cache the LLVM IR string
         self._llvm_strs = None
@@ -111,6 +113,12 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         if self._llvm_strs is None:
             self._llvm_strs = [str(mod) for mod in self.modules]
         return self._llvm_strs
+
+    def add_global(self, name, addr):
+        if name in self._global_symbols:
+            raise ValueError(f"Already added {name} to this codegen")
+
+        self._global_symbols[name] = addr
 
     def get_llvm_str(self):
         return "\n\n".join(self.llvm_strs)
@@ -163,7 +171,8 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         if cubin:
             return cubin
 
-        linker = driver.Linker.new(max_registers=self._max_registers, cc=cc)
+        linker = driver.Linker.new(max_registers=self._max_registers, cc=cc,
+                                   global_symbols=self._global_symbols)
 
         ptxes = self._get_ptxes(cc=cc)
         for ptx in ptxes:

@@ -190,10 +190,12 @@ class _Kernel(serialize.ReduceMixin):
                     debug=self.debug, lineinfo=self.lineinfo,
                     call_helper=self.call_helper, extensions=self.extensions)
 
-    def bind(self):
+    def bind(self, global_symbols):
         """
         Force binding to current CUDA context
         """
+        for name, addr in global_symbols.items():
+            self._codelibrary.add_global(name, addr)
         self._codelibrary.get_cufunc()
 
     @property
@@ -599,6 +601,15 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
         # argument types
         self.specializations = {}
 
+        # Globals whose address we provide to the linker
+        self._global_symbols = dict()
+
+    def add_global(self, name, addr):
+        if name in self._global_symbols:
+            raise ValueError(f"Already added {name} to this codegen")
+
+        self._global_symbols[name] = addr
+
     @property
     def _numba_type_(self):
         return cuda_types.CUDADispatcher(self)
@@ -923,7 +934,7 @@ class CUDADispatcher(Dispatcher, serialize.ReduceMixin):
 
             kernel = _Kernel(self.py_func, argtypes, **self.targetoptions)
             # We call bind to force codegen, so that there is a cubin to cache
-            kernel.bind()
+            kernel.bind(self._global_symbols)
             self._cache.save_overload(sig, kernel)
 
         self.add_overload(kernel, argtypes)
