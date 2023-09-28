@@ -284,6 +284,10 @@ class CompilationUnit(object):
                 v = int(bool(options.pop(k)))
                 opts.append('-%s=%d' % (k.replace('_', '-'), v))
 
+        if 'gen-lto' in options:
+            options.pop('gen-lto')
+            opts.append('-gen-lto')
+
         # If there are any option left
         if options:
             optstr = ', '.join(map(repr, options.keys()))
