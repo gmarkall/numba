@@ -6,7 +6,7 @@ from llvmlite import ir
 from numba.core import typing, types, debuginfo, itanium_mangler, cgutils
 from numba.core.dispatcher import Dispatcher
 from numba.core.base import BaseContext
-from numba.core.callconv import MinimalCallConv
+from numba.core.callconv import BaseCallConv, MinimalCallConv
 from numba.core.typing import cmathdecl
 from numba.core import datamodel
 
@@ -139,7 +139,7 @@ class CUDATargetContext(BaseContext):
 
     @cached_property
     def call_conv(self):
-        return CUDACallConv(self)
+        return CUDACABICallConv(self)
 
     def mangler(self, name, argtypes, *, abi_tags=(), uid=None):
         return itanium_mangler.mangle(name, argtypes, abi_tags=abi_tags,
@@ -194,9 +194,10 @@ class CUDATargetContext(BaseContext):
         argtys = list(arginfo.argument_types)
         wrapfnty = ir.FunctionType(ir.VoidType(), argtys)
         wrapper_module = self.create_module("cuda.kernel.wrapper")
-        fnty = ir.FunctionType(ir.IntType(32),
-                               [self.call_conv.get_return_type(types.pyobject)]
-                               + argtys)
+        # XXX: This should use the context's calling convention, not be hard
+        # coded.
+        fnty = ir.FunctionType(self.call_conv.get_return_type(fndesc.restype),
+                               argtys)
         func = ir.Function(wrapper_module, fnty, fndesc.llvm_func_name)
 
         prefixed = itanium_mangler.prepend_namespace(func.name, ns='cudapy')
@@ -366,3 +367,89 @@ class CUDATargetContext(BaseContext):
 
 class CUDACallConv(MinimalCallConv):
     pass
+
+
+class _CUDACABICallHelper(object):
+    """
+    A call helper object for the CUDA C/C++ ABI calling convention.
+    User exceptions are not supported.
+    """
+
+    def _add_exception(self, exc, exc_args, locinfo):
+        pass
+
+    def get_exception(self, exc_id):
+        msg = "Python exceptions are unsupported in the CUDA C/C++ ABI"
+        exc = SystemError
+        exc_args = (msg,)
+        locinfo = None
+        return exc, exc_args, locinfo
+
+
+class CUDACABICallConv(BaseCallConv):
+    """
+    Calling convention aimed at matching the CUDA C/C++ ABI. The implemented
+    function signature is:
+
+        <Python return type> (<Python arguments>)
+
+    Exceptions are unsupported in this convention
+    """
+
+    def _make_call_helper(self, builder):
+        return _CUDACABICallHelper()
+
+    def return_value(self, builder, retval):
+        return builder.ret(retval)
+
+    def return_user_exc(self, builder, exc, exc_args=None, loc=None,
+                        func_name=None):
+        msg = "Python exceptions are unsupported in the CUDA C/C++ ABI"
+        raise NotImplementedError(msg)
+
+    def return_status_propagate(self, builder, status):
+        print("Return status propagate called - can this be elided?")
+        pass
+
+    def get_function_type(self, restype, argtypes):
+        """
+        Get the implemented Function type for *restype* and *argtypes*.
+        """
+        arginfo = self._get_arg_packer(argtypes)
+        argtypes = list(arginfo.argument_types)
+        fnty = ir.FunctionType(self.get_return_type(restype), argtypes)
+        return fnty
+
+    def decorate_function(self, fn, args, fe_argtypes, noalias=False):
+        """
+        Set names and attributes of function arguments.
+        """
+        assert not noalias
+        arginfo = self._get_arg_packer(fe_argtypes)
+        arginfo.assign_names(self.get_arguments(fn),
+                             ['arg.' + a for a in args])
+
+    def get_arguments(self, func):
+        """
+        Get the Python-level arguments of LLVM *func*.
+        """
+        return func.args
+
+    def call_function(self, builder, callee, resty, argtys, args):
+        """
+        Call the Numba-compiled *callee*.
+        """
+        #retty = callee.args[0].type.pointee
+        #retvaltmp = cgutils.alloca_once(builder, retty)
+        # initialize return value
+        #builder.store(cgutils.get_null_value(retty), retvaltmp)
+
+        arginfo = self._get_arg_packer(argtys)
+        args = arginfo.as_arguments(builder, args)
+        realargs = list(args) # probably was a list already
+        code = builder.call(callee, realargs)
+        out = self.context.get_returned_value(builder, resty, code)
+        return None, out
+
+    def get_return_type(self, ty):
+        return self.context.data_model_manager[ty].get_return_type()
