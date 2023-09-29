@@ -145,6 +145,34 @@ class CUDATargetContext(BaseContext):
         return itanium_mangler.mangle(name, argtypes, abi_tags=abi_tags,
                                       uid=uid)
 
+    def prepare_cabi_function(self, codelib, fndesc, nvvm_options):
+        device_function_name = codelib.name
+        library = self.codegen().create_library(f'{codelib.name}_function_',
+                                                entry_name=device_function_name,
+                                                nvvm_options=nvvm_options)
+        library.add_linking_library(codelib)
+
+        argtypes = fndesc.argtypes
+        arginfo = self.get_arg_packer(argtypes)
+        argtys = list(arginfo.argument_types)
+        resty = self.call_conv.get_return_type(fndesc.restype)
+        wrapfnty = ir.FunctionType(resty, argtys)
+        wrapper_module = self.create_module("cuda.cabi.wrapper")
+        fnty = ir.FunctionType(resty, argtys)
+        func = ir.Function(wrapper_module, fnty, fndesc.llvm_func_name)
+
+        wrapfn = ir.Function(wrapper_module, wrapfnty, device_function_name)
+        builder = ir.IRBuilder(wrapfn.append_basic_block(''))
+
+        callargs = arginfo.from_arguments(builder, wrapfn.args)
+        _, return_value = self.call_conv.call_function(
+            builder, func, fndesc.restype, argtypes, callargs)
+        builder.ret(return_value)
+
+        library.add_ir_module(wrapper_module)
+        library.finalize()
+        return library
+
     def prepare_cuda_kernel(self, codelib, fndesc, debug, lineinfo,
                             nvvm_options, filename, linenum,
                             max_registers=None):

@@ -301,10 +301,12 @@ def compile_ltoir(pyfunc, sig, device=False, cc=None):
                         lineinfo=lineinfo, nvvm_options=nvvm_options, cc=cc)
     resty = cres.signature.return_type
 
+    tgt = cres.target_context
+
     if device:
-        lib = cres.library
+        lib = tgt.prepare_cabi_function(cres.library, cres.fndesc,
+                                        nvvm_options)
     else:
-        tgt = cres.target_context
         code = pyfunc.__code__
         filename = code.co_filename
         linenum = code.co_firstlineno
