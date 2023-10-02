@@ -138,8 +138,16 @@ class CUDATargetContext(BaseContext):
         return nonconsts_with_mod
 
     @cached_property
-    def call_conv(self):
+    def _numba_call_conv(self):
+        return CUDACallConv(self)
+
+    @cached_property
+    def _c_call_conv(self):
         return CUDACABICallConv(self)
+
+    @property
+    def call_conv(self):
+        return self._numba_call_conv
 
     def mangler(self, name, argtypes, *, abi_tags=(), uid=None):
         return itanium_mangler.mangle(name, argtypes, abi_tags=abi_tags,
@@ -152,21 +160,28 @@ class CUDATargetContext(BaseContext):
                                                 nvvm_options=nvvm_options)
         library.add_linking_library(codelib)
 
+        # Determine the caller (C ABI) and wrapper (Numba ABI) function types
         argtypes = fndesc.argtypes
-        arginfo = self.get_arg_packer(argtypes)
-        argtys = list(arginfo.argument_types)
-        resty = self.call_conv.get_return_type(fndesc.restype)
-        wrapfnty = ir.FunctionType(resty, argtys)
+        restype = fndesc.restype
+        wrapfnty = self._c_call_conv.get_function_type(restype, argtypes)
+        fnty = self._numba_call_conv.get_function_type(fndesc.restype, argtypes)
+
+        # Create a new module and delcare the callee
         wrapper_module = self.create_module("cuda.cabi.wrapper")
-        fnty = ir.FunctionType(resty, argtys)
         func = ir.Function(wrapper_module, fnty, fndesc.llvm_func_name)
+
+        # Define the caller - populate it with a call to the callee and return
+        # its return value
 
         wrapfn = ir.Function(wrapper_module, wrapfnty, device_function_name)
         builder = ir.IRBuilder(wrapfn.append_basic_block(''))
 
+        arginfo = self.get_arg_packer(argtypes)
         callargs = arginfo.from_arguments(builder, wrapfn.args)
-        _, return_value = self.call_conv.call_function(
-            builder, func, fndesc.restype, argtypes, callargs)
+        # We get (status, return_value), but we ignore the status since we
+        # can't propagate it through the C ABI anyway
+        _, return_value = self._numba_call_conv.call_function(
+            builder, func, restype, argtypes, callargs)
         builder.ret(return_value)
 
         library.add_ir_module(wrapper_module)
@@ -222,10 +237,7 @@ class CUDATargetContext(BaseContext):
         argtys = list(arginfo.argument_types)
         wrapfnty = ir.FunctionType(ir.VoidType(), argtys)
         wrapper_module = self.create_module("cuda.kernel.wrapper")
-        # XXX: This should use the context's calling convention, not be hard
-        # coded.
-        fnty = ir.FunctionType(self.call_conv.get_return_type(fndesc.restype),
-                               argtys)
+        fnty = self.call_conv.get_function_type(fndesc.restype, argtypes)
         func = ir.Function(wrapper_module, fnty, fndesc.llvm_func_name)
 
         prefixed = itanium_mangler.prepend_namespace(func.name, ns='cudapy')
