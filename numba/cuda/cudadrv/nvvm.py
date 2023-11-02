@@ -404,14 +404,14 @@ def find_closest_arch(mycc):
     return supported_ccs[-1]  # Choose the highest
 
 
-def get_arch_option(major, minor):
+def get_arch_option(major, minor, kind='compute'):
     """Matches with the closest architecture option
     """
     if config.FORCE_CUDA_CC:
         arch = config.FORCE_CUDA_CC
     else:
         arch = find_closest_arch((major, minor))
-    return 'compute_%d%d' % arch
+    return kind + ('_%d%d' % arch)
 
 
 MISSING_LIBDEVICE_FILE_MSG = '''Missing libdevice file.
@@ -632,7 +632,7 @@ def llvm_to_ptx(llvmir, **opts):
     return cu.compile(**opts)
 
 
-re_attributes_def = re.compile(r"^attributes #\d+ = \{ ([\w\s]+)\ }")
+re_attributes_def = re.compile(r"^attributes #\d+ = \{ (.*) \}")
 
 
 def llvm140_to_70_ir(ir):
@@ -662,6 +662,15 @@ def set_cuda_kernel(lfunc):
 
     nmd = cgutils.get_or_insert_named_metadata(mod, 'nvvm.annotations')
     nmd.add(md)
+
+    ptrty = ir.PointerType(ir.IntType(8))
+    funcptr = lfunc.bitcast(ptrty)
+
+    ty = ir.ArrayType(ptrty, 1)
+    llvm_used = ir.GlobalVariable(mod, ty, 'llvm.used')
+    llvm_used.linkage = 'appending'
+    llvm_used.section = 'llvm.metadata'
+    llvm_used.initializer = ir.Constant(ty, [funcptr])
 
     # Marking a kernel 'noinline' causes NVVM to generate a warning, so remove
     # it if it is present.

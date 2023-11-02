@@ -46,7 +46,7 @@ class _Kernel(serialize.ReduceMixin):
     @global_compiler_lock
     def __init__(self, py_func, argtypes, link=None, debug=False,
                  lineinfo=False, inline=False, fastmath=False, extensions=None,
-                 max_registers=None, opt=True, device=False):
+                 max_registers=None, opt=True, device=False, extra_llvm=None):
 
         if device:
             raise RuntimeError('Cannot compile a device function as a kernel')
@@ -99,14 +99,22 @@ class _Kernel(serialize.ReduceMixin):
         if not link:
             link = []
 
+        if extra_llvm is None:
+            extra_llvm = []
+
+        for llvm_str in extra_llvm:
+            lib.add_llvm_str(llvm_str)
+
         # A kernel needs cooperative launch if grid_sync is being used.
-        self.cooperative = 'cudaCGGetIntrinsicHandle' in lib.get_asm_str()
+        # self.cooperative = 'cudaCGGetIntrinsicHandle' in lib.get_asm_str()
+        self.cooperative = False
         # We need to link against cudadevrt if grid sync is being used.
         if self.cooperative:
             lib.needs_cudadevrt = True
 
         res = [fn for fn in cuda_fp16_math_funcs
-               if (f'__numba_wrapper_{fn}' in lib.get_asm_str())]
+               if (False)]
+        #    if (f'__numba_wrapper_{fn}' in lib.get_asm_str())]
 
         if res:
             # Path to the source containing the foreign function

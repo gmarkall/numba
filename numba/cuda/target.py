@@ -3,10 +3,11 @@ from functools import cached_property
 import llvmlite.binding as ll
 from llvmlite import ir
 
-from numba.core import typing, types, debuginfo, itanium_mangler, cgutils
+from numba.core import (config, typing, types, debuginfo, itanium_mangler,
+                        cgutils)
 from numba.core.dispatcher import Dispatcher
 from numba.core.base import BaseContext
-from numba.core.callconv import MinimalCallConv
+from numba.core.callconv import BaseCallConv, MinimalCallConv
 from numba.core.typing import cmathdecl
 from numba.core import datamodel
 
@@ -138,12 +139,55 @@ class CUDATargetContext(BaseContext):
         return nonconsts_with_mod
 
     @cached_property
-    def call_conv(self):
+    def _numba_call_conv(self):
         return CUDACallConv(self)
+
+    @cached_property
+    def _c_call_conv(self):
+        return CUDACABICallConv(self)
+
+    @property
+    def call_conv(self):
+        return self._numba_call_conv
 
     def mangler(self, name, argtypes, *, abi_tags=(), uid=None):
         return itanium_mangler.mangle(name, argtypes, abi_tags=abi_tags,
                                       uid=uid)
+
+    def prepare_cabi_function(self, codelib, fndesc, nvvm_options):
+        device_function_name = codelib.name
+        library = self.codegen().create_library(f'{codelib.name}_function_',
+                                                entry_name=device_function_name,
+                                                nvvm_options=nvvm_options)
+        library.add_linking_library(codelib)
+
+        # Determine the caller (C ABI) and wrapper (Numba ABI) function types
+        argtypes = fndesc.argtypes
+        restype = fndesc.restype
+        wrapfnty = self._c_call_conv.get_function_type(restype, argtypes)
+        fnty = self._numba_call_conv.get_function_type(fndesc.restype, argtypes)
+
+        # Create a new module and delcare the callee
+        wrapper_module = self.create_module("cuda.cabi.wrapper")
+        func = ir.Function(wrapper_module, fnty, fndesc.llvm_func_name)
+
+        # Define the caller - populate it with a call to the callee and return
+        # its return value
+
+        wrapfn = ir.Function(wrapper_module, wrapfnty, device_function_name)
+        builder = ir.IRBuilder(wrapfn.append_basic_block(''))
+
+        arginfo = self.get_arg_packer(argtypes)
+        callargs = arginfo.from_arguments(builder, wrapfn.args)
+        # We get (status, return_value), but we ignore the status since we
+        # can't propagate it through the C ABI anyway
+        _, return_value = self._numba_call_conv.call_function(
+            builder, func, restype, argtypes, callargs)
+        builder.ret(return_value)
+
+        library.add_ir_module(wrapper_module)
+        library.finalize()
+        return library
 
     def prepare_cuda_kernel(self, codelib, fndesc, debug, lineinfo,
                             nvvm_options, filename, linenum,
@@ -194,9 +238,7 @@ class CUDATargetContext(BaseContext):
         argtys = list(arginfo.argument_types)
         wrapfnty = ir.FunctionType(ir.VoidType(), argtys)
         wrapper_module = self.create_module("cuda.kernel.wrapper")
-        fnty = ir.FunctionType(ir.IntType(32),
-                               [self.call_conv.get_return_type(types.pyobject)]
-                               + argtys)
+        fnty = self.call_conv.get_function_type(fndesc.restype, argtypes)
         func = ir.Function(wrapper_module, fnty, fndesc.llvm_func_name)
 
         prefixed = itanium_mangler.prepend_namespace(func.name, ns='cudapy')
@@ -267,6 +309,25 @@ class CUDATargetContext(BaseContext):
         if debug or lineinfo:
             debuginfo.finalize()
         library.finalize()
+
+        if config.DUMP_LLVM:
+            print(("LLVM DUMP %s wrapper" % fndesc).center(80, '-'))
+            if config.HIGHLIGHT_DUMPS:
+                try:
+                    from pygments import highlight
+                    from pygments.lexers import LlvmLexer as lexer
+                    from pygments.formatters import Terminal256Formatter
+                    from numba.misc.dump_style import by_colorscheme
+                    print(highlight(wrapper_module.__repr__(), lexer(),
+                                    Terminal256Formatter(
+                                        style=by_colorscheme())))
+                except ImportError:
+                    msg = "Please install pygments to see highlighted dumps"
+                    raise ValueError(msg)
+            else:
+                print(wrapper_module)
+            print('=' * 80)
+
         wrapfn = library.get_function(wrapfn.name)
         return wrapfn
 
@@ -366,3 +427,89 @@ class CUDATargetContext(BaseContext):
 
 class CUDACallConv(MinimalCallConv):
     pass
+
+
+class _CUDACABICallHelper(object):
+    """
+    A call helper object for the CUDA C/C++ ABI calling convention.
+    User exceptions are not supported.
+    """
+
+    def _add_exception(self, exc, exc_args, locinfo):
+        pass
+
+    def get_exception(self, exc_id):
+        msg = "Python exceptions are unsupported in the CUDA C/C++ ABI"
+        exc = SystemError
+        exc_args = (msg,)
+        locinfo = None
+        return exc, exc_args, locinfo
+
+
+class CUDACABICallConv(BaseCallConv):
+    """
+    Calling convention aimed at matching the CUDA C/C++ ABI. The implemented
+    function signature is:
+
+        <Python return type> (<Python arguments>)
+
+    Exceptions are unsupported in this convention
+    """
+
+    def _make_call_helper(self, builder):
+        return _CUDACABICallHelper()
+
+    def return_value(self, builder, retval):
+        return builder.ret(retval)
+
+    def return_user_exc(self, builder, exc, exc_args=None, loc=None,
+                        func_name=None):
+        msg = "Python exceptions are unsupported in the CUDA C/C++ ABI"
+        raise NotImplementedError(msg)
+
+    def return_status_propagate(self, builder, status):
+        print("Return status propagate called - can this be elided?")
+        pass
+
+    def get_function_type(self, restype, argtypes):
+        """
+        Get the implemented Function type for *restype* and *argtypes*.
+        """
+        arginfo = self._get_arg_packer(argtypes)
+        argtypes = list(arginfo.argument_types)
+        fnty = ir.FunctionType(self.get_return_type(restype), argtypes)
+        return fnty
+
+    def decorate_function(self, fn, args, fe_argtypes, noalias=False):
+        """
+        Set names and attributes of function arguments.
+        """
+        assert not noalias
+        arginfo = self._get_arg_packer(fe_argtypes)
+        arginfo.assign_names(self.get_arguments(fn),
+                             ['arg.' + a for a in args])
+
+    def get_arguments(self, func):
+        """
+        Get the Python-level arguments of LLVM *func*.
+        """
+        return func.args
+
+    def call_function(self, builder, callee, resty, argtys, args):
+        """
+        Call the Numba-compiled *callee*.
+        """
+        #retty = callee.args[0].type.pointee
+        #retvaltmp = cgutils.alloca_once(builder, retty)
+        # initialize return value
+        #builder.store(cgutils.get_null_value(retty), retvaltmp)
+
+        arginfo = self._get_arg_packer(argtys)
+        args = arginfo.as_arguments(builder, args)
+        realargs = list(args) # probably was a list already
+        code = builder.call(callee, realargs)
+        out = self.context.get_returned_value(builder, resty, code)
+        return None, out
+
+    def get_return_type(self, ty):
+        return self.context.data_model_manager[ty].get_return_type()

@@ -284,6 +284,41 @@ def compile_ptx_for_current_device(pyfunc, sig, debug=False, lineinfo=False,
                        device=device, fastmath=fastmath, cc=cc, opt=True)
 
 
+@global_compiler_lock
+def compile_ltoir(pyfunc, sig, device=False, cc=None):
+    if cc is None:
+        cc = get_current_device().compute_capability
+    nvvm_options = {
+        'opt': 3,
+        'gen-lto': 1
+    }
+    debug = False
+    lineinfo = False
+
+    args, return_type = sigutils.normalize_signature(sig)
+
+    cres = compile_cuda(pyfunc, return_type, args, debug=debug,
+                        lineinfo=lineinfo, nvvm_options=nvvm_options, cc=cc)
+    resty = cres.signature.return_type
+
+    tgt = cres.target_context
+
+    if device:
+        lib = tgt.prepare_cabi_function(cres.library, cres.fndesc,
+                                        nvvm_options)
+    else:
+        code = pyfunc.__code__
+        filename = code.co_filename
+        linenum = code.co_firstlineno
+
+        lib, kernel = tgt.prepare_cuda_kernel(cres.library, cres.fndesc, debug,
+                                              lineinfo, nvvm_options, filename,
+                                              linenum)
+
+    ltoirs = lib.get_ltoirs(cc=cc)
+    return ltoirs, resty
+
+
 def declare_device_function(name, restype, argtypes):
     return declare_device_function_template(name, restype, argtypes).key
 

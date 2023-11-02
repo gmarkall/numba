@@ -41,6 +41,19 @@ def make_anonymous_struct(builder, values, struct_type=None):
     return struct_val
 
 
+def make_vector(builder, values, element_type):
+    """
+    Create a vector containing the given LLVM *values*.
+    All values must be of the same type
+    """
+    assert(all(v.type == element_type for v in values))
+    vector_type = ir.VectorType(element_type, len(values))
+    vector_val = vector_type(ir.Undefined)
+    for i, v in enumerate(values):
+        vector_val = builder.insert_value(vector_val, v, i)
+    return vector_val
+
+
 def make_bytearray(buf):
     """
     Make a byte array constant from *buf*.

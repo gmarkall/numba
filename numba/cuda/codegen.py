@@ -1,6 +1,7 @@
 from llvmlite import ir
 
-from numba.core import config, serialize
+from collections import namedtuple
+from numba.core import serialize
 from numba.core.codegen import Codegen, CodeLibrary
 from .cudadrv import devices, driver, nvvm, runtime
 from numba.cuda.cudadrv.libs import get_cudalib
@@ -52,6 +53,9 @@ def disassemble_cubin_for_cfg(cubin):
     return run_nvdisasm(cubin, flags)
 
 
+Binary = namedtuple('Binary', ('name', 'data'))
+
+
 class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
     """
     The CUDACodeLibrary generates PTX, SASS, cubins for multiple different
@@ -86,6 +90,10 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         # Files to link with the generated PTX. These are linked using the
         # Driver API at link time.
         self._linking_files = set()
+        # Extra fatbins to link with the generated PTX
+        self._extra_fatbins = set()
+        # Extra LTO-IRs to link with the generated PTX
+        self._extra_ltoirs = set()
         # Should we link libcudadevrt?
         self.needs_cudadevrt = False
 
@@ -93,6 +101,8 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         self._llvm_strs = None
         # Maps CC -> PTX string
         self._ptx_cache = {}
+        # Maps CC -> LTO IRs
+        self._ltoir_cache = {}
         # Maps CC -> cubin
         self._cubin_cache = {}
         # Maps CC -> linker info output for cubin
@@ -112,43 +122,71 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
             self._llvm_strs = [str(mod) for mod in self.modules]
         return self._llvm_strs
 
+    def add_llvm_str(self, llvm_str):
+        self.llvm_strs.append(llvm_str)
+
     def get_llvm_str(self):
         return "\n\n".join(self.llvm_strs)
 
     def get_asm_str(self, cc=None):
-        return self._join_ptxes(self._get_ptxes(cc=cc))
+        assert(False)
+        return b''.join(self.get_ltoirs(cc=cc))
 
-    def _get_ptxes(self, cc=None):
+    # def _get_ptxes(self, cc=None):
+    #     if not cc:
+    #         ctx = devices.get_context()
+    #         device = ctx.device
+    #         cc = device.compute_capability
+
+    #     ptxes = self._ptx_cache.get(cc, None)
+    #     if ptxes:
+    #         return ptxes
+
+    #     arch = nvvm.get_arch_option(*cc, kind='ptx')
+    #     options = self._nvvm_options.copy()
+    #     options['arch'] = arch
+
+    #     irs = self.llvm_strs
+
+    #     print(f"_get_ptxes: nnvm.llvm_to_ptx(irs), {options}")
+    #     ptxes = [nvvm.llvm_to_ptx(irs, **options)]
+
+    #     # Sometimes the result from NVVM contains trailing whitespace and
+    #     # nulls, which we strip so that the assembly dump looks a little
+    #     # tidier.
+    #     ptxes = [x.decode().strip('\x00').strip() for x in ptxes]
+
+    #     if config.DUMP_ASSEMBLY:
+    #         print(("ASSEMBLY %s" % self._name).center(80, '-'))
+    #         print(self._join_ptxes(ptxes))
+    #         print('=' * 80)
+
+    #     self._ptx_cache[cc] = ptxes
+
+    #     return ptxes
+
+    def get_ltoirs(self, cc=None):
         if not cc:
             ctx = devices.get_context()
             device = ctx.device
             cc = device.compute_capability
 
-        ptxes = self._ptx_cache.get(cc, None)
-        if ptxes:
-            return ptxes
+        ltoirs = self._ltoir_cache.get(cc, None)
+        if ltoirs:
+            return ltoirs
 
-        arch = nvvm.get_arch_option(*cc)
+        arch = nvvm.get_arch_option(*cc, kind='compute')
         options = self._nvvm_options.copy()
         options['arch'] = arch
+        options['gen-lto'] = 1
 
         irs = self.llvm_strs
 
-        ptxes = [nvvm.llvm_to_ptx(irs, **options)]
+        ltoirs = [nvvm.llvm_to_ptx(irs, **options)]
 
-        # Sometimes the result from NVVM contains trailing whitespace and
-        # nulls, which we strip so that the assembly dump looks a little
-        # tidier.
-        ptxes = [x.decode().strip('\x00').strip() for x in ptxes]
+        self._ltoir_cache[cc] = ltoirs
 
-        if config.DUMP_ASSEMBLY:
-            print(("ASSEMBLY %s" % self._name).center(80, '-'))
-            print(self._join_ptxes(ptxes))
-            print('=' * 80)
-
-        self._ptx_cache[cc] = ptxes
-
-        return ptxes
+        return ltoirs
 
     def _join_ptxes(self, ptxes):
         return "\n\n".join(ptxes)
@@ -163,13 +201,21 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         if cubin:
             return cubin
 
-        linker = driver.Linker.new(max_registers=self._max_registers, cc=cc)
+        linker = driver.Linker.new(max_registers=self._max_registers, cc=cc,
+                                   lto=True)
 
-        ptxes = self._get_ptxes(cc=cc)
-        for ptx in ptxes:
-            linker.add_ptx(ptx.encode())
+        # ptxes = self._get_ptxes(cc=cc)
+        # for ptx in ptxes:
+        #     linker.add_ptx(ptx.encode())
+        ltoirs = self.get_ltoirs(cc=cc)
+        for ltoir in ltoirs:
+            linker.add_ltoir(ltoir)
         for path in self._linking_files:
             linker.add_file_guess_ext(path)
+        for fatbin in self._extra_fatbins:
+            linker.add_fatbin(fatbin.data, fatbin.name)
+        for ltoir in self._extra_ltoirs:
+            linker.add_ltoir(ltoir.data, ltoir.name)
         if self.needs_cudadevrt:
             linker.add_file_guess_ext(get_cudalib('cudadevrt', static=True))
 
@@ -234,6 +280,12 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
     def add_linking_file(self, filepath):
         self._linking_files.add(filepath)
 
+    def add_fatbin(self, name, data):
+        self._extra_fatbins.add(Binary(name, data))
+
+    def add_ltoir(self, name, data):
+        self._extra_ltoirs.add(Binary(name, data))
+
     def get_function(self, name):
         for fn in self._module.functions:
             if fn.name == name:
@@ -288,9 +340,6 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         but loaded functions are discarded. They are recreated when needed
         after deserialization.
         """
-        if self._linking_files:
-            msg = 'Cannot pickle CUDACodeLibrary with linking files'
-            raise RuntimeError(msg)
         if not self._finalized:
             raise RuntimeError('Cannot pickle unfinalized CUDACodeLibrary')
         return dict(
@@ -303,13 +352,14 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
             linkerinfo_cache=self._linkerinfo_cache,
             max_registers=self._max_registers,
             nvvm_options=self._nvvm_options,
-            needs_cudadevrt=self.needs_cudadevrt
+            needs_cudadevrt=self.needs_cudadevrt,
+            linking_files=self._linking_files
         )
 
     @classmethod
     def _rebuild(cls, codegen, name, entry_name, llvm_strs, ptx_cache,
                  cubin_cache, linkerinfo_cache, max_registers, nvvm_options,
-                 needs_cudadevrt):
+                 needs_cudadevrt, linking_files):
         """
         Rebuild an instance.
         """
@@ -325,6 +375,8 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         instance.needs_cudadevrt = needs_cudadevrt
 
         instance._finalized = True
+
+        instance._linking_files = linking_files
 
         return instance
 
