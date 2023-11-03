@@ -148,9 +148,6 @@ class BaseTypeInference(FunctionPass):
 
                 for var in retstmts:
                     cast = caststmts.get(var)
-                    print("var = ", var)
-                    print("cast.value.name = ", cast.value.name)
-                    print("argvars = ", argvars)
                     if cast is None or cast.value.name not in argvars:
                         if self._raise_errors:
                             msg = ("Only accept returning of array passed into "
