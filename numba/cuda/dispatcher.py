@@ -13,6 +13,7 @@ from numba.core.typing.typeof import Purpose, typeof
 
 from numba.cuda.api import get_current_device
 from numba.cuda.args import wrap_arg
+from numba.cuda.extending import prepare_arg
 from numba.cuda.compiler import compile_cuda, CUDACompiler
 from numba.cuda.cudadrv import driver
 from numba.cuda.cudadrv.devices import get_context
@@ -374,6 +375,9 @@ class _Kernel(serialize.ReduceMixin):
         """
         Convert argument to ctypes and append to kernelargs
         """
+
+        # Note swapped argument order WRT _prepare_arg
+        val, ty = prepare_arg(val, ty)
 
         # map the arguments using any extension you've registered
         for extension in reversed(self.extensions):
