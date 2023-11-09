@@ -314,7 +314,7 @@ class _Kernel(serialize.ReduceMixin):
 
         kernelargs = []
         for t, v in zip(self.argument_types, args):
-            self._prepare_args(t, v, stream, retr, kernelargs)
+            self._prepare_arg(t, v, stream, retr, kernelargs)
 
         if driver.USE_NV_BINDING:
             zero_stream = driver.binding.CUstream(0)
@@ -370,9 +370,9 @@ class _Kernel(serialize.ReduceMixin):
         for wb in retr:
             wb()
 
-    def _prepare_args(self, ty, val, stream, retr, kernelargs):
+    def _prepare_arg(self, ty, val, stream, retr, kernelargs):
         """
-        Convert arguments to ctypes and append to kernelargs
+        Convert argument to ctypes and append to kernelargs
         """
 
         # map the arguments using any extension you've registered
@@ -451,11 +451,11 @@ class _Kernel(serialize.ReduceMixin):
         elif isinstance(ty, types.BaseTuple):
             assert len(ty) == len(val)
             for t, v in zip(ty, val):
-                self._prepare_args(t, v, stream, retr, kernelargs)
+                self._prepare_arg(t, v, stream, retr, kernelargs)
 
         elif isinstance(ty, types.EnumMember):
             try:
-                self._prepare_args(
+                self._prepare_arg(
                     ty.dtype, val.value, stream, retr, kernelargs
                 )
             except NotImplementedError:
