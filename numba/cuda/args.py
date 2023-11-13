@@ -3,8 +3,12 @@ Hints to wrap Kernel arguments to indicate how to manage host-device
 memory transfers before & after the kernel call.
 """
 import abc
+import ctypes
+import numpy as np
 
+from numba import types
 from numba.core.typing.typeof import typeof, Purpose
+from functools import singledispatch
 
 
 class ArgHint(metaclass=abc.ABCMeta):
@@ -65,6 +69,56 @@ class InOut(ArgHint):
 
 def wrap_arg(value, default=InOut):
     return value if isinstance(value, ArgHint) else default(value)
+
+
+@singledispatch
+def prepare_arg(ty, val):
+    raise NotImplementedError(f'Unsupported argument type {ty}')
+
+
+@prepare_arg.register(types.Integer)
+def prepare_int_arg(ty, val):
+    return getattr(ctypes, "c_%s" % ty)(val)
+
+
+@prepare_arg.register(types.float16)
+def prepare_float16_arg(ty, val):
+    return ctypes.c_uint16(np.float16(val).view(np.uint16))
+
+
+@prepare_arg.register(types.float32)
+def prepare_float32_arg(ty, val):
+    return ctypes.c_float(val)
+
+
+@prepare_arg.register(types.float64)
+def prepare_float64_arg(ty, val):
+    return ctypes.c_double(val)
+
+
+@prepare_arg.register(types.boolean)
+def prepare_boolean_arg(ty, val):
+    return ctypes.c_uint8(int(val))
+
+
+@prepare_arg.register(types.complex64)
+def prepare_complex64_arg(ty, val):
+    c_real = ctypes.c_float(val.real)
+    c_imag = ctypes.c_float(val.imag)
+    return c_real, c_imag
+
+
+@prepare_arg.register(types.complex128)
+def prepare_complex128_arg(ty, val):
+    c_real = ctypes.c_double(val.real)
+    c_imag = ctypes.c_double(val.imag)
+    return c_real, c_imag
+
+
+@prepare_arg.register(types.NPDatetime)
+@prepare_arg.register(types.NPTimedelta)
+def prepare_datetime_arg(ty, val):
+    return ctypes.c_int64(val.view(np.int64))
 
 
 __all__ = [

@@ -12,8 +12,7 @@ from numba.core.errors import NumbaPerformanceWarning
 from numba.core.typing.typeof import Purpose, typeof
 
 from numba.cuda.api import get_current_device
-from numba.cuda.args import wrap_arg
-from numba.cuda.extending import prepare_arg
+from numba.cuda.args import prepare_arg, wrap_arg
 from numba.cuda.compiler import compile_cuda, CUDACompiler
 from numba.cuda.cudadrv import driver
 from numba.cuda.cudadrv.devices import get_context
