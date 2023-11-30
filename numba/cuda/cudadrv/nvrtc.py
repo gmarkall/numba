@@ -209,23 +209,7 @@ class NVRTC:
 
         return ptx.value.decode()
 
-
-def compile(src, name, cc):
-    """
-    Compile a CUDA C/C++ source to PTX for a given compute capability.
-
-    :param src: The source code to compile
-    :type src: str
-    :param name: The filename of the source (for information only)
-    :type name: str
-    :param cc: A tuple ``(major, minor)`` of the compute capability
-    :type cc: tuple
-    :return: The compiled PTX and compilation log
-    :rtype: tuple
-    """
-    nvrtc = NVRTC()
-    program = nvrtc.create_program(src, name)
-
+def default_options():
     # Compilation options:
     # - Compile for the current device's compute capability.
     # - The CUDA include path is added.
@@ -239,6 +223,26 @@ def compile(src, name, cc):
     numba_cuda_path = os.path.dirname(cudadrv_path)
     numba_include = f'-I{numba_cuda_path}'
     options = [arch, include, numba_include, '-rdc', 'true']
+
+    return options
+
+
+def compile(src, name, options=None):
+    """
+    Compile a CUDA C/C++ source to PTX for a given compute capability.
+
+    :param src: The source code to compile
+    :type src: str
+    :param name: The filename of the source (for information only)
+    :type name: str
+    :param cc: A tuple ``(major, minor)`` of the compute capability
+    :type cc: tuple
+    :return: The compiled PTX and compilation log
+    :rtype: tuple
+    """
+    options = options or default_options()
+    nvrtc = NVRTC()
+    program = nvrtc.create_program(src, name)
 
     # Compile the program
     compile_error = nvrtc.compile_program(program, options)
