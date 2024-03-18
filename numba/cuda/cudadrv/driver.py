@@ -2642,18 +2642,18 @@ class Linker(metaclass=ABCMeta):
     def add_file(self, path, kind):
         """Add code from a file to the link"""
 
-    def add_cu_file(self, path):
+    def add_cu_file(self, path, link_lto=False):
         with open(path, 'rb') as f:
             cu = f.read()
-        self.add_cu(cu, os.path.basename(path))
+        self.add_cu(cu, os.path.basename(path), link_lto=link_lto)
 
-    def add_file_guess_ext(self, path):
+    def add_file_guess_ext(self, path, link_lto=False):
         """Add a file to the link, guessing its type from its extension."""
         ext = os.path.splitext(path)[1][1:]
         if ext == '':
             raise RuntimeError("Don't know how to link file with no extension")
         elif ext == 'cu':
-            self.add_cu_file(path)
+            self.add_cu_file(path, link_lto)
         else:
             kind = FILE_EXTENSION_MAP.get(ext, None)
             if kind is None:

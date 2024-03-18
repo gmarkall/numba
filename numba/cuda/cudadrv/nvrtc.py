@@ -95,6 +95,10 @@ class NVRTC:
                                    POINTER(c_size_t)),
         # nvrtcResult nvrtcGetProgramLog(nvrtcProgram prog, char *log);
         'nvrtcGetProgramLog': (nvrtc_result, nvrtc_program, c_char_p),
+        # nvrtcResult nvrtcGetLTOIRSize(nvrtcProgram prog, size_t *LTOIRSizeRet)
+        'nvrtcGetLTOIRSize': (nvrtc_result, nvrtc_program, POINTER(c_size_t)),
+        # nvrtcResult nvrtcGetLTOIR(nvrtcProgram prog, char *LTOIR)
+        'nvrtcGetLTOIR': (nvrtc_result, nvrtc_program, c_char_p),
     }
 
     # Singleton reference
@@ -167,6 +171,9 @@ class NVRTC:
         the source; this function returns ``True`` if there is a compilation
         error and ``False`` on success.
         """
+
+        print("nvrtc options:", options)
+
         # We hold a list of encoded options to ensure they can't be collected
         # prior to the call to nvrtcCompileProgram
         encoded_options = [opt.encode() for opt in options]
@@ -209,8 +216,21 @@ class NVRTC:
 
         return ptx.value.decode()
 
+    def get_ltoir(self, program):
+        """
+        Get the LTO IR as a bytes object.
+        """
 
-def compile(src, name, cc):
+        ltoir_size = c_size_t()
+        self.nvrtcGetLTOIRSize(program.handle, byref(ltoir_size))
+
+        ltoir = (c_char * ltoir_size.value)()
+        self.nvrtcGetLTOIR(program.handle, ltoir)
+
+        return bytes(ltoir)
+
+
+def compile(src, name, cc, extra_cflags=[]):
     """
     Compile a CUDA C/C++ source to PTX for a given compute capability.
 
@@ -226,19 +246,28 @@ def compile(src, name, cc):
     nvrtc = NVRTC()
     program = nvrtc.create_program(src, name)
 
+    as_ltoir = "-dlto" in extra_cflags
+
     # Compilation options:
     # - Compile for the current device's compute capability.
     # - The CUDA include path is added.
     # - Relocatable Device Code (rdc) is needed to prevent device functions
     #   being optimized away.
     major, minor = cc
-    arch = f'--gpu-architecture=compute_{major}{minor}'
-    include = f'-I{config.CUDA_INCLUDE_PATH}'
+    if as_ltoir:
+        arch = ""
+    else:    
+        arch = f"--gpu-architecture=compute_{major}{minor}"
+    include = f"-I{config.CUDA_INCLUDE_PATH}"
 
     cudadrv_path = os.path.dirname(os.path.abspath(__file__))
     numba_cuda_path = os.path.dirname(cudadrv_path)
-    numba_include = f'-I{numba_cuda_path}'
-    options = [arch, include, numba_include, '-rdc', 'true']
+    numba_include = f"-I{numba_cuda_path}"
+
+    if as_ltoir:
+        options = [include, numba_include, *extra_cflags, "-rdc=true"]
+    else:
+        options = [arch, include, numba_include, *extra_cflags, "-rdc=true"]
 
     # Compile the program
     compile_error = nvrtc.compile_program(program, options)
@@ -248,13 +277,19 @@ def compile(src, name, cc):
 
     # If the compile failed, provide the log in an exception
     if compile_error:
-        msg = (f'NVRTC Compilation failure whilst compiling {name}:\n\n{log}')
+        msg = f"NVRTC Compilation failure whilst compiling {name}:\n\n{log}"
         raise NvrtcError(msg)
 
     # Otherwise, if there's any content in the log, present it as a warning
     if log:
-        msg = (f"NVRTC log messages whilst compiling {name}:\n\n{log}")
+        msg = f"NVRTC log messages whilst compiling {name}:\n\n{log}"
         warnings.warn(msg)
 
-    ptx = nvrtc.get_ptx(program)
-    return ptx, log
+    if not as_ltoir:
+        ptx = nvrtc.get_ptx(program)
+        return ptx, log
+    else:
+        ltoir = nvrtc.get_ltoir(program)
+        with open("/home/wangm/numbast/scratch/031124/extern.ltoir", "wb") as f:
+            f.write(ltoir)
+        return ltoir, log

@@ -174,7 +174,7 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
 
         return ltoir
 
-    def get_cubin(self, cc=None):
+    def get_cubin(self, cc=None, link_lto=False):
         cc = self._ensure_cc(cc)
 
         cubin = self._cubin_cache.get(cc, None)
@@ -182,12 +182,12 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
             return cubin
 
         linker = driver.Linker.new(max_registers=self._max_registers, cc=cc,
-                                   lto=True)
+                                   lto=link_lto)
 
         ltoir = self.get_ltoir(cc=cc)
         linker.add_ltoir(ltoir)
         for path in self._linking_files:
-            linker.add_file_guess_ext(path)
+            linker.add_file_guess_ext(path, link_lto=link_lto)
         if self.needs_cudadevrt:
             linker.add_file_guess_ext(get_cudalib('cudadevrt', static=True))
 
@@ -197,7 +197,7 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
 
         return cubin
 
-    def get_cufunc(self):
+    def get_cufunc(self, link_lto=False):
         if self._entry_name is None:
             msg = "Missing entry_name - are you trying to get the cufunc " \
                   "for a device function?"
@@ -210,7 +210,7 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
         if cufunc:
             return cufunc
 
-        cubin = self.get_cubin(cc=device.compute_capability)
+        cubin = self.get_cubin(cc=device.compute_capability, link_lto=link_lto)
         module = ctx.create_module_image(cubin)
 
         # Load

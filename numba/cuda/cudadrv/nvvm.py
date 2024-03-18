@@ -629,6 +629,8 @@ def compile_ir(llvmir, **opts):
         cu.add_module(mod.encode('utf8'))
     cu.lazy_add_module(libdevice.get())
 
+    print("nvvm compile opts: ", opts)
+
     return cu.compile(**opts)
 
 

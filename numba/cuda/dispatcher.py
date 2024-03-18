@@ -46,7 +46,7 @@ class _Kernel(serialize.ReduceMixin):
     @global_compiler_lock
     def __init__(self, py_func, argtypes, link=None, debug=False,
                  lineinfo=False, inline=False, fastmath=False, extensions=None,
-                 max_registers=None, opt=True, device=False):
+                 max_registers=None, opt=True, device=False, link_lto=False):
 
         if device:
             raise RuntimeError('Cannot compile a device function as a kernel')
@@ -74,10 +74,14 @@ class _Kernel(serialize.ReduceMixin):
         self.lineinfo = lineinfo
         self.extensions = extensions or []
 
+        self.link_lto = link_lto
+
         nvvm_options = {
             'fastmath': fastmath,
             'opt': 3 if opt else 0
         }
+        if link_lto:
+            nvvm_options['gen-lto'] = None
 
         cc = get_current_device().compute_capability
         cres = compile_cuda(self.py_func, types.void, self.argtypes,
@@ -99,21 +103,22 @@ class _Kernel(serialize.ReduceMixin):
         if not link:
             link = []
 
-        # A kernel needs cooperative launch if grid_sync is being used.
-        self.cooperative = 'cudaCGGetIntrinsicHandle' in lib.get_asm_str()
-        # We need to link against cudadevrt if grid sync is being used.
-        if self.cooperative:
-            lib.needs_cudadevrt = True
+        if not link_lto: # XXX: What should we do here? Compile kernel as LTO + cooporative launch?
+            # A kernel needs cooperative launch if grid_sync is being used.
+            self.cooperative = 'cudaCGGetIntrinsicHandle' in lib.get_asm_str()
+            # We need to link against cudadevrt if grid sync is being used.
+            if self.cooperative:
+                lib.needs_cudadevrt = True
 
-        res = [fn for fn in cuda_fp16_math_funcs
-               if (f'__numba_wrapper_{fn}' in lib.get_asm_str())]
+        # res = [fn for fn in cuda_fp16_math_funcs
+        #        if (f'__numba_wrapper_{fn}' in lib.get_asm_str())]
 
-        if res:
-            # Path to the source containing the foreign function
-            basedir = os.path.dirname(os.path.abspath(__file__))
-            functions_cu_path = os.path.join(basedir,
-                                             'cpp_function_wrappers.cu')
-            link.append(functions_cu_path)
+        # if res:
+        #     # Path to the source containing the foreign function
+        #     basedir = os.path.dirname(os.path.abspath(__file__))
+        #     functions_cu_path = os.path.join(basedir,
+        #                                      'cpp_function_wrappers.cu')
+        #     link.append(functions_cu_path)
 
         for filepath in link:
             lib.add_linking_file(filepath)
@@ -194,42 +199,42 @@ class _Kernel(serialize.ReduceMixin):
         """
         Force binding to current CUDA context
         """
-        self._codelibrary.get_cufunc()
+        self._codelibrary.get_cufunc(link_lto=self.link_lto)
 
     @property
     def regs_per_thread(self):
         '''
         The number of registers used by each thread for this kernel.
         '''
-        return self._codelibrary.get_cufunc().attrs.regs
+        return self._codelibrary.get_cufunc(link_lto=self.link_lto).attrs.regs
 
     @property
     def const_mem_size(self):
         '''
         The amount of constant memory used by this kernel.
         '''
-        return self._codelibrary.get_cufunc().attrs.const
+        return self._codelibrary.get_cufunc(link_lto=self.link_lto).attrs.const
 
     @property
     def shared_mem_per_block(self):
         '''
         The amount of shared memory used per block for this kernel.
         '''
-        return self._codelibrary.get_cufunc().attrs.shared
+        return self._codelibrary.get_cufunc(link_lto=self.link_lto).attrs.shared
 
     @property
     def max_threads_per_block(self):
         '''
         The maximum allowable threads per block.
         '''
-        return self._codelibrary.get_cufunc().attrs.maxthreads
+        return self._codelibrary.get_cufunc(link_lto=self.link_lto).attrs.maxthreads
 
     @property
     def local_mem_per_thread(self):
         '''
         The amount of local memory used per thread for this kernel.
         '''
-        return self._codelibrary.get_cufunc().attrs.local
+        return self._codelibrary.get_cufunc(link_lto=self.link_lto).attrs.local
 
     def inspect_llvm(self):
         '''
@@ -288,7 +293,7 @@ class _Kernel(serialize.ReduceMixin):
         :return: The maximum number of blocks in the grid.
         '''
         ctx = get_context()
-        cufunc = self._codelibrary.get_cufunc()
+        cufunc = self._codelibrary.get_cufunc(link_lto=self.link_lto)
 
         if isinstance(blockdim, tuple):
             blockdim = functools.reduce(lambda x, y: x * y, blockdim)
@@ -300,7 +305,7 @@ class _Kernel(serialize.ReduceMixin):
 
     def launch(self, args, griddim, blockdim, stream=0, sharedmem=0):
         # Prepare kernel
-        cufunc = self._codelibrary.get_cufunc()
+        cufunc = self._codelibrary.get_cufunc(link_lto=self.link_lto)
 
         if self.debug:
             excname = cufunc.name + "__errcode__"
@@ -502,7 +507,7 @@ class ForAll(object):
             # it so we can get the cufunc from the code library
             kernel = next(iter(dispatcher.overloads.values()))
             kwargs = dict(
-                func=kernel._codelibrary.get_cufunc(),
+                func=kernel._codelibrary.get_cufunc(link_lto=self.link_lto),
                 b2d_func=0,     # dynamic-shared memory is constant to blksz
                 memsize=self.sharedmem,
                 blocksizelimit=1024,
