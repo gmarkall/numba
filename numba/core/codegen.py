@@ -11,7 +11,8 @@ import llvmlite.ir as llvmir
 
 from abc import abstractmethod, ABCMeta
 from numba.core import utils, config, cgutils
-from numba.core.llvm_bindings import create_pass_manager_builder
+from numba.core.llvm_bindings import (create_pass_builder,
+                                      create_pass_manager_builder)
 from numba.core.runtime.nrtopt import remove_redundant_nrt_refct
 from numba.core.runtime import rtsys
 from numba.core.compiler_lock import require_global_compiler_lock
@@ -672,14 +673,14 @@ class CPUCodeLibrary(CodeLibrary):
         with self._recorded_timings.record(cheap_name):
             # A cheaper optimisation pass is run first to try and get as many
             # refops into the same function as possible via inlining
-            self._codegen._mpm_cheap.run(self._final_module)
+            self._codegen._mpm_cheap.run(self._final_module, self._codegen._mpb_cheap)
         # Refop pruning is then run on the heavily inlined function
         if not config.LLVM_REFPRUNE_PASS:
             self._final_module = remove_redundant_nrt_refct(self._final_module)
         full_name = "Module passes (full optimization)"
         with self._recorded_timings.record(full_name):
             # The full optimisation suite is then run on the refop pruned IR
-            self._codegen._mpm_full.run(self._final_module)
+            self._codegen._mpm_full.run(self._final_module, self._codegen._mpb_full)
 
     def _get_module_for_linking(self):
         """
@@ -1207,12 +1208,11 @@ class CPUCodegen(Codegen):
             loopvect = False
             opt_level = 0
 
-        self._mpm_cheap = self._module_pass_manager(loop_vectorize=loopvect,
-                                                    slp_vectorize=False,
-                                                    opt=opt_level,
-                                                    cost="cheap")
+        self._mpm_cheap, self._mpb_cheap = \
+            self._module_pass_manager(loop_vectorize=loopvect, slp_vectorize=False,
+                                      opt=opt_level, cost="cheap")
 
-        self._mpm_full = self._module_pass_manager()
+        self._mpm_full, self._mpb_full = self._module_pass_manager()
 
         self._engine.set_object_cache(self._library_class._object_compiled_hook,
                                       self._library_class._object_getbuffer_hook)
@@ -1225,12 +1225,14 @@ class CPUCodegen(Codegen):
         return ir_module
 
     def _module_pass_manager(self, **kwargs):
-        pm = ll.create_module_pass_manager()
-        pm.add_target_library_info(ll.get_process_triple())
-        self._tm.add_analysis_passes(pm)
+        # XXX: add back later
+        # pm.add_target_library_info(ll.get_process_triple())
+        #self._tm.add_analysis_passes(pm)
         cost = kwargs.pop("cost", None)
-        with self._pass_manager_builder(**kwargs) as pmb:
-            pmb.populate(pm)
+        pb = self._pass_builder(**kwargs)
+        pm = pb.getNewModulePassManager()
+        #with self._pass_builder(**kwargs) as pb:
+        #    pb.populate(pm)
         # If config.OPT==0 do not include these extra passes to help with
         # vectorization.
         if cost is not None and cost == "cheap" and config.OPT != 0:
@@ -1238,12 +1240,12 @@ class CPUCodegen(Codegen):
             # of vectorization failing due to unknown PHI nodes.
             pm.add_loop_rotate_pass()
             # These passes are required to get SVML to vectorize tests
-            pm.add_instruction_combining_pass()
+            pm.add_instruction_combine_pass()
             pm.add_jump_threading_pass()
 
-        if config.LLVM_REFPRUNE_PASS:
-            pm.add_refprune_pass(_parse_refprune_flags())
-        return pm
+        #if config.LLVM_REFPRUNE_PASS:
+        #    pm.add_refprune_pass(_parse_refprune_flags())
+        return pm, pb
 
     def _function_pass_manager(self, llvm_module, **kwargs):
         pm = ll.create_function_pass_manager(llvm_module)
@@ -1254,6 +1256,18 @@ class CPUCodegen(Codegen):
         if config.LLVM_REFPRUNE_PASS:
             pm.add_refprune_pass(_parse_refprune_flags())
         return pm
+
+    def _pass_builder(self, **kwargs):
+        opt_level = kwargs.pop('opt', config.OPT)
+        loop_vectorize = kwargs.pop('loop_vectorize', config.LOOP_VECTORIZE)
+        slp_vectorize = kwargs.pop('slp_vectorize', config.SLP_VECTORIZE)
+
+        pb = create_pass_builder(self._tm, opt=opt_level,
+                                 loop_vectorize=loop_vectorize,
+                                 slp_vectorize=slp_vectorize,
+                                 **kwargs)
+
+        return pb
 
     def _pass_manager_builder(self, **kwargs):
         """
