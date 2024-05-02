@@ -13,6 +13,34 @@ import tempfile
 CUDA_TRIPLE = 'nvptx64-nvidia-cuda'
 
 
+def strip_debug_info(ptx):
+    lines = ptx.splitlines()
+
+    section_debug_info_line = -1
+    for i, line in enumerate(lines):
+        if ".section" in line and ".debug_info" in line:
+            section_debug_info_line = i
+            break
+
+    if section_debug_info_line == -1:
+        return ptx
+
+    end_of_debug_info_line = -1
+    for i, line in enumerate(lines[section_debug_info_line:]):
+        if line.strip() == "}":
+            end_of_debug_info_line = i
+            break
+
+    if end_of_debug_info_line == -1:
+        raise RuntimeError("Couldn't find end of .debug_info section")
+
+    absolute_end = section_debug_info_line + end_of_debug_info_line + 1
+    new_lines = lines[:section_debug_info_line] + lines[absolute_end:]
+    new_ptx = "\n".join(new_lines)
+
+    return new_ptx
+
+
 def run_nvdisasm(cubin, flags):
     # nvdisasm only accepts input from a file, so we need to write out to a
     # temp file and clean up afterwards.
@@ -185,6 +213,7 @@ class CUDACodeLibrary(serialize.ReduceMixin, CodeLibrary):
             linker.add_ltoir(ltoir)
         else:
             ptx = self.get_asm_str(cc=cc)
+            ptx = strip_debug_info(ptx)
             linker.add_ptx(ptx.encode())
 
         for path in self._linking_files:
