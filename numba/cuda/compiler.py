@@ -85,6 +85,7 @@ class CUDABackend(LoweringPass):
         debug = flags.debuginfo and not flags.dbg_directives_only
         lineinfo = flags.debuginfo and flags.dbg_directives_only
         loc = state.func_ir.loc
+        # XXX: This is missing the ABI stuff and the LTO stuff
         exceptions = False # XXX: Need to have it passed through somehow
         prepare_cuda_kernel(state.targetctx, state.library, lowered.fndesc,
                             debug, lineinfo, exceptions, loc.filename,
@@ -503,6 +504,7 @@ def compile(pyfunc, sig, debug=False, lineinfo=False, device=True,
 
     tgt = cres.target_context
 
+    # XXX: This should have gone to CUDABackend.run_pass
     if device:
         lib = cres.library
         if abi == "c":
