@@ -17,11 +17,11 @@ del _internal, array_exprs
 def _init():
 
     def init_cuda_vectorize():
-        from numba_cuda.vectorizers import CUDAVectorize
+        from numba.cuda.vectorizers import CUDAVectorize
         return CUDAVectorize
 
     def init_cuda_guvectorize():
-        from numba_cuda.vectorizers import CUDAGUFuncVectorize
+        from numba.cuda.vectorizers import CUDAGUFuncVectorize
         return CUDAGUFuncVectorize
 
     Vectorize.target_registry.ondemand['cuda'] = init_cuda_vectorize
