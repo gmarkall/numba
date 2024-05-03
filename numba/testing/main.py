@@ -80,7 +80,7 @@ def cuda_sensitive_mtime(x):
     cls = x.__class__
     key = _get_mtime(cls) + str(x)
 
-    from numba.cuda.testing import CUDATestCase
+    from numba_cuda.testing import CUDATestCase
     if CUDATestCase in cls.mro():
         key = "%s.%s %s" % (str(cls.__module__), str(cls.__name__), key)
 
