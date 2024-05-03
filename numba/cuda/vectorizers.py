@@ -1,3 +1,2 @@
-import sys
-from numba.core.errors import _MovedModule
-sys.modules[__name__] = _MovedModule(locals(), "numba_cuda.vectorizers")
+from numba.core.utils import moved_cuda_module
+moved_cuda_module(__name__)

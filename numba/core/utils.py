@@ -797,3 +797,8 @@ def dump_llvm(fndesc, module):
     else:
         print(module)
     print('=' * 80)
+
+
+def moved_cuda_module(name):
+    new_name = name.replace("numba.cuda", "numba_cuda")
+    sys.modules[name] = import_module(new_name)
