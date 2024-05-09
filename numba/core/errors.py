@@ -13,8 +13,6 @@ import numpy as np
 from collections import defaultdict
 from functools import wraps
 from abc import abstractmethod
-from importlib import import_module
-from types import ModuleType
 
 # Filled at the end
 __all__ = []
@@ -886,52 +884,6 @@ def new_error_context(fmt_, *args, **kwargs):
             msg = ("Unknown CAPTURED_ERRORS style: "
                    f"'{numba.core.config.CAPTURED_ERRORS}'.")
             assert 0, msg
-
-
-class _MovedModule(ModuleType):
-    def __init__(self, old_module_locals, new_module):
-        old_module = old_module_locals['__name__']
-        super().__init__(old_module)
-
-        # copy across dunders so that package imports work too
-        for attr, value in old_module_locals.items():
-            if attr.startswith('__') and attr.endswith('__'):
-                setattr(self, attr, value)
-
-        self.__new_module = new_module
-
-        # Should we wish to emit warnings about the module being moved when
-        # it's imported like "import <module>", we can do so at this point.
-
-    def __getattr__(self, attr):
-        try:
-            # import from the moved module
-            if self.__new_module is not None:
-                mod = import_module(self.__new_module)
-                ret_attr = getattr(mod, attr)
-
-                # Should we wish to emit warnings about the module being moved
-                # when it's used like "from <module> import <attr>", we can do
-                # so at this point just prior to returning ret_attr.
-
-                return ret_attr
-            else:
-                # produce the usual error
-                return super().__getattribute__(attr)
-        except AttributeError:
-            # not a package, so no submodules to attempt to import.
-            # can't use hasattr here because that would recurse.
-            if '__path__' not in self.__dict__:
-                raise
-
-            # perhaps this is a submodule name that was previous importer, but
-            # is no longer
-            try:
-                return import_module("." + attr, package=self.__name__)
-            except ModuleNotFoundError:
-                raise AttributeError(
-                    "Moved module {!r} has no attribute or submodule {!r}"
-                    .format(self.__name__, attr))
 
 
 __all__ += [name for (name, value) in globals().items()
