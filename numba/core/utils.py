@@ -801,4 +801,8 @@ def dump_llvm(fndesc, module):
 
 def moved_cuda_module(name):
     new_name = name.replace("numba.cuda", "numba_cuda")
-    sys.modules[name] = import_module(new_name)
+    mod = import_module(new_name)
+    sys.modules[name] = mod
+    # Putting it under new_name may not be necessary, but i didnt want to not
+    # commit this and forget it in case it is significant
+    sys.modules[new_name] = mod
