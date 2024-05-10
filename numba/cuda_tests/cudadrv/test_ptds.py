@@ -23,7 +23,7 @@ def child_test():
     # used.
     logbuf = io.StringIO()
     handler = logging.StreamHandler(logbuf)
-    cudadrv_logger = logging.getLogger('numba.cuda.cudadrv.driver')
+    cudadrv_logger = logging.getLogger('numba_cuda.cudadrv.driver')
     cudadrv_logger.addHandler(handler)
     cudadrv_logger.setLevel(logging.DEBUG)
 

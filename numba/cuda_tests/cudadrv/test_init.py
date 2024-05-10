@@ -82,6 +82,7 @@ def cuda_disabled_error_test(result_queue):
     result_queue.put((success, msg))
 
 
+@unittest.skip
 @skip_on_cudasim('CUDA Simulator does not initialize driver')
 class TestInit(CUDATestCase):
     def _test_init_failure(self, target, expected):

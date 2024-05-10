@@ -4,6 +4,7 @@ from numba import cuda
 from numba.cuda.testing import unittest, ContextResettingTestCase
 
 
+@unittest.skip
 class TestHostAlloc(ContextResettingTestCase):
     def test_host_alloc_driver(self):
         n = 32

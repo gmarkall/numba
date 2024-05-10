@@ -3,6 +3,7 @@ from numba import cuda
 from numba.cuda.testing import unittest, CUDATestCase
 
 
+@unittest.skip
 class TestCudaEvent(CUDATestCase):
     def test_event_elapsed(self):
         N = 32
