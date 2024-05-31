@@ -52,7 +52,7 @@ def create_pass_builder(tm, opt=2, loop_vectorize=False,
     Create an LLVM pass builder with the desired optimisation level and options.
     """
 
-    pto = llvm.create_pipeline_options()
+    pto = llvm.create_pipeline_tuning_options()
     pto.opt_level = opt
     pto.slp_vectorization = slp_vectorize
     pto.loop_vectorization = loop_vectorize

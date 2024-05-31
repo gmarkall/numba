@@ -1230,7 +1230,7 @@ class CPUCodegen(Codegen):
         #self._tm.add_analysis_passes(pm)
         cost = kwargs.pop("cost", None)
         pb = self._pass_builder(**kwargs)
-        pm = pb.getNewModulePassManager()
+        pm = pb.getModulePassManager()
         #with self._pass_builder(**kwargs) as pb:
         #    pb.populate(pm)
         # If config.OPT==0 do not include these extra passes to help with
