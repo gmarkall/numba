@@ -106,9 +106,9 @@ PyTypeObject DeviceArrayType = {
 };
 
 /* CUDA device array C API */
-static void *_DeviceArray_API[1] = {
-    (void*)&DeviceArrayType
-};
+//static void *_DeviceArray_API[1] = {
+//    (void*)&DeviceArrayType
+//};
 
 MOD_INIT(_devicearray) {
     PyObject *m = nullptr;
@@ -120,9 +120,9 @@ MOD_INIT(_devicearray) {
     if (m == NULL)
         goto error_occurred;
 
-    c_api = PyCapsule_New((void *)_DeviceArray_API, "numba._devicearray._DEVICEARRAY_API", NULL);
-    if (c_api == NULL)
-        goto error_occurred;
+    //c_api = PyCapsule_New((void *)_DeviceArray_API, "numba._devicearray._DEVICEARRAY_API", NULL);
+    //if (c_api == NULL)
+    //    goto error_occurred;
 
     DeviceArrayType.tp_new = PyType_GenericNew;
     if (PyType_Ready(&DeviceArrayType) < 0)
@@ -137,10 +137,10 @@ MOD_INIT(_devicearray) {
     if (d == NULL)
         goto error_occurred;
 
-    error = PyDict_SetItemString(d, "_DEVICEARRAY_API", c_api);
+    //error = PyDict_SetItemString(d, "_DEVICEARRAY_API", c_api);
     /* Decref and set c_api to NULL, Py_XDECREF in error_occurred will have no
      * effect. */
-    Py_CLEAR(c_api);
+    //Py_CLEAR(c_api);
 
     if (error)
         goto error_occurred;
@@ -149,7 +149,7 @@ MOD_INIT(_devicearray) {
 
 error_occurred:
     Py_XDECREF(m);
-    Py_XDECREF(c_api);
+    //Py_XDECREF(c_api);
     Py_XDECREF((PyObject*)&DeviceArrayType);
 
     return MOD_ERROR_VAL;

@@ -55,7 +55,7 @@ static PyObject *str_value = NULL;
 static PyObject *str_numba_type = NULL;
 
 /* CUDA device array API */
-void **DeviceArray_API;
+//void **DeviceArray_API;
 
 /*
  * Type fingerprint computation.
@@ -993,9 +993,9 @@ typeof_typecode(PyObject *dispatcher, PyObject *val)
         return typecode_ndarray(dispatcher, (PyArrayObject*)val);
     }
     /* Subtype of CUDA device array */
-    else if (PyType_IsSubtype(tyobj, &DeviceArrayType)) {
-        return typecode_devicendarray(dispatcher, val);
-    }
+    //else if (PyType_IsSubtype(tyobj, &DeviceArrayType)) {
+    //    return typecode_devicendarray(dispatcher, val);
+    //}
     /* Subtypes of Array handling */
     else if (PyType_IsSubtype(tyobj, &PyArray_Type)) {
         /* By default, Numba will treat all numpy.ndarray subtypes as if they

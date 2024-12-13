@@ -11,12 +11,12 @@
  * _devicearray.cpp itself because they would conflict with the actual
  * implementations there.
  */
-#ifndef NUMBA_IN_DEVICEARRAY_CPP_
+//#ifndef NUMBA_IN_DEVICEARRAY_CPP_
 
-    extern void **DeviceArray_API;
-    #define DeviceArrayType (*(PyTypeObject*)DeviceArray_API[0])
+//    extern void **DeviceArray_API;
+//    #define DeviceArrayType (*(PyTypeObject*)DeviceArray_API[0])
 
-#endif /* ndef NUMBA_IN_DEVICEARRAY_CPP */
+//#endif /* ndef NUMBA_IN_DEVICEARRAY_CPP */
 
 #ifdef __cplusplus
     }

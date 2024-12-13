@@ -1526,10 +1526,10 @@ import_devicearray(void)
     }
     Py_DECREF(devicearray);
 
-    DeviceArray_API = (void**)PyCapsule_Import("numba._devicearray._DEVICEARRAY_API", 0);
-    if (DeviceArray_API == NULL) {
-        return -1;
-    }
+    //DeviceArray_API = (void**)PyCapsule_Import("numba._devicearray._DEVICEARRAY_API", 0);
+    //if (DeviceArray_API == NULL) {
+    //    return -1;
+    //}
 
     return 0;
 }
