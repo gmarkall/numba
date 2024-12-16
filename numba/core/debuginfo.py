@@ -333,14 +333,25 @@ class DIBuilder(AbstractDIBuilder):
 
         mdtype = self._var_type(lltype, size, datamodel=datamodel)
         name = name.replace('.', '$')    # for gdb to work correctly
-        mdlocalvar = m.add_debug_info('DILocalVariable', {
-            'name': name,
-            'arg': arg_index,
-            'scope': self.subprograms[-1],
-            'file': self.difile,
-            'line': line,
-            'type': mdtype,
-        })
+        source_name = name.split('$')[0]
+
+        mdlocalvar = None
+        for k, v in m._metadatacache.items():
+            if k[0] == 'DILocalVariable':
+                for name, value in v.operands:
+                    breakpoint()
+                    if name == 'name':
+                        if value == source_name:
+                            mdlocalvar = v
+        if mdlocalvar is None:
+            mdlocalvar = m.add_debug_info('DILocalVariable', {
+                'name': name,
+                'arg': arg_index,
+                'scope': self.subprograms[-1],
+                'file': self.difile,
+                'line': line,
+                'type': mdtype,
+            })
         mdexpr = m.add_debug_info('DIExpression', {})
 
         return builder.call(decl, [allocavalue, mdlocalvar, mdexpr])
