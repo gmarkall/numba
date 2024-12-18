@@ -1562,15 +1562,26 @@ class Lower(BaseLower):
             # store following reassemble from CC splatting structs as many args
             # to the function) then mark this variable as such.
             if argidx is not None:
+
                 self.builder.store(value, ptr)
                 loc = self.defn_loc # the line with `def <func>`
                 lltype = self.context.get_value_type(fetype)
+                #breakpoint()
                 sizeof = self.context.get_abi_sizeof(lltype)
                 datamodel = self.context.data_model_manager[fetype]
-                self.debuginfo.mark_arg(self.builder, value, name=name,
-                                        lltype=lltype, size=sizeof,
-                                        line=loc.line, datamodel=datamodel,
-                                        argidx=argidx)
+
+                dival = self.debuginfo._var_type(lltype, sizeof, datamodel)
+                if dival.kind == 'DICompositeType':
+                    self.debuginfo.mark_variable(self.builder, ptr, name,
+                                                 lltype=lltype, size=sizeof,
+                                                 line=loc.line,
+                                                 datamodel=datamodel,
+                                                 argidx=argidx)
+                else:
+                    self.debuginfo.mark_arg(self.builder, value, name=name,
+                                            lltype=lltype, size=sizeof,
+                                            line=loc.line, datamodel=datamodel,
+                                            argidx=argidx)
             else:
                 self.builder.store(value, ptr)
 
