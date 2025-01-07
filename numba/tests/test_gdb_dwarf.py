@@ -50,6 +50,9 @@ class TestGDBDwarf(TestCase):
     def test_break_on_symbol_version(self):
         self._subprocess_test_runner('test_break_on_symbol_version')
 
+    def test_info_locals(self):
+        self._subprocess_test_runner('test_info_locals')
+
     def test_pretty_print(self):
         if not self._gdb_has_numpy():
             _msg = "Cannot find gdb with NumPy support"

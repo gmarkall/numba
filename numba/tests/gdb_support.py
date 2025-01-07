@@ -97,6 +97,14 @@ class GdbMIDriver(object):
         decoded = output.decode('utf-8')
         assert expected in decoded, f'decoded={decoded}\nexpected={expected})'
 
+    def assert_not_output(self, not_expected):
+        """Asserts that the current output string does not contain what is not
+        expected."""
+        output = self._captured.after
+        decoded = output.decode('utf-8')
+        msg = f'decoded={decoded}\nnot_expected={not_expected})'
+        assert not_expected not in decoded, msg
+
     def assert_regex_output(self, expected):
         """Asserts that the current output string contains the expected
         regex."""
