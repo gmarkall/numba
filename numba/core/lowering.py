@@ -1562,8 +1562,8 @@ class Lower(BaseLower):
             # store following reassemble from CC splatting structs as many args
             # to the function) then mark this variable as such.
             if argidx is not None:
-                with debuginfo.suspend_emission(self.builder):
-                    self.builder.store(value, ptr)
+                #with debuginfo.suspend_emission(self.builder):
+                self.builder.store(value, ptr)
                 loc = self.defn_loc # the line with `def <func>`
                 lltype = self.context.get_value_type(fetype)
                 sizeof = self.context.get_abi_sizeof(lltype)
