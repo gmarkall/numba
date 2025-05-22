@@ -7,7 +7,7 @@ import random
 
 import numpy as np
 
-from numba import jit, vectorize, guvectorize
+from numba import jit
 
 from numba.tests.support import temp_directory, override_config
 from numba.core import config
@@ -57,40 +57,9 @@ class TestThreadSafety(unittest.TestCase):
     def test_concurrent_jit_cache(self):
         self.run_compile([self.run_jit(nopython=True, cache=True)])
 
-    def run_vectorize(self, **options):
-        def runner():
-            cfunc = vectorize(['(f4, f4)'], **options)(ufunc_foo)
-            a = b = np.random.random(10).astype(np.float32)
-            return cfunc(a, b)
-        return runner
-
-    def test_concurrent_vectorize(self):
-        self.run_compile([self.run_vectorize(nopython=True)])
-
-    def test_concurrent_vectorize_cache(self):
-        self.run_compile([self.run_vectorize(nopython=True, cache=True)])
-
-    def run_guvectorize(self, **options):
-        def runner():
-            sig = ['(f4, f4, f4[:])']
-            cfunc = guvectorize(sig, '(),()->()', **options)(gufunc_foo)
-            a = b = np.random.random(10).astype(np.float32)
-            return cfunc(a, b)
-        return runner
-
-    def test_concurrent_guvectorize(self):
-        self.run_compile([self.run_guvectorize(nopython=True)])
-
-    def test_concurrent_guvectorize_cache(self):
-        self.run_compile([self.run_guvectorize(nopython=True, cache=True)])
-
     def test_concurrent_mix_use(self):
         self.run_compile([self.run_jit(nopython=True, cache=True),
-                          self.run_jit(nopython=True),
-                          self.run_vectorize(nopython=True, cache=True),
-                          self.run_vectorize(nopython=True),
-                          self.run_guvectorize(nopython=True, cache=True),
-                          self.run_guvectorize(nopython=True)])
+                          self.run_jit(nopython=True)])
 
 
 if __name__ == '__main__':

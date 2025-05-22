@@ -8,7 +8,7 @@ from io import StringIO
 
 import numpy as np
 
-from numba import njit, jit, typeof, vectorize
+from numba import njit, jit, typeof
 from numba.core import types, errors
 from numba import _dispatcher
 from numba.tests.support import TestCase, captured_stdout
@@ -1169,24 +1169,6 @@ class TestMultiprocessingDefaultParameters(SerialMixin, unittest.TestCase):
         """ Tests a function as a default parameter"""
 
         self.run_fc_multiproc(add_func)
-
-
-class TestVectorizeDifferentTargets(unittest.TestCase):
-    """Test that vectorize can be reapplied if the target is different
-    """
-
-    def test_cpu_vs_parallel(self):
-        @jit
-        def add(x, y):
-            return x + y
-
-        custom_vectorize = vectorize([], identity=None, target='cpu')
-
-        custom_vectorize(add)
-
-        custom_vectorize_2 = vectorize([], identity=None, target='parallel')
-
-        custom_vectorize_2(add)
 
 
 if __name__ == '__main__':

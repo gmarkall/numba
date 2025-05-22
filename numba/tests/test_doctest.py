@@ -15,8 +15,6 @@ class TestDocTest(TestCase):
             'numba.tests.doctest_usecase',
             'numba.tests.doctest_usecase.a',
             'numba.tests.doctest_usecase.b',
-            'numba.tests.doctest_usecase.c',
-            'numba.tests.doctest_usecase.d',
         }
         self.assertEqual(testnames, expected)
 

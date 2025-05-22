@@ -32,7 +32,7 @@ class TestNumbaImport(TestCase):
                 __import__(mod)
 
         code = """if 1:
-            from numba import jit, vectorize
+            from numba import jit
             from numba.core import types
             import sys
             print(list(sys.modules))

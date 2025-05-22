@@ -3,7 +3,7 @@ from io import StringIO
 
 import numpy as np
 
-from numba import njit, vectorize
+from numba import njit
 from numba import typeof
 from numba.core import utils, types, typing, ir, compiler, cpu, cgutils
 from numba.core.compiler import Compiler, Flags
@@ -49,11 +49,6 @@ def neg_root_complex_subexpr(As, Bs, Cs):
     _4AsCs = 2. * _2As * Cs
     _Bs2_4AsCs = (Bs ** 2. - _4AsCs) + 0j # Force into the complex domain.
     return (-Bs - (_Bs2_4AsCs ** 0.5)) / _2As
-
-vaxy = vectorize(axy)
-
-def call_stuff(a0, a1):
-    return np.cos(vaxy(a0, np.sin(a1) - 1., 1.))
 
 def are_roots_imaginary(As, Bs, Cs):
     return (Bs ** 2 - 4 * As * Cs) < 0
@@ -342,39 +337,6 @@ class TestArrayExpressions(MemoryLeakMixin, TestCase):
 
     def test_complex_subexpression(self):
         return self.test_common_subexpressions(neg_root_complex_subexpr)
-
-    def test_ufunc_and_dufunc_calls(self):
-        '''
-        Verify that ufunc and DUFunc calls are being properly included in
-        array expressions.
-        '''
-        A = np.random.random(10)
-        B = np.random.random(10)
-        arg_tys = [typeof(arg) for arg in (A, B)]
-
-        vaxy_descr = vaxy._dispatcher.targetdescr
-        control_pipeline = RewritesTester.mk_no_rw_pipeline(
-            arg_tys,
-            typing_context=vaxy_descr.typing_context,
-            target_context=vaxy_descr.target_context)
-        cres_0 = control_pipeline.compile_extra(call_stuff)
-        nb_call_stuff_0 = cres_0.entry_point
-
-        test_pipeline = RewritesTester.mk_pipeline(
-            arg_tys,
-            typing_context=vaxy_descr.typing_context,
-            target_context=vaxy_descr.target_context)
-        cres_1 = test_pipeline.compile_extra(call_stuff)
-        nb_call_stuff_1 = cres_1.entry_point
-
-        expected = call_stuff(A, B)
-        control = nb_call_stuff_0(A, B)
-        actual = nb_call_stuff_1(A, B)
-        np.testing.assert_array_almost_equal(expected, control)
-        np.testing.assert_array_almost_equal(expected, actual)
-
-        self._assert_total_rewrite(control_pipeline.state.func_ir.blocks,
-                                   test_pipeline.state.func_ir.blocks)
 
     def test_cmp_op(self):
         '''

@@ -12,7 +12,7 @@ import numpy as np
 from llvmlite import ir
 
 import numba
-from numba import njit, jit, vectorize, guvectorize, objmode
+from numba import njit, jit, objmode
 from numba.core import types, errors, typing, compiler, cgutils
 from numba.core.typed_passes import type_inference_stage
 from numba.core.registry import cpu_target
@@ -1950,11 +1950,6 @@ class TestMisc(TestCase):
 
         self.assertFalse(is_jitted(foo))
         self.assertTrue(is_jitted(njit(foo)))
-        self.assertFalse(is_jitted(vectorize(foo)))
-        self.assertFalse(is_jitted(vectorize(parallel=True)(foo)))
-        self.assertFalse(
-            is_jitted(guvectorize("void(float64[:])", "(m)")(foo))
-        )
 
     def test_overload_arg_binding(self):
         # See issue #7982, checks that calling a function with named args works

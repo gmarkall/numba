@@ -14,7 +14,6 @@ import numpy as np
 import operator
 
 from numba.np import arrayobj, ufunc_db, numpy_support
-from numba.np.ufunc.sigparse import parse_signature
 from numba.core.imputils import (Registry, impl_ret_new_ref, force_error_model,
                                  impl_ret_borrowed)
 from numba.core import typing, types, utils, cgutils, callconv, config
@@ -558,82 +557,6 @@ def numpy_ufunc_kernel(context, builder, sig, args, ufunc, kernel_class):
 
     out = _pack_output_values(ufunc, context, builder, sig.return_type, [o.return_val for o in outputs])
     return impl_ret_new_ref(context, builder, sig.return_type, out)
-
-
-def numpy_gufunc_kernel(context, builder, sig, args, ufunc, kernel_class):
-    arguments = []
-    expected_ndims = kernel_class.dufunc.expected_ndims()
-    expected_ndims = expected_ndims[0] + expected_ndims[1]
-    is_input = [True] * ufunc.nin + [False] * ufunc.nout
-    for arg, ty, exp_ndim, is_inp in zip(args, sig.args, expected_ndims, is_input):  # noqa: E501
-        if isinstance(ty, types.ArrayCompatible):
-            # Create an array helper that iteration returns a subarray
-            # with ndim specified by "exp_ndim"
-            arr = context.make_array(ty)(context, builder, arg)
-            shape = cgutils.unpack_tuple(builder, arr.shape, ty.ndim)
-            strides = cgutils.unpack_tuple(builder, arr.strides, ty.ndim)
-            inner_arr_ty = ty.copy(ndim=exp_ndim)
-            ndim = ty.ndim
-            layout = ty.layout
-            base_type = ty.dtype
-            array_helper = _ArrayGUHelper(context, builder,
-                                          shape, strides, arg,
-                                          layout, base_type, ndim,
-                                          inner_arr_ty, is_inp)
-            arguments.append(array_helper)
-        else:
-            scalar_helper = _ScalarHelper(context, builder, arg, ty)
-            arguments.append(scalar_helper)
-    kernel = kernel_class(context, builder, sig)
-
-    layouts = [arg.layout for arg in arguments
-               if isinstance(arg, _ArrayGUHelper)]
-    num_c_layout = len([x for x in layouts if x == 'C'])
-    num_f_layout = len([x for x in layouts if x == 'F'])
-
-    # Only choose F iteration order if more arrays are in F layout.
-    # Default to C order otherwise.
-    # This is a best effort for performance. NumPy has more fancy logic that
-    # uses array iterators in non-trivial cases.
-    if num_f_layout > num_c_layout:
-        order = 'F'
-    else:
-        order = 'C'
-
-    outputs = arguments[ufunc.nin:]
-    intpty = context.get_value_type(types.intp)
-    indices = [inp.create_iter_indices() for inp in arguments]
-    loopshape_ndim = outputs[0].ndim - outputs[0].inner_arr_ty.ndim
-    loopshape = outputs[0].shape[ : loopshape_ndim]
-
-    _sig = parse_signature(ufunc.gufunc_builder.signature)
-    for (idx_a, sig_a), (idx_b, sig_b) in itertools.combinations(
-            zip(range(len(arguments)),
-            _sig[0] + _sig[1]),
-            r = 2
-    ):
-        # For each pair of arguments, both inputs and outputs, must match their
-        # inner dimensions if their signatures are the same.
-        arg_a, arg_b = arguments[idx_a], arguments[idx_b]
-        if sig_a == sig_b and \
-                all(isinstance(x, _ArrayGUHelper) for x in (arg_a, arg_b)):
-            arg_a, arg_b = arguments[idx_a], arguments[idx_b]
-            arg_a.guard_match_core_dims(arg_b, len(sig_a))
-
-    for arg in arguments[:ufunc.nin]:
-        if isinstance(arg, _ArrayGUHelper):
-            arg.guard_shape(loopshape)
-
-    with cgutils.loop_nest(builder,
-                           loopshape,
-                           intp=intpty,
-                           order=order) as loop_indices:
-        vals_in = []
-        for i, (index, arg) in enumerate(zip(indices, arguments)):
-            index.update_indices(loop_indices, i)
-            vals_in.append(arg.load_data(index.as_values()))
-
-        kernel.generate(*vals_in)
 
 
 # Kernels are the code to be executed inside the multidimensional loop.

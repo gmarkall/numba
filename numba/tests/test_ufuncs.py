@@ -2,13 +2,12 @@ import functools
 import itertools
 import sys
 import warnings
-import threading
 import operator
 
 import numpy as np
 
 import unittest
-from numba import guvectorize, njit, typeof, vectorize
+from numba import njit, typeof
 from numba.core import types
 from numba.np.numpy_support import from_dtype
 from numba.core.errors import LoweringError, TypingError
@@ -1350,16 +1349,6 @@ class TestScalarUFuncs(TestCase):
 
 class TestUfuncIssues(TestCase):
 
-    def test_issue_651(self):
-        # Exercise the code path to make sure this does not fail
-        @vectorize(["(float64,float64)"])
-        def foo(x1, x2):
-            return np.add(x1, x2) + np.add(x1, x2)
-
-        a = np.arange(10, dtype='f8')
-        b = np.arange(10, dtype='f8')
-        self.assertPreciseEqual(foo(a, b), (a + b) + (a + b))
-
     def test_issue_2006(self):
         """
         <float32 ** int> should return float32, not float64.
@@ -1838,35 +1827,6 @@ class TestUFuncBadArgs(TestCase):
             njit([types.float64(types.float64)])(func)
 
 
-class TestUFuncCompilationThreadSafety(TestCase):
-
-    def test_lock(self):
-        """
-        Test that (lazy) compiling from several threads at once doesn't
-        produce errors (see issue #2403).
-        """
-        errors = []
-
-        @vectorize
-        def foo(x):
-            return x + 1
-
-        def wrapper():
-            try:
-                a = np.ones((10,), dtype=np.float64)
-                expected = np.ones((10,), dtype=np.float64) + 1.
-                np.testing.assert_array_equal(foo(a), expected)
-            except Exception as e:
-                errors.append(e)
-
-        threads = [threading.Thread(target=wrapper) for i in range(16)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
-        self.assertFalse(errors)
-
-
 class TestUfuncOnContext(TestCase):
     def test_cpu_get_ufunc_info(self):
         # The CPU context defines get_ufunc_info that is the same as
@@ -1893,25 +1853,6 @@ class TestUfuncOnContext(TestCase):
             str(raises.exception),
             r"<numba\..*\.BaseContext object at .*> does not support ufunc",
         )
-
-
-class TestUfuncWriteInput(TestCase):
-    def test_write_input_arg(self):
-        @guvectorize(["void(float64[:], uint8[:])"], "(n)->(n)")
-        def func(x, out):
-
-            for i in range(x.size):
-                # set every fourth element to 1
-                if i % 4 == 0:
-                    out[i] = 1
-
-        x = np.random.rand(10, 5)
-        out = np.zeros_like(x, dtype=np.int8)
-
-        func(x, out)
-        np.testing.assert_array_equal(
-            np.array([True, False, False, False, True], dtype=np.bool_),
-            out.any(axis=0))
 
 
 if __name__ == '__main__':

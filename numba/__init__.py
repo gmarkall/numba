@@ -86,12 +86,6 @@ from numba.core.types import *
 # Re-export decorators
 from numba.core.decorators import cfunc, jit, njit, jit_module
 
-# Re-export vectorize decorators and the thread layer querying function
-from numba.np.ufunc import (vectorize, guvectorize, threading_layer,
-                            get_num_threads, set_num_threads,
-                            set_parallel_chunksize, get_parallel_chunksize,
-                            get_thread_id)
-
 # Re-export Numpy helpers
 from numba.np.numpy_support import carray, farray, from_dtype
 
@@ -119,7 +113,6 @@ def test(argv, **kwds):
 __all__ = """
     cfunc
     from_dtype
-    guvectorize
     jit
     experimental
     njit
@@ -128,14 +121,8 @@ __all__ = """
     gdb
     gdb_breakpoint
     gdb_init
-    vectorize
     objmode
     literal_unroll
-    get_num_threads
-    set_num_threads
-    set_parallel_chunksize
-    get_parallel_chunksize
-    parallel_chunksize
     """.split() + types.__all__ + errors.__all__
 
 

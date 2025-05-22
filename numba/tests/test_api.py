@@ -20,8 +20,6 @@ class TestNumbaModule(TestCase):
     def test_numba_module(self):
         # jit
         self.check_member("jit")
-        self.check_member("vectorize")
-        self.check_member("guvectorize")
         self.check_member("njit")
         # errors
         self.check_member("NumbaError")

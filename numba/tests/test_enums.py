@@ -5,7 +5,7 @@ Tests for enum support.
 
 import numpy as np
 import unittest
-from numba import jit, vectorize, int8, int16, int32
+from numba import jit, int8, int16, int32
 
 from numba.tests.support import TestCase
 from numba.tests.enum_usecases import (Color, Shape, Shake,
@@ -57,13 +57,6 @@ def int_cast_usecase(x):
         return x - int32(RequestError.not_found)
     else:
         return x + int16(Shape.circle)
-
-
-def vectorize_usecase(x):
-    if x != RequestError.not_found:
-        return RequestError['internal_error']
-    else:
-        return RequestError.dummy
 
 
 class BaseEnumTest(object):
@@ -149,12 +142,6 @@ class TestIntEnum(BaseEnumTest, TestCase):
 
         for arg in [300, 450, 550]:
             self.assertPreciseEqual(pyfunc(arg), cfunc(arg))
-
-    def test_vectorize(self):
-        cfunc = vectorize(nopython=True)(vectorize_usecase)
-        arg = np.array([2, 404, 500, 404])
-        sol = np.array([vectorize_usecase(i) for i in arg], dtype=arg.dtype)
-        self.assertPreciseEqual(sol, cfunc(arg))
 
     def test_hash(self):
         def pyfun(x):
