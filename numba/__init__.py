@@ -70,7 +70,7 @@ from numba.core import types, errors
 
 # Re-export typeof
 from numba.misc.special import (
-    typeof, prange, pndindex, gdb, gdb_breakpoint, gdb_init,
+    typeof, gdb, gdb_breakpoint, gdb_init,
     literally, literal_unroll,
 )
 
@@ -126,7 +126,6 @@ __all__ = """
     stencil
     jit_module
     typeof
-    prange
     gdb
     gdb_breakpoint
     gdb_init

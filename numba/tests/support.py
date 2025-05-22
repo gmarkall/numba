@@ -83,11 +83,6 @@ tag = testing.make_tag_decorator(['important', 'long_running', 'always_test'])
 always_test = tag('always_test')
 
 _32bit = sys.maxsize <= 2 ** 32
-is_parfors_unsupported = _32bit
-skip_parfors_unsupported = unittest.skipIf(
-    is_parfors_unsupported,
-    'parfors not supported',
-)
 
 skip_unless_py10_or_later = unittest.skipUnless(
     utils.PYVERSION >= (3, 10),

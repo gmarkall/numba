@@ -6,13 +6,12 @@ import warnings
 
 import numpy as np
 
-from numba.tests.support import (TestCase, override_config, override_env_config,
-                      captured_stdout, forbid_codegen, skip_parfors_unsupported,
-                      needs_blas)
+from numba.tests.support import (TestCase, override_config,
+                                 override_env_config, captured_stdout,
+                                 forbid_codegen, needs_blas)
 from numba import jit, njit
 from numba.core import types, compiler, utils
 from numba.core.errors import NumbaPerformanceWarning
-from numba import prange
 from numba.experimental import jitclass
 import unittest
 
@@ -34,22 +33,6 @@ simple_class_spec = [('h', types.int32)]
 
 def simple_class_user(obj):
     return obj.h
-
-def unsupported_parfor(a, b):
-    return np.dot(a, b) # dot as gemm unsupported
-
-def supported_parfor(n):
-    a = np.ones(n)
-    for i in prange(n):
-        a[i] = a[i] + np.sin(i)
-    return a
-
-def unsupported_prange(n):
-    a = np.ones(n)
-    for i in prange(n):
-        a[i] = a[i] + np.sin(i)
-        assert i + 13 < 100000
-    return a
 
 
 class DebugTestBase(TestCase):
@@ -226,114 +209,6 @@ class TestEnvironmentOverride(FunctionDebugTestBase):
                                           'optimized_llvm', 'assembly'])
         out = self.compile_simple_nopython()
         self.assertFalse(out)
-
-class TestParforsDebug(TestCase):
-    """
-    Tests debug options associated with parfors
-    """
-
-    # mutates env with os.environ so must be run serially
-    _numba_parallel_test_ = False
-
-    def check_parfors_warning(self, warn_list):
-        msg = ("'parallel=True' was specified but no transformation for "
-               "parallel execution was possible.")
-        warning_found = False
-        for w in warn_list:
-            if msg in str(w.message):
-                warning_found = True
-                break
-        self.assertTrue(warning_found, "Warning message should be found.")
-
-    def check_parfors_unsupported_prange_warning(self, warn_list):
-        msg = ("prange or pndindex loop will not be executed in parallel "
-               "due to there being more than one entry to or exit from the "
-               "loop (e.g., an assertion).")
-        warning_found = False
-        for w in warn_list:
-            if msg in str(w.message):
-                warning_found = True
-                break
-        self.assertTrue(warning_found, "Warning message should be found.")
-
-    @needs_blas
-    @skip_parfors_unsupported
-    def test_warns(self):
-        """
-        Test that using parallel=True on a function that does not have parallel
-        semantics warns.
-        """
-        arr_ty = types.Array(types.float64, 2, "C")
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always", NumbaPerformanceWarning)
-            njit((arr_ty, arr_ty), parallel=True)(unsupported_parfor)
-        self.check_parfors_warning(w)
-
-    @needs_blas
-    @skip_parfors_unsupported
-    def test_unsupported_prange_warns(self):
-        """
-        Test that prange with multiple exits issues a warning
-        """
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always", NumbaPerformanceWarning)
-            njit((types.int64,), parallel=True)(unsupported_prange)
-        self.check_parfors_unsupported_prange_warning(w)
-
-    @skip_parfors_unsupported
-    def test_array_debug_opt_stats(self):
-        """
-        Test that NUMBA_DEBUG_ARRAY_OPT_STATS produces valid output
-        """
-        # deliberately trigger a compilation loop to increment the
-        # Parfor class state, this is to ensure the test works based
-        # on indices computed based on this state and not hard coded
-        # indices.
-        njit((types.int64,), parallel=True)(supported_parfor)
-
-        with override_env_config('NUMBA_DEBUG_ARRAY_OPT_STATS', '1'):
-            with captured_stdout() as out:
-                njit((types.int64,), parallel=True)(supported_parfor)
-
-            # grab the various parts out the output
-            output = out.getvalue().split('\n')
-            parallel_loop_output = \
-                [x for x in output if 'is produced from pattern' in x]
-            fuse_output = \
-                [x for x in output if 'is fused into' in x]
-            after_fusion_output = \
-                [x for x in output if 'After fusion, function' in x]
-
-            # Parfor's have a shared state index, grab the current value
-            # as it will be used as an offset for all loop messages
-            parfor_state = int(re.compile(r'#([0-9]+)').search(
-                parallel_loop_output[0]).group(1))
-            bounds = range(parfor_state,
-                           parfor_state + len(parallel_loop_output))
-
-            # Check the Parallel for-loop <index> is produced from <pattern>
-            # works first
-            pattern = ("('ones function', 'NumPy mapping')",
-                       ('prange', 'user', ''))
-            fmt = 'Parallel for-loop #{} is produced from pattern \'{}\' at'
-            for i, trials, lpattern in zip(bounds, parallel_loop_output,
-                                           pattern):
-                to_match = fmt.format(i, lpattern)
-                self.assertIn(to_match, trials)
-
-            # Check the fusion statements are correct
-            pattern = (parfor_state + 1, parfor_state + 0)
-            fmt = 'Parallel for-loop #{} is fused into for-loop #{}.'
-            for trials in fuse_output:
-                to_match = fmt.format(*pattern)
-                self.assertIn(to_match, trials)
-
-            # Check the post fusion statements are correct
-            pattern = (supported_parfor.__name__, 1, set([parfor_state]))
-            fmt = 'After fusion, function {} has {} parallel for-loop(s) #{}.'
-            for trials in after_fusion_output:
-                to_match = fmt.format(*pattern)
-                self.assertIn(to_match, trials)
 
 
 if __name__ == '__main__':

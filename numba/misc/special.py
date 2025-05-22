@@ -1,22 +1,5 @@
-import numpy as np
-
 from numba.core.typing.typeof import typeof
 from numba.core.typing.asnumbatype import as_numba_type
-
-
-def pndindex(*args):
-    """ Provides an n-dimensional parallel iterator that generates index tuples
-    for each iteration point. Sequentially, pndindex is identical to np.ndindex.
-    """
-    return np.ndindex(*args)
-
-
-class prange(object):
-    """ Provides a 1D parallel iterator that generates a sequence of integers.
-    In non-parallel contexts, prange is identical to range.
-    """
-    def __new__(cls, *args):
-        return range(*args)
 
 
 def _gdb_python_call_gen(func_name, *args):
@@ -94,8 +77,6 @@ def literal_unroll(container):
 __all__ = [
     'typeof',
     'as_numba_type',
-    'prange',
-    'pndindex',
     'gdb',
     'gdb_breakpoint',
     'gdb_init',

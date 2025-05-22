@@ -17,7 +17,7 @@ from numba import jit, vectorize, njit
 from numba.np.numpy_support import numpy_version
 from numba.core import types, config
 from numba.core.errors import TypingError
-from numba.tests.support import TestCase, tag, skip_parfors_unsupported
+from numba.tests.support import TestCase, tag
 from numba.np import npdatetime_helpers, numpy_support
 
 TIMEDELTA_M = np.dtype('timedelta64[M]')
@@ -960,16 +960,8 @@ class TestDatetimeArrayOps(TestCase):
     def test_add_td(self):
         self._test_td_add_or_sub(np.add, False)
 
-    @skip_parfors_unsupported
-    def test_add_td_parallel(self):
-        self._test_td_add_or_sub(np.add, True)
-
     def test_sub_td(self):
         self._test_td_add_or_sub(np.subtract, False)
-
-    @skip_parfors_unsupported
-    def test_sub_td_parallel(self):
-        self._test_td_add_or_sub(np.subtract, True)
 
     def _test_add_sub_td_no_match(self, operation):
         """
@@ -1122,22 +1114,6 @@ class TestDatetimeArrayOps(TestCase):
 
     def test_max_method(self):
         self._test_min_max(np.max, False, True)
-
-    @skip_parfors_unsupported
-    def test_min_func_parallel(self):
-        self._test_min_max(np.min, True, False)
-
-    @skip_parfors_unsupported
-    def test_min_method_parallel(self):
-        self._test_min_max(np.min, True, True)
-
-    @skip_parfors_unsupported
-    def test_max_func_parallel(self):
-        self._test_min_max(np.max, True, False)
-
-    @skip_parfors_unsupported
-    def test_max_method_parallel(self):
-        self._test_min_max(np.max, True, True)
 
     def test_searchsorted_datetime(self):
         from .test_np_functions import (

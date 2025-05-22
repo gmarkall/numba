@@ -1,8 +1,7 @@
 import re
 import numpy as np
 
-from numba.tests.support import (TestCase, override_config, captured_stdout,
-                      skip_parfors_unsupported)
+from numba.tests.support import TestCase, override_config, captured_stdout
 from numba import jit, njit
 from numba.core import types, ir, postproc, compiler
 from numba.core.ir_utils import (guard, find_callname, find_const,
@@ -66,14 +65,8 @@ def gen_pipeline(state, test_pass):
         # typing
         pm.add_pass(NopythonTypeInference, "nopython frontend")
 
-        if state.flags.auto_parallel.enabled:
-            pm.add_pass(PreParforPass, "Preprocessing for parfors")
         if not state.flags.no_rewrites:
             pm.add_pass(NopythonRewrites, "nopython rewrites")
-        if state.flags.auto_parallel.enabled:
-            pm.add_pass(ParforPass, "convert to parfors")
-            pm.add_pass(ParforFusionPass, "fuse parfors")
-            pm.add_pass(ParforPreLoweringPass, "parfor prelowering")
 
         pm.add_pass(test_pass, "inline test")
 
@@ -83,10 +76,7 @@ def gen_pipeline(state, test_pass):
         pm.add_pass(PreserveIR, "preserve IR")
 
         # lower
-        if state.flags.auto_parallel.enabled:
-            pm.add_pass(NativeParforLowering, "native parfor lowering")
-        else:
-            pm.add_pass(NativeLowering, "native lowering")
+        pm.add_pass(NativeLowering, "native lowering")
         pm.add_pass(NoPythonBackend, "nopython mode backend")
         pm.add_pass(DumpParforDiagnostics, "dump parfor diagnostics")
         return pm
@@ -153,127 +143,6 @@ class TestInlining(TestCase):
         self.assert_not_has_pattern('%s.more' % prefix, asm)
         self.assert_not_has_pattern('%s.inner' % prefix, asm)
 
-    @skip_parfors_unsupported
-    def test_inline_call_after_parfor(self):
-        from numba.tests.inlining_usecases import __dummy__
-        # replace the call to make sure inlining doesn't cause label conflict
-        # with parfor body
-        def test_impl(A):
-            __dummy__()
-            return A.sum()
-        j_func = njit(parallel=True, pipeline_class=InlineTestPipeline)(
-                                                                    test_impl)
-        A = np.arange(10)
-        self.assertEqual(test_impl(A), j_func(A))
-
-    @skip_parfors_unsupported
-    def test_inline_update_target_def(self):
-
-        def test_impl(a):
-            if a == 1:
-                b = 2
-            else:
-                b = 3
-            return b
-
-        func_ir = compiler.run_frontend(test_impl)
-        blocks = list(func_ir.blocks.values())
-        for block in blocks:
-            for i, stmt in enumerate(block.body):
-                # match b = 2 and replace with lambda: 2
-                if (isinstance(stmt, ir.Assign) and isinstance(stmt.value, ir.Var)
-                        and guard(find_const, func_ir, stmt.value) == 2):
-                    # replace expr with a dummy call
-                    func_ir._definitions[stmt.target.name].remove(stmt.value)
-                    stmt.value = ir.Expr.call(ir.Var(block.scope, "myvar", loc=stmt.loc), (), (), stmt.loc)
-                    func_ir._definitions[stmt.target.name].append(stmt.value)
-                    #func = g.py_func#
-                    inline_closure_call(func_ir, {}, block, i, lambda: 2)
-                    break
-
-        self.assertEqual(len(func_ir._definitions['b']), 2)
-
-    @skip_parfors_unsupported
-    def test_inline_var_dict_ret(self):
-        # make sure inline_closure_call returns the variable replacement dict
-        # and it contains the original variable name used in locals
-        @njit(locals={'b': types.float64})
-        def g(a):
-            b = a + 1
-            return b
-
-        def test_impl():
-            return g(1)
-
-        func_ir = compiler.run_frontend(test_impl)
-        blocks = list(func_ir.blocks.values())
-        for block in blocks:
-            for i, stmt in enumerate(block.body):
-                if (isinstance(stmt, ir.Assign)
-                        and isinstance(stmt.value, ir.Expr)
-                        and stmt.value.op == 'call'):
-                    func_def = guard(get_definition, func_ir, stmt.value.func)
-                    if (isinstance(func_def, (ir.Global, ir.FreeVar))
-                            and isinstance(func_def.value, CPUDispatcher)):
-                        py_func = func_def.value.py_func
-                        _, var_map = inline_closure_call(
-                            func_ir, py_func.__globals__, block, i, py_func)
-                        break
-
-        self.assertTrue('b' in var_map)
-
-    @skip_parfors_unsupported
-    def test_inline_call_branch_pruning(self):
-        # branch pruning pass should run properly in inlining to enable
-        # functions with type checks
-        @njit
-        def foo(A=None):
-            if A is None:
-                return 2
-            else:
-                return A
-
-        def test_impl(A=None):
-            return foo(A)
-
-        @register_pass(analysis_only=False, mutates_CFG=True)
-        class PruningInlineTestPass(FunctionPass):
-            _name = "pruning_inline_test_pass"
-
-            def __init__(self):
-                FunctionPass.__init__(self)
-
-            def run_pass(self, state):
-                # assuming the function has one block with one call inside
-                assert len(state.func_ir.blocks) == 1
-                block = list(state.func_ir.blocks.values())[0]
-                for i, stmt in enumerate(block.body):
-                    if (guard(find_callname, state.func_ir, stmt.value)
-                            is not None):
-                        inline_closure_call(state.func_ir, {}, block, i,
-                            foo.py_func, state.typingctx, state.targetctx,
-                            (state.typemap[stmt.value.args[0].name],),
-                             state.typemap, state.calltypes)
-                        break
-                return True
-
-        class InlineTestPipelinePrune(compiler.CompilerBase):
-
-            def define_pipelines(self):
-                pm = gen_pipeline(self.state, PruningInlineTestPass)
-                pm.finalize()
-                return [pm]
-
-        # make sure inline_closure_call runs in full pipeline
-        j_func = njit(pipeline_class=InlineTestPipelinePrune)(test_impl)
-        A = 3
-        self.assertEqual(test_impl(A), j_func(A))
-        self.assertEqual(test_impl(), j_func())
-
-        # make sure IR doesn't have branches
-        fir = j_func.overloads[(types.Omitted(None),)].metadata['preserved_ir']
-        fir.blocks = simplify_CFG(fir.blocks)
-        self.assertEqual(len(fir.blocks), 1)
 
 if __name__ == '__main__':
     unittest.main()

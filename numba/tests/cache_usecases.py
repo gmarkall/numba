@@ -9,7 +9,7 @@ import sys
 
 import numpy as np
 
-from numba import jit, prange
+from numba import jit
 from numba.core import types
 
 from numba.tests.ctypes_usecases import c_sin

@@ -19,9 +19,8 @@ from numba.core.typed_passes import (NopythonTypeInference, DeadCodeElimination,
 from numba.core.compiler_machinery import PassManager
 from numba.core.types.functions import _err_reasons as error_reasons
 
-from numba.tests.support import (skip_parfors_unsupported, override_config,
-                                 SerialMixin, skip_unless_cffi,
-                                 skip_unless_scipy, TestCase)
+from numba.tests.support import (override_config, SerialMixin,
+                                 skip_unless_cffi, skip_unless_scipy, TestCase)
 import unittest
 
 
@@ -137,20 +136,6 @@ class TestMiscErrorHandling(unittest.TestCase):
     def test_handling_of_write_to_typed_dict_global(self):
         from numba.tests.errorhandling_usecases import global_dict_write
         self.check_write_to_globals(njit(global_dict_write))
-
-    @skip_parfors_unsupported
-    def test_handling_forgotten_numba_internal_import(self):
-        @njit(parallel=True)
-        def foo():
-            for i in prange(10): # noqa: F821 prange is not imported
-                pass
-
-        with self.assertRaises(errors.TypingError) as raises:
-            foo()
-
-        expected = ("'prange' looks like a Numba internal function, "
-                    "has it been imported")
-        self.assertIn(expected, str(raises.exception))
 
     def test_handling_unsupported_generator_expression(self):
         def foo():

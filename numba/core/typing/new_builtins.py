@@ -4,8 +4,6 @@ import numpy as np
 import operator
 
 from numba.core import types, errors, config
-from numba import prange
-from numba.parfors.parfor import internal_prange
 
 from numba.core.typing.templates import (AttributeTemplate, ConcreteTemplate,
                                          AbstractTemplate, infer_global, infer,
@@ -67,8 +65,6 @@ class Slice(ConcreteTemplate):
 
 
 @infer_global(range, typing_key=range)
-@infer_global(prange, typing_key=prange)
-@infer_global(internal_prange, typing_key=internal_prange)
 class Range(ConcreteTemplate):
     cases = [
         signature(types.range_state_type, types.py_int),

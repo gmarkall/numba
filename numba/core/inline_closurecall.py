@@ -131,8 +131,7 @@ class InlineClosureCallPass(object):
                                reverse=True):
                 visited.append(k)
                 if guard(_inline_arraycall, self.func_ir, cfg, visited,
-                         loops[k], self.swapped,
-                         False, self.typed):  # enable_prange = False
+                         loops[k], self.swapped, self.typed):
                     modified = True
             if modified:
                 _fix_nested_array(self.func_ir)
@@ -943,8 +942,7 @@ def length_of_iterator(typingctx, val):
         raise errors.TypingError(msg)
 
 
-def _inline_arraycall(func_ir, cfg, visited, loop, swapped, enable_prange=False,
-                      typed=False):
+def _inline_arraycall(func_ir, cfg, visited, loop, swapped, typed=False):
     """Look for array(list) call in the exit block of a given loop, and turn
     list operations into array operations in the loop if the following
     conditions are met:

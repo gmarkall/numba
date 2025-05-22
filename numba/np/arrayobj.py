@@ -13,7 +13,7 @@ from llvmlite.ir import Constant
 
 import numpy as np
 
-from numba import pndindex, literal_unroll
+from numba import literal_unroll
 from numba.core import types, typing, errors, cgutils, extending, config
 from numba.np.numpy_support import (as_dtype, from_dtype, carray, farray,
                                     is_contiguous, is_fortran,
@@ -4149,7 +4149,6 @@ def iternext_numpy_nditer(context, builder, sig, args, result):
     nditer.iternext_specific(context, builder, arrty, arr, result)
 
 
-@lower_builtin(pndindex, types.VarArg(types.Integer))
 @lower_builtin(np.ndindex, types.VarArg(types.Integer))
 def make_array_ndindex(context, builder, sig, args):
     """ndindex(*shape)"""
@@ -4164,7 +4163,6 @@ def make_array_ndindex(context, builder, sig, args):
     return impl_ret_borrowed(context, builder, sig.return_type, res)
 
 
-@lower_builtin(pndindex, types.BaseTuple)
 @lower_builtin(np.ndindex, types.BaseTuple)
 def make_array_ndindex_tuple(context, builder, sig, args):
     """ndindex(shape)"""

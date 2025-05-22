@@ -8,7 +8,7 @@ import warnings
 from itertools import product
 import numpy as np
 
-from numba import njit, typeof, literally, prange
+from numba import njit, typeof, literally
 from numba.core import types, ir, ir_utils, cgutils, errors, utils
 from numba.core.extending import (
     overload,
@@ -26,7 +26,6 @@ from numba.core.typed_passes import InlineOverloads
 from numba.core.typing import signature
 from numba.tests.support import (TestCase, unittest,
                                  MemoryLeakMixin, IRPreservingTestPipeline,
-                                 skip_parfors_unsupported,
                                  ignore_internal_warnings)
 
 
@@ -1481,43 +1480,6 @@ class TestInlineMiscIssues(TestCase):
             return bar(z), bar(z)
 
         self.assertEqual(foo(10), (11.3, 11.3))
-
-    @skip_parfors_unsupported
-    def test_issue7380(self):
-        # This checks that inlining a function containing a loop into another
-        # loop where the induction variable in both loops is the same doesn't
-        # end up with a name collision. Parfors can detect this so it is used.
-        # See: https://github.com/numba/numba/issues/7380
-
-        # Check Numba inlined function passes
-
-        @njit(inline="always")
-        def bar(x):
-            for i in range(x.size):
-                x[i] += 1
-
-        @njit(parallel=True)
-        def foo(a):
-            for i in prange(a.shape[0]):
-                bar(a[i])
-
-        a = np.ones((10, 10))
-        foo(a) # run
-        # check mutation of data is correct
-        self.assertPreciseEqual(a, 2 * np.ones_like(a))
-
-        # Check manually inlined equivalent function fails
-        @njit(parallel=True)
-        def foo_bad(a):
-            for i in prange(a.shape[0]):
-                x = a[i]
-                for i in range(x.size):
-                    x[i] += 1
-
-        with self.assertRaises(errors.UnsupportedRewriteError) as e:
-            foo_bad(a)
-
-        self.assertIn("Overwrite of parallel loop index", str(e.exception))
 
 
 if __name__ == '__main__':

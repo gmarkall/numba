@@ -4,8 +4,7 @@ import unittest
 from numba.np.numpy_support import from_dtype
 from numba import njit, typeof
 from numba.core import types
-from numba.tests.support import (TestCase, MemoryLeakMixin,
-                                 skip_parfors_unsupported)
+from numba.tests.support import TestCase, MemoryLeakMixin
 from numba.core.errors import TypingError
 from numba.experimental import jitclass
 
@@ -253,44 +252,6 @@ class TestArrayCTypes(MemoryLeakMixin, TestCase):
         cfunc = njit(pyfunc)
         arr = np.arange(3)
         self.assertEqual(pyfunc(arr), cfunc(arr))
-
-    @skip_parfors_unsupported
-    def test_array_ctypes_ref_error_in_parallel(self):
-        # Issue #2887
-        from ctypes import CFUNCTYPE, c_void_p, c_int32, c_double, c_bool
-
-        @CFUNCTYPE(c_bool, c_void_p, c_int32, c_void_p)
-        def callback(inptr, size, outptr):
-            # A ctypes callback that manipulate the incoming pointers.
-            try:
-                inbuf = (c_double * size).from_address(inptr)
-                outbuf = (c_double * 1).from_address(outptr)
-                a = np.ndarray(size, buffer=inbuf, dtype=np.float64)
-                b = np.ndarray(1, buffer=outbuf, dtype=np.float64)
-                b[0] = (a + a.size)[0]
-                return True
-            except:
-                import traceback
-                traceback.print_exception()
-                return False
-
-
-        # parallel=True is required to reproduce the error.
-        @njit(parallel=True)
-        def foo(size):
-            arr = np.ones(size)
-            out = np.empty(1)
-            # Exercise array.ctypes
-            inct = arr.ctypes
-            outct = out.ctypes
-            # The reference to `arr` is dead by now
-            status = callback(inct.data, size, outct.data)
-            return status, out[0]
-
-        size = 3
-        status, got = foo(size)
-        self.assertTrue(status)
-        self.assertPreciseEqual(got, (np.ones(size) + size)[0])
 
 
 class TestRealImagAttr(MemoryLeakMixin, TestCase):

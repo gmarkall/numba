@@ -13,7 +13,6 @@ from numba.np.numpy_support import (ufunc_find_matching_loop,
                              carray, farray, _ufunc_loop_sig)
 from numba.core.errors import (TypingError, NumbaPerformanceWarning,
                                NumbaTypeError, NumbaAssertionError)
-from numba import pndindex
 
 registry = Registry()
 infer = registry.register
@@ -660,7 +659,6 @@ class NdIter(AbstractTemplate):
         return signature(nditerty, *args)
 
 
-@infer_global(pndindex)
 @infer_global(np.ndindex)
 class NdIndex(AbstractTemplate):
 

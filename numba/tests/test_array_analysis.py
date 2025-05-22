@@ -5,7 +5,7 @@ import sys
 from collections import namedtuple
 from io import StringIO
 
-from numba import njit, typeof, prange
+from numba import njit, typeof
 from numba.core import (
     types,
     typing,
@@ -16,8 +16,7 @@ from numba.core import (
     registry,
     utils,
 )
-from numba.tests.support import (TestCase, tag, skip_parfors_unsupported,
-                                 skip_unless_scipy)
+from numba.tests.support import TestCase, tag, skip_unless_scipy
 from numba.parfors.array_analysis import EquivSet, ArrayAnalysis
 from numba.core.compiler import Compiler, Flags, PassManager
 from numba.core.ir_utils import remove_dead
@@ -32,9 +31,6 @@ from numba.core.typed_passes import (NopythonTypeInference, AnnotateTypes,
 from numba.core.compiler_machinery import FunctionPass, PassManager, register_pass
 from numba.experimental import jitclass
 import unittest
-
-
-skip_unsupported = skip_parfors_unsupported
 
 
 # test class for #3700
@@ -963,106 +959,6 @@ class TestArrayAnalysis(TestCase):
                                asserts=None)
 
 
-class TestArrayAnalysisParallelRequired(TestCase):
-    """This is to just split out tests that need the parallel backend and
-    therefore serialised execution.
-    """
-
-    _numba_parallel_test_ = False
-
-    @skip_unsupported
-    def test_misc(self):
-
-        @njit
-        def swap(x, y):
-            return(y, x)
-
-        def test_bug2537(m):
-            a = np.ones(m)
-            b = np.ones(m)
-            for i in range(m):
-                a[i], b[i] = swap(a[i], b[i])
-
-        try:
-            njit(test_bug2537, parallel=True)(10)
-        except IndexError:
-            self.fail("test_bug2537 raised IndexError!")
-
-    @skip_unsupported
-    def test_global_namedtuple(self):
-        Row = namedtuple('Row', ['A'])
-        row = Row(3)
-
-        def test_impl():
-            rr = row
-            res = rr.A
-            if res == 2:
-                res = 3
-            return res
-
-        self.assertEqual(njit(test_impl, parallel=True)(), test_impl())
-
-    @skip_unsupported
-    def test_array_T_issue_3700(self):
-
-        def test_impl(t_obj, X):
-            for i in prange(t_obj.T):
-                X[i] = i
-            return X.sum()
-
-        n = 5
-        t_obj = ExampleClass3700(n)
-        X1 = np.zeros(t_obj.T)
-        X2 = np.zeros(t_obj.T)
-        self.assertEqual(
-            njit(test_impl, parallel=True)(t_obj, X1), test_impl(t_obj, X2))
-
-    @skip_unsupported
-    def test_slice_shape_issue_3380(self):
-        # these tests shouldn't throw error in array analysis
-        def test_impl1():
-            a = slice(None, None)
-            return True
-
-        self.assertEqual(njit(test_impl1, parallel=True)(), test_impl1())
-
-        def test_impl2(A, a):
-            b = a
-            return A[b]
-
-        A = np.arange(10)
-        a = slice(None)
-        np.testing.assert_array_equal(
-            njit(test_impl2, parallel=True)(A, a), test_impl2(A, a))
-
-    @skip_unsupported
-    def test_slice_dtype_issue_5056(self):
-        # see issue 5056
-
-        @njit(parallel=True)
-        def test_impl(data):
-            N = data.shape[0]
-            sums = np.zeros(N)
-            for i in prange(N):
-                sums[i] = np.sum(data[np.int32(0):np.int32(1)])
-            return sums
-
-        data = np.arange(10.)
-        np.testing.assert_array_equal(test_impl(data), test_impl.py_func(data))
-
-    @skip_unsupported
-    def test_global_tuple(self):
-        """make sure a global tuple with non-integer values does not cause errors
-        (test for #6726).
-        """
-
-        def test_impl():
-            d = GVAL[0]
-            return d
-
-        self.assertEqual(njit(test_impl, parallel=True)(), test_impl())
-
-
 class TestArrayAnalysisInterface(TestCase):
     def test_analyze_op_call_interface(self):
         # gather _analyze_op_call_*
@@ -1078,68 +974,6 @@ class TestArrayAnalysisInterface(TestCase):
             got = utils.pysignature(v)
             with self.subTest(fname=k, sig=got):
                 self.assertEqual(got, expected)
-
-    @skip_unsupported
-    def test_array_analysis_extensions(self):
-        # Test that the `array_analysis` object in `array_analysis_extensions`
-        # can perform analysis on the scope using `equiv_sets`.
-        from numba.parfors.parfor import Parfor
-        from numba.parfors import array_analysis
-
-        orig_parfor = array_analysis.array_analysis_extensions[Parfor]
-
-        shared = {'counter': 0}
-
-        def testcode(array_analysis):
-            # Find call node corresponding to the ``A = empty(n)``
-            func_ir = array_analysis.func_ir
-            for call in func_ir.blocks[0].find_exprs('call'):
-                callee = func_ir.get_definition(call.func)
-                if getattr(callee, "value", None) is empty:
-                    if getattr(call.args[0], 'name', None) == 'n':
-                        break
-            else:
-                return
-
-            variable_A = func_ir.get_assignee(call)
-            # n must be equiv to
-            es = array_analysis.equiv_sets[0]
-            self.assertTrue(es.is_equiv('n', variable_A.name))
-            shared['counter'] += 1
-
-        def new_parfor(parfor, equiv_set, typemap, array_analysis):
-            """Recursive array analysis for parfor nodes.
-            """
-            testcode(array_analysis)
-            # Call original
-            return orig_parfor(
-                parfor, equiv_set, typemap, array_analysis,
-            )
-
-        try:
-            # Replace the array-analysis extension for Parfor node
-            array_analysis.array_analysis_extensions[Parfor] = new_parfor
-
-            empty = np.empty   # avoid scanning a getattr in the IR
-            def f(n):
-                A = empty(n)
-                for i in prange(n):
-                    S = np.arange(i)
-                    A[i] = S.sum()
-                return A + 1
-
-            got = njit(parallel=True)(f)(10)
-            executed_count = shared['counter']
-            self.assertGreater(executed_count, 0)
-        finally:
-            # Re-install the original handler
-            array_analysis.array_analysis_extensions[Parfor] = orig_parfor
-
-        # Check normal execution
-        expected = njit(parallel=True)(f)(10)
-        self.assertPreciseEqual(got, expected)
-        # Make sure we have uninstalled the handler
-        self.assertEqual(executed_count, shared['counter'])
 
 
 if __name__ == '__main__':

@@ -736,6 +736,8 @@ def has_no_side_effect(rhs, lives, call_table):
     """ Returns True if this expression has no side effects that
         would prevent re-ordering.
     """
+    from numba.core.extending import _Intrinsic
+
     if isinstance(rhs, ir.Expr) and rhs.op == 'call':
         func_name = rhs.func.name
         if func_name not in call_table or call_table[func_name] == []:
@@ -746,8 +748,6 @@ def has_no_side_effect(rhs, lives, call_table):
             call_list == ['stencil', numba] or
             call_list == ['log', numpy] or
             call_list == ['dtype', numpy] or
-            call_list == [array_analysis.wrap_index] or
-            call_list == ['pndindex', numba] or
             call_list == ['ceil', math] or
             call_list == [max] or
             call_list == [int]):
@@ -771,7 +771,9 @@ def has_no_side_effect(rhs, lives, call_table):
     if isinstance(rhs, ir.Yield):
         return False
     if isinstance(rhs, ir.Expr) and rhs.op == 'pair_first':
-        # don't remove pair_first since prange looks for it
+        # Original reason: don't remove pair_first since prange looks for it
+        # Current reason: maybe this is also depended on in other ways now - no
+        # easy way to tell
         return False
     return True
 

@@ -71,13 +71,6 @@ class NumbaPendingDeprecationWarning(NumbaWarning, PendingDeprecationWarning):
     """
 
 
-class NumbaParallelSafetyWarning(NumbaWarning):
-    """
-    Warning category for when an operation in a prange
-    might not have parallel semantics.
-    """
-
-
 class NumbaTypeSafetyWarning(NumbaWarning):
     """
     Warning category for unsafe casting operations.

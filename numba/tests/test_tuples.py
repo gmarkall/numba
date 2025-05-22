@@ -257,7 +257,7 @@ class TestOperations(TestCase):
             cr.entry_point((), 0)
         self.assertEqual("tuple index out of range", str(raises.exception))
 
-        # test uintp indexing (because, e.g., parfor generates unsigned prange)
+        # test uintp indexing
         cfunc = njit((types.UniTuple(types.int64, 3), types.uintp,),)(pyfunc)
         for i in range(len(tup)):
             self.assertPreciseEqual(cfunc(tup, types.uintp(i)), tup[i])
@@ -409,7 +409,7 @@ class TestNamedTuple(TestCase, MemoryLeakMixin):
         for i in range(len(p)):
             self.assertPreciseEqual(cfunc(p, i), pyfunc(p, i))
 
-        # test uintp indexing (because, e.g., parfor generates unsigned prange)
+        # test uintp indexing
         for i in range(len(p)):
             self.assertPreciseEqual(cfunc(p, types.uintp(i)), pyfunc(p, i))
 

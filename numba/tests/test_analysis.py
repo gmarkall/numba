@@ -5,7 +5,7 @@ import types as pytypes
 import numpy as np
 from numba.core.compiler import run_frontend, Flags, StateDict
 from numba import jit, njit, literal_unroll
-from numba.core import types, errors, ir, rewrites, ir_utils, cpu
+from numba.core import types, errors, ir, rewrites, ir_utils
 from numba.core import postproc
 from numba.core.inline_closurecall import InlineClosureCallPass
 from numba.tests.support import (TestCase, MemoryLeakMixin, SerialMixin,
@@ -73,8 +73,7 @@ class TestBranchPruneBase(MemoryLeakMixin, TestCase):
             func_ir.dump()
 
         # run closure inlining to ensure that nonlocals in closures are visible
-        inline_pass = InlineClosureCallPass(func_ir,
-                                            cpu.ParallelOptions(False),)
+        inline_pass = InlineClosureCallPass(func_ir)
         inline_pass.run()
 
         # Remove all Dels, and re-run postproc

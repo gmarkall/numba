@@ -19,7 +19,6 @@ from numba import njit
 from numba.core import codegen
 from numba.core.caching import _UserWideCacheLocator, _ZipCacheLocator
 from numba.core.errors import NumbaWarning
-from numba.parfors import parfor
 from numba.tests.support import (
     SerialMixin,
     TestCase,
@@ -28,7 +27,6 @@ from numba.tests.support import (
     override_config,
     run_in_new_process_caching,
     skip_if_typeguard,
-    skip_parfors_unsupported,
     temp_directory,
 )
 
@@ -793,30 +791,6 @@ class TestCacheZipLib(DispatcherCacheUsecasesTest):
 
         locator = _ZipCacheLocator.from_function(mock_func, non_zip_path)
         self.assertIsNone(locator)
-
-
-@skip_parfors_unsupported
-class TestSequentialParForsCache(DispatcherCacheUsecasesTest):
-    def setUp(self):
-        super(TestSequentialParForsCache, self).setUp()
-        # Turn on sequential parfor lowering
-        parfor.sequential_parfor_lowering = True
-
-    def tearDown(self):
-        super(TestSequentialParForsCache, self).tearDown()
-        # Turn off sequential parfor lowering
-        parfor.sequential_parfor_lowering = False
-
-    def test_caching(self):
-        mod = self.import_module()
-        self.check_pycache(0)
-        f = mod.parfor_usecase
-        ary = np.ones(10)
-        self.assertPreciseEqual(f(ary), ary * ary + ary)
-        dynamic_globals = [cres.library.has_dynamic_globals
-                           for cres in f.overloads.values()]
-        self.assertEqual(dynamic_globals, [False])
-        self.check_pycache(2)  # 1 index, 1 data
 
 
 class TestCacheWithCpuSetting(DispatcherCacheUsecasesTest):

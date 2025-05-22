@@ -1,9 +1,8 @@
 from collections import namedtuple
 import numpy as np
 
-from numba.tests.support import (TestCase, MemoryLeakMixin,
-                                 skip_parfors_unsupported, captured_stdout)
-from numba import njit, typed, literal_unroll, prange
+from numba.tests.support import TestCase, MemoryLeakMixin, captured_stdout
+from numba import njit, typed, literal_unroll
 from numba.core import types, errors, ir
 from numba.testing import unittest
 from numba.core.extending import overload
@@ -1102,59 +1101,6 @@ class TestMixedTupleUnroll(MemoryLeakMixin, TestCase):
         k = f
 
         self.assertPreciseEqual(foo(k), foo.py_func(k))
-
-    @skip_parfors_unsupported
-    def test_27(self):
-        # parfors loop in unrolled loop
-        @njit(parallel=True)
-        def foo(z):
-            a = (12, 12.7, 3j, 4, z, 2 * z)
-            acc = 0
-            for x in literal_unroll(a):
-                for k in prange(10):
-                    acc += 1
-            return acc
-
-        f = 9
-        k = f
-
-        self.assertEqual(foo(k), foo.py_func(k))
-
-    @skip_parfors_unsupported
-    def test_28(self):
-        # parfors reducing on the unrolled induction var
-        @njit(parallel=True)
-        def foo(z):
-            a = (12, 12.7, 3j, 4, z, 2 * z)
-            acc = 0
-            for x in literal_unroll(a):
-                for k in prange(10):
-                    acc += x
-            return acc
-
-        f = 9
-        k = f
-
-        # summation is unstable
-        np.testing.assert_allclose(foo(k), foo.py_func(k))
-
-    @skip_parfors_unsupported
-    def test_29(self):
-        # This "works" but parfors is not producing a parallel loop
-        # TODO: fix
-        @njit(parallel=True)
-        def foo(z):
-            a = (12, 12.7, 3j, 4, z, 2 * z)
-            acc = 0
-            for k in prange(10):
-                for x in literal_unroll(a):
-                    acc += x
-            return acc
-
-        f = 9
-        k = f
-
-        self.assertEqual(foo(k), foo.py_func(k))
 
     def test_30(self):
         # function escaping containing an unroll
