@@ -190,21 +190,6 @@ def get_ext_modules():
                              extra_compile_args=['-std=c++11'],
                              )
 
-    ext_np_ufunc = Extension(name="numba.np.ufunc._internal",
-                             sources=["numba/np/ufunc/_internal.c"],
-                             depends=["numba/np/ufunc/_ufunc.c",
-                                      "numba/np/ufunc/_internal.h",
-                                      "numba/_pymodule.h"],
-                             **np_compile_args)
-
-    ext_npyufunc_num_threads = Extension(name="numba.np.ufunc._num_threads",
-                                         sources=[
-                                             "numba/np/ufunc/_num_threads.c"],
-                                         depends=["numba/_pymodule.h"],
-                                         )
-
-    ext_np_ufunc_backends = []
-
     def check_file_at_path(path2file):
         """
         Takes a list as a path, a single glob (*) is permitted as an entry which
@@ -234,104 +219,6 @@ def get_ext_modules():
                     found = p  # the latest is used
         return found
 
-    # Set various flags for use in TBB and openmp. On OSX, also find OpenMP!
-    have_openmp = True
-    if sys.platform.startswith('win'):
-        if 'MSC' in sys.version:
-            cpp11flags = []
-            ompcompileflags = ['-openmp']
-            omplinkflags = []
-        else:
-            # For non-MSVC toolchain e.g. gcc and clang with mingw
-            cpp11flags = ['-std=c++11']
-            ompcompileflags = ['-fopenmp']
-            omplinkflags = ['-fopenmp']
-    elif sys.platform.startswith('darwin'):
-        cpp11flags = ['-std=c++11']
-        # This is a bit unusual but necessary...
-        # llvm (clang) OpenMP is used for headers etc at compile time
-        # Intel OpenMP (libiomp5) provides the link library.
-        # They are binary compatible and may not safely coexist in a process, as
-        # libiomp5 is more prevalent and often linked in for NumPy it is used
-        # here!
-        ompcompileflags = ['-fopenmp']
-        omplinkflags = ['-fopenmp=libiomp5']
-        omppath = ['lib', 'clang', '*', 'include', 'omp.h']
-        have_openmp = check_file_at_path(omppath)
-    else:
-        cpp11flags = ['-std=c++11']
-        ompcompileflags = ['-fopenmp']
-        if platform.machine() == 'ppc64le':
-            omplinkflags = ['-fopenmp']
-        else:
-            omplinkflags = ['-fopenmp']
-
-    # Disable tbb if forced by user with NUMBA_DISABLE_TBB=1
-    if os.getenv("NUMBA_DISABLE_TBB"):
-        print("TBB disabled")
-    else:
-        # Search for Intel TBB, first check env var TBBROOT then conda locations
-        tbb_root = os.getenv('TBBROOT')
-        if not tbb_root:
-            tbb_root = check_file_at_path(['include', 'tbb', 'tbb.h'])
-
-        if tbb_root:
-            print("Using Intel TBB from:", tbb_root)
-            ext_np_ufunc_tbb_backend = Extension(
-                name='numba.np.ufunc.tbbpool',
-                sources=[
-                    'numba/np/ufunc/tbbpool.cpp',
-                    'numba/np/ufunc/gufunc_scheduler.cpp',
-                ],
-                depends=['numba/np/ufunc/workqueue.h'],
-                include_dirs=[os.path.join(tbb_root, 'include')],
-                extra_compile_args=cpp11flags,
-                extra_link_args=extra_link_args,
-                libraries=['tbb'],  # TODO: if --debug or -g, use 'tbb_debug'
-                library_dirs=[
-                    # for Linux
-                    os.path.join(tbb_root, 'lib', 'intel64', 'gcc4.4'),
-                    # for MacOS
-                    os.path.join(tbb_root, 'lib'),
-                    # for Windows
-                    os.path.join(tbb_root, 'lib', 'intel64', 'vc_mt'),
-                ],
-            )
-            ext_np_ufunc_backends.append(ext_np_ufunc_tbb_backend)
-        else:
-            print("TBB not found")
-
-    # Disable OpenMP if forced by user with NUMBA_DISABLE_OPENMP=1
-    if os.getenv('NUMBA_DISABLE_OPENMP'):
-        print("OpenMP disabled")
-    elif have_openmp:
-        print("Using OpenMP from:", have_openmp)
-        # OpenMP backed work queue
-        ext_np_ufunc_omppool_backend = Extension(
-            name='numba.np.ufunc.omppool',
-            sources=[
-                'numba/np/ufunc/omppool.cpp',
-                'numba/np/ufunc/gufunc_scheduler.cpp',
-            ],
-            depends=['numba/np/ufunc/workqueue.h'],
-            extra_compile_args=ompcompileflags + cpp11flags,
-            extra_link_args=omplinkflags,
-        )
-
-        ext_np_ufunc_backends.append(ext_np_ufunc_omppool_backend)
-    else:
-        print("OpenMP not found")
-
-    # Build the Numba workqueue implementation irrespective of whether the TBB
-    # version is built. Users can select a backend via env vars.
-    ext_np_ufunc_workqueue_backend = Extension(
-        name='numba.np.ufunc.workqueue',
-        sources=['numba/np/ufunc/workqueue.c',
-                 'numba/np/ufunc/gufunc_scheduler.cpp'],
-        depends=['numba/np/ufunc/workqueue.h'],
-        extra_link_args=extra_link_args)
-    ext_np_ufunc_backends.append(ext_np_ufunc_workqueue_backend)
-
     ext_mviewbuf = Extension(name='numba.mviewbuf',
                              extra_link_args=install_name_tool_fixer,
                              sources=['numba/mviewbuf.c'])
@@ -355,11 +242,8 @@ def get_ext_modules():
                                 include_dirs=["numba"])
 
     ext_modules = [ext_dynfunc, ext_dispatcher, ext_helperlib,
-                   ext_typeconv, ext_np_ufunc, ext_npyufunc_num_threads,
-                   ext_mviewbuf, ext_nrt_python, ext_jitclass_box,
-                   ext_cuda_extras, ext_devicearray]
-
-    ext_modules += ext_np_ufunc_backends
+                   ext_typeconv, ext_mviewbuf, ext_nrt_python,
+                   ext_jitclass_box, ext_cuda_extras, ext_devicearray]
 
     return ext_modules
 
