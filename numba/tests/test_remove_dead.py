@@ -4,7 +4,6 @@
 #
 
 import numba
-import numba.parfors.parfor
 from numba import njit, jit
 from numba.core import ir_utils
 from numba.core import types, ir,  compiler
@@ -20,9 +19,8 @@ from numba.core.untyped_passes import (ExtractByteCode, TranslateByteCode, Fixup
                              WithLifting, PreserveIR, InlineClosureLikes)
 
 from numba.core.typed_passes import (NopythonTypeInference, AnnotateTypes,
-                           NopythonRewrites, PreParforPass, ParforPass,
-                           DumpParforDiagnostics, NativeLowering,
-                           IRLegalization, NoPythonBackend, NativeLowering)
+                                     NopythonRewrites, NativeLowering,
+                                     IRLegalization, NoPythonBackend)
 import numpy as np
 from numba.tests.support import needs_blas, TestCase
 import unittest
@@ -59,9 +57,6 @@ def findLhsAssign(func_ir, var):
 class TestRemoveDead(TestCase):
 
     _numba_parallel_test_ = False
-
-    def compile_parallel(self, func, arg_types):
-        return njit(arg_types, parallel=True, fastmath=True)(func)
 
     def test1(self):
         typingctx = cpu_target.typing_context
@@ -100,10 +95,10 @@ class TestRemoveDead(TestCase):
         A1 = np.arange(6).reshape(2,3)
         A2 = A1.copy()
         i = 0
-        pfunc = self.compile_parallel(func, (numba.typeof(A1), numba.typeof(i)))
+        cfunc = njit(numba.typeof(A1), numba.typeof(i))(func)
 
         func(A1, i)
-        pfunc(A2, i)
+        cfunc(A2, i)
         np.testing.assert_array_equal(A1, A2)
 
     def test_alias_ravel(self):

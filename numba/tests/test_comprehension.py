@@ -17,8 +17,6 @@ from numba.tests.support import tag, _32bit, captured_stdout
 # deliberately imported twice for different use cases
 
 
-PARALLEL_SUPPORTED = not _32bit
-
 def comp_list(n):
     l = [i for i in range(n)]
     s = 0
@@ -244,10 +242,9 @@ class TestArrayComprehension(unittest.TestCase):
     def check(self, pyfunc, *args, **kwargs):
         """A generic check function that run both pyfunc, and jitted pyfunc,
         and compare results."""
-        run_parallel = kwargs.get('run_parallel', False)
         assert_allocate_list = kwargs.get('assert_allocate_list', False)
         assert_dtype = kwargs.get('assert_dtype', False)
-        cfunc = jit(nopython=True,parallel=run_parallel)(pyfunc)
+        cfunc = jit(nopython=True)(pyfunc)
         pyres = pyfunc(*args)
         cres = cfunc(*args)
         np.testing.assert_array_equal(pyres, cres)
@@ -257,8 +254,6 @@ class TestArrayComprehension(unittest.TestCase):
             self.assertIn('allocate list', cfunc.inspect_llvm(cfunc.signatures[0]))
         else:
             self.assertNotIn('allocate list', cfunc.inspect_llvm(cfunc.signatures[0]))
-        if run_parallel:
-            self.assertIn('@do_scheduling', cfunc.inspect_llvm(cfunc.signatures[0]))
 
     def test_comp_with_array_1(self):
         def comp_with_array_1(n):
@@ -267,8 +262,6 @@ class TestArrayComprehension(unittest.TestCase):
             return l
 
         self.check(comp_with_array_1, 5)
-        if PARALLEL_SUPPORTED:
-            self.check(comp_with_array_1, 5, run_parallel=True)
 
     def test_comp_with_array_2(self):
         def comp_with_array_2(n, threshold):
@@ -306,8 +299,6 @@ class TestArrayComprehension(unittest.TestCase):
             return l
 
         self.check(comp_nest_with_array, 5)
-        if PARALLEL_SUPPORTED:
-            self.check(comp_nest_with_array, 5, run_parallel=True)
 
     def test_comp_nest_with_array_3(self):
         def comp_nest_with_array_3(n):
@@ -315,8 +306,6 @@ class TestArrayComprehension(unittest.TestCase):
             return l
 
         self.check(comp_nest_with_array_3, 5)
-        if PARALLEL_SUPPORTED:
-            self.check(comp_nest_with_array_3, 5, run_parallel=True)
 
     def test_comp_nest_with_array_noinline(self):
         def comp_nest_with_array_noinline(n):

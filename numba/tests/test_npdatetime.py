@@ -919,7 +919,7 @@ class TestDatetimeDeltaOps(TestCase):
 
 class TestDatetimeArrayOps(TestCase):
 
-    def _test_td_add_or_sub(self, operation, parallel):
+    def _test_td_add_or_sub(self, operation):
         """
         Test the addition/subtraction of a datetime array with a timedelta type
         """
@@ -939,7 +939,7 @@ class TestDatetimeArrayOps(TestCase):
                         np.datetime64("2004-12-07"),
                     ], dtype="datetime64[D]")
         py_func = impl
-        cfunc = njit(parallel=parallel)(impl)
+        cfunc = njit(impl)
         test_cases = [
             (arr_one, np.timedelta64(1000)),
             (arr_two, np.timedelta64(1000)),
@@ -958,10 +958,10 @@ class TestDatetimeArrayOps(TestCase):
             self.assertTrue(np.array_equal(py_func(a, b), cfunc(a, b)))
 
     def test_add_td(self):
-        self._test_td_add_or_sub(np.add, False)
+        self._test_td_add_or_sub(np.add)
 
     def test_sub_td(self):
-        self._test_td_add_or_sub(np.subtract, False)
+        self._test_td_add_or_sub(np.subtract)
 
     def _test_add_sub_td_no_match(self, operation):
         """
@@ -1072,7 +1072,7 @@ class TestDatetimeArrayOps(TestCase):
         ]
         return test_cases
 
-    def _test_min_max(self, operation, parallel, method):
+    def _test_min_max(self, operation, method):
         if method:
             if operation is np.min:
                 def impl(arr):
@@ -1085,7 +1085,7 @@ class TestDatetimeArrayOps(TestCase):
                 return operation(arr)
 
         py_func = impl
-        cfunc = njit(parallel=parallel)(impl)
+        cfunc = njit(impl)
 
         test_cases = self._get_testcases()
         for arr in test_cases:
@@ -1098,22 +1098,22 @@ class TestDatetimeArrayOps(TestCase):
                 self.assertEqual(py_res, c_res)
 
     def test_min_func(self):
-        self._test_min_max(min, False, False)
+        self._test_min_max(min, False)
 
     def test_np_min_func(self):
-        self._test_min_max(np.min, False, False)
+        self._test_min_max(np.min, False)
 
     def test_min_method(self):
-        self._test_min_max(np.min, False, True)
+        self._test_min_max(np.min, True)
 
     def test_max_func(self):
-        self._test_min_max(max, False, False)
+        self._test_min_max(max, False)
 
     def test_np_max_func(self):
-        self._test_min_max(np.max, False, False)
+        self._test_min_max(np.max, False)
 
     def test_max_method(self):
-        self._test_min_max(np.max, False, True)
+        self._test_min_max(np.max, True)
 
     def test_searchsorted_datetime(self):
         from .test_np_functions import (

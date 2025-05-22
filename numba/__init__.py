@@ -123,7 +123,6 @@ __all__ = """
     jit
     experimental
     njit
-    stencil
     jit_module
     typeof
     gdb

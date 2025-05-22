@@ -15,11 +15,9 @@ from numba.core.untyped_passes import (ExtractByteCode, TranslateByteCode, Fixup
                              WithLifting, PreserveIR, InlineClosureLikes)
 
 from numba.core.typed_passes import (NopythonTypeInference, AnnotateTypes,
-                           NopythonRewrites, PreParforPass, ParforPass,
-                           DumpParforDiagnostics, NativeLowering,
-                           NativeParforLowering, IRLegalization,
-                           NoPythonBackend, NativeLowering,
-                           ParforFusionPass, ParforPreLoweringPass)
+                                     NopythonRewrites, NativeLowering,
+                                     IRLegalization, NoPythonBackend,
+                                     NativeLowering)
 
 from numba.core.compiler_machinery import FunctionPass, PassManager, register_pass
 import unittest
@@ -78,7 +76,6 @@ def gen_pipeline(state, test_pass):
         # lower
         pm.add_pass(NativeLowering, "native lowering")
         pm.add_pass(NoPythonBackend, "nopython mode backend")
-        pm.add_pass(DumpParforDiagnostics, "dump parfor diagnostics")
         return pm
 
 class InlineTestPipeline(compiler.CompilerBase):
