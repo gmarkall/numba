@@ -4,13 +4,11 @@ Implementation of the range object for fixed-size integers.
 
 import operator
 
-from numba import prange
 from numba.core import types, cgutils, errors, config
 from numba.core.imputils import (lower_builtin, lower_cast,
                                     iterator_impl, impl_ret_untracked)
 from numba.core.typing import signature
 from numba.core.extending import intrinsic, overload, overload_attribute, register_jitable
-from numba.parfors.parfor import internal_prange
 
 def make_range_iterator(typ):
     """
@@ -24,8 +22,6 @@ def make_range_impl(int_type, range_state_type, range_iter_type):
     RangeState = cgutils.create_struct_proxy(range_state_type)
 
     @lower_builtin(range, int_type)
-    @lower_builtin(prange, int_type)
-    @lower_builtin(internal_prange, int_type)
     def range1_impl(context, builder, sig, args):
         """
         range(stop: int) -> range object
@@ -41,8 +37,6 @@ def make_range_impl(int_type, range_state_type, range_iter_type):
                                   state._getvalue())
 
     @lower_builtin(range, int_type, int_type)
-    @lower_builtin(prange, int_type, int_type)
-    @lower_builtin(internal_prange, int_type, int_type)
     def range2_impl(context, builder, sig, args):
         """
         range(start: int, stop: int) -> range object
@@ -58,8 +52,6 @@ def make_range_impl(int_type, range_state_type, range_iter_type):
                                   state._getvalue())
 
     @lower_builtin(range, int_type, int_type, int_type)
-    @lower_builtin(prange, int_type, int_type, int_type)
-    @lower_builtin(internal_prange, int_type, int_type, int_type)
     def range3_impl(context, builder, sig, args):
         """
         range(start: int, stop: int, step: int) -> range object

@@ -14,7 +14,6 @@ from numba.core.typing.templates import AbstractTemplate, signature
 from numba.cpython.unsafe.tuple import tuple_setitem
 from numba.np.ufunc import _internal
 from numba.np.ufunc.ufunc_base import UfuncBase, UfuncLowererBase
-from numba.parfors import array_analysis
 from numba.np.ufunc import ufuncbuilder
 from numba.np import numpy_support
 from typing import Callable
@@ -876,6 +875,3 @@ class DUFunc(serialize.ReduceMixin, _internal._DUFunc, UfuncBase):
             raise errors.NumbaNotImplementedError("typing gufuncs (nout > 1)")
         outtys.extend(argtys)
         return signature(*outtys)
-
-
-array_analysis.MAP_TYPES.append(DUFunc)

@@ -5,7 +5,6 @@ from numba.core.tracing import event
 
 from numba.core import (errors, interpreter, bytecode, postproc, config,
                         callconv, cpu)
-from numba.parfors.parfor import ParforDiagnostics
 from numba.core.errors import CompilerError
 from numba.core.environment import lookup_environment
 
@@ -25,14 +24,10 @@ from numba.core.untyped_passes import (ExtractByteCode, TranslateByteCode,
                                        )
 
 from numba.core.typed_passes import (NopythonTypeInference, AnnotateTypes,
-                                     NopythonRewrites, PreParforPass,
-                                     ParforPass, DumpParforDiagnostics,
-                                     IRLegalization, NoPythonBackend,
-                                     InlineOverloads, PreLowerStripPhis,
-                                     NativeLowering, NativeParforLowering,
-                                     NoPythonSupportedFeatureValidation,
-                                     ParforFusionPass, ParforPreLoweringPass
-                                     )
+                                     NopythonRewrites, IRLegalization,
+                                     NoPythonBackend, InlineOverloads,
+                                     PreLowerStripPhis, NativeLowering,
+                                     NoPythonSupportedFeatureValidation,)
 
 from numba.core.object_mode_passes import (ObjectModeFrontEnd,
                                            ObjectModeBackEnd)
@@ -101,13 +96,6 @@ class Flags(TargetConfig):
         type=bool,
         default=False,
         doc="TODO",
-    )
-    auto_parallel = Option(
-        type=cpu.ParallelOptions,
-        default=cpu.ParallelOptions(False),
-        doc="""Enable automatic parallel optimization, can be fine-tuned by
-taking a dictionary of sub-options instead of a boolean, see parfor.py for
-detail""",
     )
     nrt = Option(
         type=bool,
@@ -312,8 +300,7 @@ def run_frontend(func, inline_closures=False, emit_dels=False):
     func_ir = interp.interpret(bc)
     if inline_closures:
         from numba.core.inline_closurecall import InlineClosureCallPass
-        inline_pass = InlineClosureCallPass(func_ir, cpu.ParallelOptions(False),
-                                            {}, False)
+        inline_pass = InlineClosureCallPass(func_ir)
         inline_pass.run()
     post_proc = postproc.PostProcessor(func_ir)
     post_proc.run(emit_dels)
@@ -373,8 +360,6 @@ def _make_subtarget(targetctx, flags):
         subtargetoptions['enable_boundscheck'] = True
     if flags.nrt:
         subtargetoptions['enable_nrt'] = True
-    if flags.auto_parallel:
-        subtargetoptions['auto_parallel'] = flags.auto_parallel
     if flags.fastmath:
         subtargetoptions['fastmath'] = flags.fastmath
     error_model = callconv.create_error_model(flags.error_model, targetctx)
@@ -419,12 +404,6 @@ class CompilerBase(object):
         self.state.reload_init = []
         # hold this for e.g. with_lifting, null out on exit
         self.state.pipeline = self
-
-        # parfor diagnostics info, add to metadata
-        self.state.parfor_diagnostics = ParforDiagnostics()
-        self.state.metadata['parfor_diagnostics'] = \
-            self.state.parfor_diagnostics
-        self.state.metadata['parfors'] = {}
 
         self.state.status = _CompileStatus(
             can_fallback=self.state.flags.enable_pyobject
@@ -566,31 +545,7 @@ class DefaultPassBuilder(object):
         # Annotate only once legalized
         pm.add_pass(AnnotateTypes, "annotate types")
         # lower
-        if state.flags.auto_parallel.enabled:
-            pm.add_pass(NativeParforLowering, "native parfor lowering")
-        else:
-            pm.add_pass(NativeLowering, "native lowering")
-        pm.add_pass(NoPythonBackend, "nopython mode backend")
-        pm.add_pass(DumpParforDiagnostics, "dump parfor diagnostics")
-        pm.finalize()
-        return pm
-
-    @staticmethod
-    def define_parfor_gufunc_nopython_lowering_pipeline(
-            state, name='parfor_gufunc_nopython_lowering'):
-        pm = PassManager(name)
-        # legalise
-        pm.add_pass(NoPythonSupportedFeatureValidation,
-                    "ensure features that are in use are in a valid form")
-        pm.add_pass(IRLegalization,
-                    "ensure IR is legal prior to lowering")
-        # Annotate only once legalized
-        pm.add_pass(AnnotateTypes, "annotate types")
-        # lower
-        if state.flags.auto_parallel.enabled:
-            pm.add_pass(NativeParforLowering, "native parfor lowering")
-        else:
-            pm.add_pass(NativeLowering, "native lowering")
+        pm.add_pass(NativeLowering, "native lowering")
         pm.add_pass(NoPythonBackend, "nopython mode backend")
         pm.finalize()
         return pm
@@ -607,26 +562,8 @@ class DefaultPassBuilder(object):
 
         # optimisation
         pm.add_pass(InlineOverloads, "inline overloaded functions")
-        if state.flags.auto_parallel.enabled:
-            pm.add_pass(PreParforPass, "Preprocessing for parfors")
         if not state.flags.no_rewrites:
             pm.add_pass(NopythonRewrites, "nopython rewrites")
-        if state.flags.auto_parallel.enabled:
-            pm.add_pass(ParforPass, "convert to parfors")
-            pm.add_pass(ParforFusionPass, "fuse parfors")
-            pm.add_pass(ParforPreLoweringPass, "parfor prelowering")
-
-        pm.finalize()
-        return pm
-
-    @staticmethod
-    def define_parfor_gufunc_pipeline(state, name="parfor_gufunc_typed"):
-        """Returns the typed part of the nopython pipeline"""
-        pm = PassManager(name)
-        assert state.func_ir
-        pm.add_pass(IRProcessing, "processing IR")
-        pm.add_pass(NopythonTypeInference, "nopython frontend")
-        pm.add_pass(ParforPreLoweringPass, "parfor prelowering")
 
         pm.finalize()
         return pm

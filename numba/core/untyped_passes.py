@@ -200,9 +200,7 @@ class InlineClosureLikes(FunctionPass):
         from numba.core.inline_closurecall import InlineClosureCallPass
         inline_pass = InlineClosureCallPass(
             state.func_ir,
-            state.flags.auto_parallel,
-            state.parfor_diagnostics.replaced_fns,
-            typed_pass)
+            typed=typed_pass)
         inline_pass.run()
 
         # Remove all Dels, and re-run postproc
