@@ -276,7 +276,6 @@ _options_mixin = include_default_options(
     "no_rewrites",
     "no_cpython_wrapper",
     "no_cfunc_wrapper",
-    "parallel",
     "fastmath",
     "error_model",
     "inline",

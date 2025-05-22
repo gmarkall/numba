@@ -201,9 +201,6 @@ class BaseContext(object):
     # NRT
     enable_nrt = False
 
-    # Auto parallelization
-    auto_parallel = False
-
     # PYCC
     aot_mode = False
 
