@@ -907,8 +907,7 @@ def is_immutable_type(var, typemap):
         return False
     typ = typemap[var]
     # TODO: add more immutable types
-    if isinstance(typ, (types.Number, types.scalars._NPDatetimeBase,
-                        types.iterators.RangeType)):
+    if isinstance(typ, (types.Number, types.iterators.RangeType)):
         return True
     if typ==types.string:
         return True
