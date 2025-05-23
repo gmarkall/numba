@@ -21,18 +21,19 @@ from numba.cpython.unsafe.numbers import trailing_zeros
 
 
 # Helpers, shared with cmathimpl.
-_NP_FLT_FINFO = np.finfo(np.dtype('float32'))
-FLT_MAX = _NP_FLT_FINFO.max
-FLT_MIN = _NP_FLT_FINFO.tiny
-
-_NP_DBL_FINFO = np.finfo(np.dtype('float64'))
-DBL_MAX = _NP_DBL_FINFO.max
-DBL_MIN = _NP_DBL_FINFO.tiny
-
-FLOAT_ABS_MASK = 0x7fffffff
-FLOAT_SIGN_MASK = 0x80000000
-DOUBLE_ABS_MASK = 0x7fffffffffffffff
-DOUBLE_SIGN_MASK = 0x8000000000000000
+# XXX: compiler-core: unused?
+# _NP_FLT_FINFO = np.finfo(np.dtype('float32'))
+# FLT_MAX = _NP_FLT_FINFO.max
+# FLT_MIN = _NP_FLT_FINFO.tiny
+# 
+# _NP_DBL_FINFO = np.finfo(np.dtype('float64'))
+# DBL_MAX = _NP_DBL_FINFO.max
+# DBL_MIN = _NP_DBL_FINFO.tiny
+# 
+# FLOAT_ABS_MASK = 0x7fffffff
+# FLOAT_SIGN_MASK = 0x80000000
+# DOUBLE_ABS_MASK = 0x7fffffffffffffff
+# DOUBLE_SIGN_MASK = 0x8000000000000000
 
 
 def is_nan(builder, val):

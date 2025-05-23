@@ -15,8 +15,9 @@ from numba.cpython import unicode
 # are defined in numpy/targets/boxing.py, see box_unicodecharseq,
 # unbox_unicodecharseq, box_charseq, unbox_charseq.
 
-s1_dtype = np.dtype('S1')
-assert s1_dtype.itemsize == 1
+# XXX: compiler-core: dunno what the purpose of this was
+# s1_dtype = np.dtype('S1')
+# assert s1_dtype.itemsize == 1
 if config.USE_LEGACY_TYPE_SYSTEM:
     bytes_type = types.Bytes(types.uint8, 1, "C", readonly=True)
 else:
@@ -26,9 +27,12 @@ else:
 # future and the approach used here for supporting str arrays may need
 # a revision depending on how NumPy will support UTF-8 and UTF-16
 # arrays.
-u1_dtype = np.dtype('U1')
-unicode_byte_width = u1_dtype.itemsize
-unicode_uint = {1: np.uint8, 2: np.uint16, 4: np.uint32}[unicode_byte_width]
+# u1_dtype = np.dtype('U1')
+unicode_byte_width = 4 # XXX: compiler-core: was u1_dtype.itemsize
+# XXX: compiler-core: NP types switched for Numba ones
+unicode_uint = {1: types.uint8, 2: types.uint16, 4: types.uint32}[
+    unicode_byte_width
+]
 unicode_kind = {1: unicode.PY_UNICODE_1BYTE_KIND,
                 2: unicode.PY_UNICODE_2BYTE_KIND,
                 4: unicode.PY_UNICODE_4BYTE_KIND}[unicode_byte_width]

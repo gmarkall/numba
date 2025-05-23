@@ -18,7 +18,7 @@ from numba.np.numpy_support import (as_dtype, from_dtype, carray, farray,
                                     is_contiguous, is_fortran,
                                     check_is_integer, type_is_scalar,
                                     lt_complex, lt_floats)
-from numba.np.numpy_support import type_can_asarray, is_nonelike, numpy_version
+from numba.np.numpy_support import type_can_asarray, is_nonelike
 from numba.core.imputils import (lower_builtin, lower_getattr,
                                  lower_getattr_generic,
                                  lower_setattr_generic,
@@ -40,6 +40,9 @@ from numba.core.typing.npydecl import (parse_dtype as ty_parse_dtype,
                                        _parse_nested_sequence,
                                        _sequence_of_arrays,
                                        _choose_concatenation_layout)
+
+# XXX: compiler-core: Obviously fragile!
+numpy_version = (2, 2)
 
 
 def set_range_metadata(builder, load, lower_bound, upper_bound):
@@ -1460,48 +1463,6 @@ def _default_broadcast_to_impl(array, shape):
     return _numpy_broadcast_to(array, shape)
 
 
-@overload(np.broadcast_to)
-def numpy_broadcast_to(array, shape):
-    if not type_can_asarray(array):
-        raise errors.TypingError('The first argument "array" must '
-                                 'be array-like')
-
-    if isinstance(shape, types.Integer):
-        def impl(array, shape):
-            return np.broadcast_to(array, (shape,))
-        return impl
-
-    elif isinstance(shape, types.UniTuple):
-        if not isinstance(shape.dtype, types.Integer):
-            msg = 'The second argument "shape" must be a tuple of integers'
-            raise errors.TypingError(msg)
-        return _default_broadcast_to_impl
-
-    elif isinstance(shape, types.Tuple) and shape.count > 0:
-        # check if all types are integers
-        if not all([isinstance(typ, types.IntegerLiteral) for typ in shape]):
-            msg = f'"{shape}" object cannot be interpreted as an integer'
-            raise errors.TypingError(msg)
-        return _default_broadcast_to_impl
-    elif isinstance(shape, types.Tuple) and shape.count == 0:
-        is_scalar_array = isinstance(array, types.Array) and array.ndim == 0
-        if type_is_scalar(array) or is_scalar_array:
-
-            def impl(array, shape):  # broadcast_to(array, ())
-                # Array type must be supported by "type_can_asarray"
-                # Quick note that unicode types are not supported!
-                array = np.asarray(array)
-                return get_readonly_array(array)
-            return impl
-
-        else:
-            msg = 'Cannot broadcast a non-scalar to a scalar array'
-            raise errors.TypingError(msg)
-    else:
-        msg = ('The argument "shape" must be a tuple or an integer. '
-               'Got %s' % shape)
-        raise errors.TypingError(msg)
-
 
 @register_jitable
 def numpy_broadcast_shapes_list(r, m, shape):
@@ -1518,105 +1479,6 @@ def numpy_broadcast_shapes_list(r, m, shape):
             raise ValueError("shape mismatch: objects"
                              " cannot be broadcast"
                              " to a single shape")
-
-
-@overload(np.broadcast_shapes)
-def ol_numpy_broadcast_shapes(*args):
-    # Based on https://github.com/numpy/numpy/blob/f702b26fff3271ba6a6ba29a021fc19051d1f007/numpy/core/src/multiarray/iterators.c#L1129-L1212  # noqa
-    for idx, arg in enumerate(args):
-        is_int = isinstance(arg, types.Integer)
-        is_int_tuple = isinstance(arg, types.UniTuple) and \
-            isinstance(arg.dtype, types.Integer)
-        is_empty_tuple = isinstance(arg, types.Tuple) and len(arg.types) == 0
-        if not (is_int or is_int_tuple or is_empty_tuple):
-            msg = (f'Argument {idx} must be either an int or tuple[int]. '
-                   f'Got {arg}')
-            raise errors.TypingError(msg)
-
-    # discover the number of dimensions
-    m = 0
-    for arg in args:
-        if isinstance(arg, types.Integer):
-            m = max(m, 1)
-        elif isinstance(arg, types.BaseTuple):
-            m = max(m, len(arg))
-
-    if m == 0:
-        return lambda *args: ()
-    else:
-        tup_init = (1,) * m
-
-        def impl(*args):
-            # propagate args
-            r = [1] * m
-            tup = tup_init
-            for arg in literal_unroll(args):
-                if isinstance(arg, tuple) and len(arg) > 0:
-                    numpy_broadcast_shapes_list(r, m, arg)
-                elif isinstance(arg, int):
-                    numpy_broadcast_shapes_list(r, m, (arg,))
-            for idx, elem in enumerate(r):
-                tup = tuple_setitem(tup, idx, elem)
-            return tup
-        return impl
-
-
-@overload(np.broadcast_arrays)
-def numpy_broadcast_arrays(*args):
-
-    for idx, arg in enumerate(args):
-        if not type_can_asarray(arg):
-            raise errors.TypingError(f'Argument "{idx}" must '
-                                     'be array-like')
-
-    unified_dtype = None
-    dt = None
-    for arg in args:
-        if isinstance(arg, (types.Array, types.BaseTuple)):
-            dt = arg.dtype
-        else:
-            dt = arg
-
-        if unified_dtype is None:
-            unified_dtype = dt
-        elif unified_dtype != dt:
-            raise errors.TypingError('Mismatch of argument types. Numba cannot '
-                                     'broadcast arrays with different types. '
-                                     f'Got {args}')
-
-    # number of dimensions
-    m = 0
-    for idx, arg in enumerate(args):
-        if isinstance(arg, types.ArrayCompatible):
-            m = max(m, arg.ndim)
-        elif isinstance(arg, (types.Number, types.Boolean, types.BaseTuple)):
-            m = max(m, 1)
-        else:
-            raise errors.TypingError(f'Unhandled type {arg}')
-
-    tup_init = (0,) * m
-
-    def impl(*args):
-        # find out the output shape
-        # we can't call np.broadcast_shapes here since args may have arrays
-        # with different shapes and it is not possible to create a list
-        # with those shapes dynamically
-        shape = [1] * m
-        for array in literal_unroll(args):
-            numpy_broadcast_shapes_list(shape, m, np.asarray(array).shape)
-
-        tup = tup_init
-
-        for i in range(m):
-            tup = tuple_setitem(tup, i, shape[i])
-
-        # numpy checks if the input arrays have the same shape as `shape`
-        outs = []
-        for array in literal_unroll(args):
-            outs.append(np.broadcast_to(np.asarray(array), tup))
-        return outs
-
-    return impl
 
 
 def raise_with_shape_context(src_shapes, index_shape):
@@ -1917,20 +1779,6 @@ def array_transpose_vararg(context, builder, sig, args):
     return array_transpose_tuple(context, builder, new_sig, new_args)
 
 
-@overload(np.transpose)
-def numpy_transpose(a, axes=None):
-    if isinstance(a, types.BaseTuple):
-        raise errors.TypingError("np.transpose does not accept tuples")
-
-    if axes is None:
-        def np_transpose_impl(a, axes=None):
-            return a.transpose()
-    else:
-        def np_transpose_impl(a, axes=None):
-            return a.transpose(axes)
-
-    return np_transpose_impl
-
 
 @lower_getattr(types.Array, 'T')
 def array_T(context, builder, typ, value):
@@ -1950,126 +1798,6 @@ def array_T(context, builder, typ, value):
                        parent=ary.parent)
         res = ret._getvalue()
     return impl_ret_borrowed(context, builder, typ, res)
-
-
-@overload(np.logspace)
-def numpy_logspace(start, stop, num=50):
-    if not isinstance(start, types.Number):
-        raise errors.TypingError('The first argument "start" must be a number')
-    if not isinstance(stop, types.Number):
-        raise errors.TypingError('The second argument "stop" must be a number')
-    if not isinstance(num, (int, types.Integer)):
-        raise errors.TypingError('The third argument "num" must be an integer')
-
-    def impl(start, stop, num=50):
-        y = np.linspace(start, stop, num)
-        return np.power(10.0, y)
-
-    return impl
-
-
-@overload(np.geomspace)
-def numpy_geomspace(start, stop, num=50):
-    if not isinstance(start, types.Number):
-        msg = 'The argument "start" must be a number'
-        raise errors.TypingError(msg)
-
-    if not isinstance(stop, types.Number):
-        msg = 'The argument "stop" must be a number'
-        raise errors.TypingError(msg)
-
-    if not isinstance(num, (int, types.Integer)):
-        msg = 'The argument "num" must be an integer'
-        raise errors.TypingError(msg)
-
-    if any(isinstance(arg, types.Complex) for arg in [start, stop]):
-        result_dtype = from_dtype(np.result_type(as_dtype(start),
-                                                 as_dtype(stop), None))
-
-        def impl(start, stop, num=50):
-            if start == 0 or stop == 0:
-                raise ValueError('Geometric sequence cannot include zero')
-            start = result_dtype(start)
-            stop = result_dtype(stop)
-            if numpy_version < (2, 0):
-                both_imaginary = (start.real == 0) & (stop.real == 0)
-                both_negative = (np.sign(start) == -1) & (np.sign(stop) == -1)
-                out_sign = 1
-                if both_imaginary:
-                    start = start.imag
-                    stop = stop.imag
-                    out_sign = 1j
-                if both_negative:
-                    start = -start
-                    stop = -stop
-                    out_sign = -out_sign
-            else:
-                out_sign = np.sign(start)
-                start /= out_sign
-                stop /= out_sign
-
-            logstart = np.log10(start)
-            logstop = np.log10(stop)
-            result = np.logspace(logstart, logstop, num)
-            # Make sure the endpoints match the start and stop arguments.
-            # This is necessary because np.exp(np.log(x)) is not necessarily
-            # equal to x.
-            if num > 0:
-                result[0] = start
-                if num > 1:
-                    result[-1] = stop
-            return out_sign * result
-
-    else:
-        def impl(start, stop, num=50):
-            if start == 0 or stop == 0:
-                raise ValueError('Geometric sequence cannot include zero')
-            both_negative = (np.sign(start) == -1) & (np.sign(stop) == -1)
-            out_sign = 1
-            if both_negative:
-                start = -start
-                stop = -stop
-                out_sign = -out_sign
-            logstart = np.log10(start)
-            logstop = np.log10(stop)
-            result = np.logspace(logstart, logstop, num)
-            # Make sure the endpoints match the start and stop arguments.
-            # This is necessary because np.exp(np.log(x)) is not necessarily
-            # equal to x.
-            if num > 0:
-                result[0] = start
-                if num > 1:
-                    result[-1] = stop
-            return out_sign * result
-
-    return impl
-
-
-@overload(np.rot90)
-def numpy_rot90(m, k=1):
-    # supporting axes argument it needs to be included in np.flip
-    if not isinstance(k, (int, types.Integer)):
-        raise errors.TypingError('The second argument "k" must be an integer')
-    if not isinstance(m, types.Array):
-        raise errors.TypingError('The first argument "m" must be an array')
-
-    if m.ndim < 2:
-        raise errors.NumbaValueError('Input must be >= 2-d.')
-
-    def impl(m, k=1):
-        k = k % 4
-        if k == 0:
-            return m[:]
-        elif k == 1:
-            return np.swapaxes(np.fliplr(m), 0, 1)
-        elif k == 2:
-            return np.flipud(np.fliplr(m))
-        elif k == 3:
-            return np.fliplr(np.swapaxes(m, 0, 1))
-        else:
-            raise AssertionError  # unreachable
-
-    return impl
 
 
 def _attempt_nocopy_reshape(context, builder, aryty, ary,
@@ -2209,93 +1937,6 @@ def array_reshape_vararg(context, builder, sig, args):
     return array_reshape(context, builder, new_sig, new_args)
 
 
-if numpy_version < (2, 1):
-    @overload(np.reshape)
-    def np_reshape(a, newshape):
-        def np_reshape_impl(a, newshape):
-            return a.reshape(newshape)
-        return np_reshape_impl
-else:
-    @overload(np.reshape)
-    def np_reshape(a, shape):
-        def np_reshape_impl(a, shape):
-            return a.reshape(shape)
-        return np_reshape_impl
-
-
-@overload(np.resize)
-def numpy_resize(a, new_shape):
-
-    if not type_can_asarray(a):
-        msg = 'The argument "a" must be array-like'
-        raise errors.TypingError(msg)
-
-    if not ((isinstance(new_shape, types.UniTuple)
-             and
-             isinstance(new_shape.dtype, types.Integer))
-            or
-            isinstance(new_shape, types.Integer)):
-        msg = ('The argument "new_shape" must be an integer or '
-               'a tuple of integers')
-        raise errors.TypingError(msg)
-
-    def impl(a, new_shape):
-        a = np.asarray(a)
-        a = np.ravel(a)
-
-        if isinstance(new_shape, tuple):
-            new_size = 1
-            for dim_length in np.asarray(new_shape):
-                new_size *= dim_length
-                if dim_length < 0:
-                    msg = 'All elements of `new_shape` must be non-negative'
-                    raise ValueError(msg)
-        else:
-            if new_shape < 0:
-                msg2 = 'All elements of `new_shape` must be non-negative'
-                raise ValueError(msg2)
-            new_size = new_shape
-
-        if a.size == 0:
-            return np.zeros(new_shape).astype(a.dtype)
-
-        repeats = -(-new_size // a.size)  # ceil division
-        res = a
-        for i in range(repeats - 1):
-            res = np.concatenate((res, a))
-        res = res[:new_size]
-
-        return np.reshape(res, new_shape)
-
-    return impl
-
-
-@overload(np.append)
-def np_append(arr, values, axis=None):
-
-    if not type_can_asarray(arr):
-        raise errors.TypingError('The first argument "arr" must be array-like')
-
-    if not type_can_asarray(values):
-        raise errors.TypingError('The second argument "values" must be '
-                                 'array-like')
-
-    if is_nonelike(axis):
-        def impl(arr, values, axis=None):
-            arr = np.ravel(np.asarray(arr))
-            values = np.ravel(np.asarray(values))
-            return np.concatenate((arr, values))
-    else:
-
-        if not isinstance(axis, types.Integer):
-            raise errors.TypingError('The third argument "axis" must be an '
-                                     'integer')
-
-        def impl(arr, values, axis=None):
-            return np.concatenate((arr, values), axis=axis)
-    return impl
-
-
 @lower_builtin('array.ravel', types.Array)
 def array_ravel(context, builder, sig, args):
     # Only support no argument version (default order='C')
@@ -2317,14 +1958,6 @@ def array_ravel(context, builder, sig, args):
     res = context.compile_internal(builder, imp, sig, args)
     res = impl_ret_new_ref(context, builder, sig.return_type, res)
     return res
-
-
-@lower_builtin(np.ravel, types.Array)
-def np_ravel(context, builder, sig, args):
-    def np_ravel_impl(a):
-        return a.ravel()
-
-    return context.compile_internal(builder, np_ravel_impl, sig, args)
 
 
 @lower_builtin('array.flatten', types.Array)
@@ -2362,128 +1995,6 @@ def _np_clip_impl_none(a, b, use_min, out):
         else:
             out[index] = max(val_a, val_b)
     return out
-
-
-@overload(np.clip)
-def np_clip(a, a_min, a_max, out=None):
-    if not type_can_asarray(a):
-        raise errors.TypingError('The argument "a" must be array-like')
-
-    if (not isinstance(a_min, types.NoneType) and
-            not type_can_asarray(a_min)):
-        raise errors.TypingError(('The argument "a_min" must be a number '
-                                 'or an array-like'))
-
-    if (not isinstance(a_max, types.NoneType) and
-            not type_can_asarray(a_max)):
-        raise errors.TypingError('The argument "a_max" must be a number '
-                                 'or an array-like')
-
-    if not (isinstance(out, types.Array) or is_nonelike(out)):
-        msg = 'The argument "out" must be an array if it is provided'
-        raise errors.TypingError(msg)
-
-    # TODO: support scalar a (issue #3469)
-    a_min_is_none = a_min is None or isinstance(a_min, types.NoneType)
-    a_max_is_none = a_max is None or isinstance(a_max, types.NoneType)
-
-    if a_min_is_none and a_max_is_none:
-        # Raises value error when both a_min and a_max are None
-        def np_clip_nn(a, a_min, a_max, out=None):
-            raise ValueError("array_clip: must set either max or min")
-
-        return np_clip_nn
-
-    a_min_is_scalar = isinstance(a_min, types.Number)
-    a_max_is_scalar = isinstance(a_max, types.Number)
-
-    if a_min_is_scalar and a_max_is_scalar:
-        def np_clip_ss(a, a_min, a_max, out=None):
-            # a_min and a_max are scalars
-            # since their shape will be empty
-            # so broadcasting is not needed at all
-            ret = np.empty_like(a) if out is None else out
-            for index in np.ndindex(a.shape):
-                val_a = a[index]
-                ret[index] = min(max(val_a, a_min), a_max)
-
-            return ret
-
-        return np_clip_ss
-    elif a_min_is_scalar and not a_max_is_scalar:
-        if a_max_is_none:
-            def np_clip_sn(a, a_min, a_max, out=None):
-                # a_min is a scalar
-                # since its shape will be empty
-                # so broadcasting is not needed at all
-                ret = np.empty_like(a) if out is None else out
-                for index in np.ndindex(a.shape):
-                    val_a = a[index]
-                    ret[index] = max(val_a, a_min)
-
-                return ret
-
-            return np_clip_sn
-        else:
-            def np_clip_sa(a, a_min, a_max, out=None):
-                # a_min is a scalar
-                # since its shape will be empty
-                # broadcast it to shape of a
-                # by using np.full_like
-                a_min_full = np.full_like(a, a_min)
-                return _np_clip_impl(a, a_min_full, a_max, out)
-
-            return np_clip_sa
-    elif not a_min_is_scalar and a_max_is_scalar:
-        if a_min_is_none:
-            def np_clip_ns(a, a_min, a_max, out=None):
-                # a_max is a scalar
-                # since its shape will be empty
-                # so broadcasting is not needed at all
-                ret = np.empty_like(a) if out is None else out
-                for index in np.ndindex(a.shape):
-                    val_a = a[index]
-                    ret[index] = min(val_a, a_max)
-
-                return ret
-
-            return np_clip_ns
-        else:
-            def np_clip_as(a, a_min, a_max, out=None):
-                # a_max is a scalar
-                # since its shape will be empty
-                # broadcast it to shape of a
-                # by using np.full_like
-                a_max_full = np.full_like(a, a_max)
-                return _np_clip_impl(a, a_min, a_max_full, out)
-
-            return np_clip_as
-    else:
-        # Case where exactly one of a_min or a_max is None
-        if a_min_is_none:
-            def np_clip_na(a, a_min, a_max, out=None):
-                # a_max is a numpy array but a_min is None
-                ret = np.empty_like(a) if out is None else out
-                a_b, a_max_b = np.broadcast_arrays(a, a_max)
-                return _np_clip_impl_none(a_b, a_max_b, True, ret)
-
-            return np_clip_na
-        elif a_max_is_none:
-            def np_clip_an(a, a_min, a_max, out=None):
-                # a_min is a numpy array but a_max is None
-                ret = np.empty_like(a) if out is None else out
-                a_b, a_min_b = np.broadcast_arrays(a, a_min)
-                return _np_clip_impl_none(a_b, a_min_b, False, ret)
-
-            return np_clip_an
-        else:
-            def np_clip_aa(a, a_min, a_max, out=None):
-                # Both a_min and a_max are clearly arrays
-                # because none of the above branches
-                # returned
-                return _np_clip_impl(a, a_min, a_max, out)
-
-            return np_clip_aa
 
 
 @overload_method(types.Array, 'clip')
@@ -2619,81 +2130,7 @@ def _change_dtype(context, builder, oldty, newty, ary):
     return res
 
 
-@overload(np.shape)
-def np_shape(a):
-    if not type_can_asarray(a):
-        raise errors.TypingError("The argument to np.shape must be array-like")
-
-    def impl(a):
-        return np.asarray(a).shape
-    return impl
-
-
-@overload(np.size)
-def np_size(a):
-    if not type_can_asarray(a):
-        raise errors.TypingError("The argument to np.size must be array-like")
-
-    def impl(a):
-        return np.asarray(a).size
-    return impl
-
 # ------------------------------------------------------------------------------
-
-
-@overload(np.unique)
-def np_unique(ar):
-    def np_unique_impl(ar):
-        b = np.sort(ar.ravel())
-        head = list(b[:1])
-        tail = [x for i, x in enumerate(b[1:]) if b[i] != x]
-        return np.array(head + tail)
-    return np_unique_impl
-
-
-@overload(np.repeat)
-def np_repeat(a, repeats):
-    # Implementation for repeats being a scalar is a module global function
-    # (see below) because it might be called from the implementation below.
-
-    def np_repeat_impl_repeats_array_like(a, repeats):
-        # implementation if repeats is an array like
-        repeats_array = np.asarray(repeats, dtype=np.int64)
-        # if it is a singleton array, invoke the scalar implementation
-        if repeats_array.shape[0] == 1:
-            return np_repeat_impl_repeats_scaler(a, repeats_array[0])
-        if np.any(repeats_array < 0):
-            raise ValueError("negative dimensions are not allowed")
-        asa = np.asarray(a)
-        aravel = asa.ravel()
-        n = aravel.shape[0]
-        if aravel.shape != repeats_array.shape:
-            raise ValueError(
-                "operands could not be broadcast together")
-        to_return = np.empty(np.sum(repeats_array), dtype=asa.dtype)
-        pos = 0
-        for i in range(n):
-            to_return[pos : pos + repeats_array[i]] = aravel[i]
-            pos += repeats_array[i]
-        return to_return
-
-    # type checking
-    if isinstance(a, (types.Array,
-                      types.List,
-                      types.BaseTuple,
-                      types.Number,
-                      types.Boolean,
-                      )
-                  ):
-        if isinstance(repeats, types.Integer):
-            return np_repeat_impl_repeats_scaler
-        elif isinstance(repeats, (types.Array, types.List)):
-            if isinstance(repeats.dtype, types.Integer):
-                return np_repeat_impl_repeats_array_like
-
-        raise errors.TypingError(
-            "The repeats argument must be an integer "
-            "or an array-like of integer dtype")
 
 
 @register_jitable
@@ -4114,24 +3551,6 @@ def iternext_numpy_getitem_flat(context, builder, sig, args):
     return arr.nitems
 
 
-@lower_builtin(np.ndenumerate, types.Array)
-def make_array_ndenumerate(context, builder, sig, args):
-    arrty, = sig.args
-    arr, = args
-    nditercls = make_array_ndenumerate_cls(types.NumpyNdEnumerateType(arrty))
-    nditer = nditercls(context, builder)
-
-    nditer.array = arr
-
-    arrcls = context.make_array(arrty)
-    arr = arrcls(context, builder, ref=nditer._get_ptr_by_name('array'))
-
-    nditer.init_specific(context, builder, arrty, arr)
-
-    res = nditer._getvalue()
-    return impl_ret_borrowed(context, builder, sig.return_type, res)
-
-
 @lower_builtin('iternext', types.NumpyNdEnumerateType)
 @iternext_impl(RefType.BORROWED)
 def iternext_numpy_nditer(context, builder, sig, args, result):
@@ -4148,42 +3567,6 @@ def iternext_numpy_nditer(context, builder, sig, args, result):
     nditer.iternext_specific(context, builder, arrty, arr, result)
 
 
-@lower_builtin(np.ndindex, types.VarArg(types.Integer))
-def make_array_ndindex(context, builder, sig, args):
-    """ndindex(*shape)"""
-    shape = [context.cast(builder, arg, argty, types.intp)
-             for argty, arg in zip(sig.args, args)]
-
-    nditercls = make_ndindex_cls(types.NumpyNdIndexType(len(shape)))
-    nditer = nditercls(context, builder)
-    nditer.init_specific(context, builder, shape)
-
-    res = nditer._getvalue()
-    return impl_ret_borrowed(context, builder, sig.return_type, res)
-
-
-@lower_builtin(np.ndindex, types.BaseTuple)
-def make_array_ndindex_tuple(context, builder, sig, args):
-    """ndindex(shape)"""
-    ndim = sig.return_type.ndim
-    if ndim > 0:
-        idxty = sig.args[0].dtype
-        tup = args[0]
-
-        shape = cgutils.unpack_tuple(builder, tup, ndim)
-        shape = [context.cast(builder, idx, idxty, types.intp)
-                 for idx in shape]
-    else:
-        shape = []
-
-    nditercls = make_ndindex_cls(types.NumpyNdIndexType(len(shape)))
-    nditer = nditercls(context, builder)
-    nditer.init_specific(context, builder, shape)
-
-    res = nditer._getvalue()
-    return impl_ret_borrowed(context, builder, sig.return_type, res)
-
-
 @lower_builtin('iternext', types.NumpyNdIndexType)
 @iternext_impl(RefType.BORROWED)
 def iternext_numpy_ndindex(context, builder, sig, args, result):
@@ -4194,26 +3577,6 @@ def iternext_numpy_ndindex(context, builder, sig, args, result):
     nditer = nditercls(context, builder, value=nditer)
 
     nditer.iternext_specific(context, builder, result)
-
-
-@lower_builtin(np.nditer, types.Any)
-def make_array_nditer(context, builder, sig, args):
-    """
-    nditer(...)
-    """
-    nditerty = sig.return_type
-    arrtys = nditerty.arrays
-
-    if isinstance(sig.args[0], types.BaseTuple):
-        arrays = cgutils.unpack_tuple(builder, args[0])
-    else:
-        arrays = [args[0]]
-
-    nditer = make_nditer_cls(nditerty)(context, builder)
-    nditer.init_specific(context, builder, arrtys, arrays)
-
-    res = nditer._getvalue()
-    return impl_ret_borrowed(context, builder, nditerty, res)
 
 
 @lower_builtin('iternext', types.NumpyNdIterType)
@@ -4435,28 +3798,6 @@ def numpy_empty_nd(tyctx, ty_shape, ty_dtype, ty_retty_ref):
     return sig, codegen
 
 
-@overload(np.empty)
-def ol_np_empty(shape, dtype=float):
-    _check_const_str_dtype("empty", dtype)
-    if (dtype is float or
-        (isinstance(dtype, types.Function) and dtype.typing_key is float) or
-            is_nonelike(dtype)): #default
-        nb_dtype = types.double
-    else:
-        nb_dtype = ty_parse_dtype(dtype)
-
-    ndim = ty_parse_shape(shape)
-    if nb_dtype is not None and ndim is not None:
-        retty = types.Array(dtype=nb_dtype, ndim=ndim, layout='C')
-
-        def impl(shape, dtype=float):
-            return numpy_empty_nd(shape, dtype, retty)
-        return impl
-    else:
-        msg = f"Cannot parse input types to function np.empty({shape}, {dtype})"
-        raise errors.TypingError(msg)
-
-
 @intrinsic
 def numpy_empty_like_nd(tyctx, ty_prototype, ty_dtype, ty_retty_ref):
     ty_retty = ty_retty_ref.instance_type
@@ -4467,31 +3808,6 @@ def numpy_empty_like_nd(tyctx, ty_prototype, ty_dtype, ty_retty_ref):
         ary = _empty_nd_impl(cgctx, builder, arrtype, shapes)
         return ary._getvalue()
     return sig, codegen
-
-
-@overload(np.empty_like)
-def ol_np_empty_like(arr, dtype=None):
-    _check_const_str_dtype("empty_like", dtype)
-    if not is_nonelike(dtype):
-        nb_dtype = ty_parse_dtype(dtype)
-    elif isinstance(arr, types.Array):
-        nb_dtype = arr.dtype
-    else:
-        nb_dtype = arr
-    if nb_dtype is not None:
-        if isinstance(arr, types.Array):
-            layout = arr.layout if arr.layout != 'A' else 'C'
-            retty = arr.copy(dtype=nb_dtype, layout=layout, readonly=False)
-        else:
-            retty = types.Array(nb_dtype, 0, 'C')
-    else:
-        msg = ("Cannot parse input types to function "
-               f"np.empty_like({arr}, {dtype})")
-        raise errors.TypingError(msg)
-
-    def impl(arr, dtype=None):
-        return numpy_empty_like_nd(arr, dtype, retty)
-    return impl
 
 
 @intrinsic
@@ -4513,105 +3829,6 @@ def ol_array_zero_fill(self):
     return impl
 
 
-@overload(np.zeros)
-def ol_np_zeros(shape, dtype=float):
-    _check_const_str_dtype("zeros", dtype)
-
-    def impl(shape, dtype=float):
-        arr = np.empty(shape, dtype=dtype)
-        arr._zero_fill()
-        return arr
-    return impl
-
-
-@overload(np.zeros_like)
-def ol_np_zeros_like(a, dtype=None):
-    _check_const_str_dtype("zeros_like", dtype)
-
-    # NumPy uses 'a' as the arg name for the array-like
-    def impl(a, dtype=None):
-        arr = np.empty_like(a, dtype=dtype)
-        arr._zero_fill()
-        return arr
-    return impl
-
-
-@overload(np.ones_like)
-def ol_np_ones_like(a, dtype=None):
-    _check_const_str_dtype("ones_like", dtype)
-
-    # NumPy uses 'a' as the arg name for the array-like
-    def impl(a, dtype=None):
-        arr = np.empty_like(a, dtype=dtype)
-        arr_flat = arr.flat
-        for idx in range(len(arr_flat)):
-            arr_flat[idx] = 1
-        return arr
-    return impl
-
-
-@overload(np.full)
-def impl_np_full(shape, fill_value, dtype=None):
-    _check_const_str_dtype("full", dtype)
-    if not is_nonelike(dtype):
-        nb_dtype = ty_parse_dtype(dtype)
-    else:
-        nb_dtype = fill_value
-
-    def full(shape, fill_value, dtype=None):
-        arr = np.empty(shape, nb_dtype)
-        arr_flat = arr.flat
-        for idx in range(len(arr_flat)):
-            arr_flat[idx] = fill_value
-        return arr
-    return full
-
-
-@overload(np.full_like)
-def impl_np_full_like(a, fill_value, dtype=None):
-    _check_const_str_dtype("full_like", dtype)
-
-    def full_like(a, fill_value, dtype=None):
-        arr = np.empty_like(a, dtype)
-        arr_flat = arr.flat
-        for idx in range(len(arr_flat)):
-            arr_flat[idx] = fill_value
-        return arr
-
-    return full_like
-
-
-@overload(np.ones)
-def ol_np_ones(shape, dtype=None):
-    # for some reason the NumPy default for dtype is None in the source but
-    # ends up as np.float64 by definition.
-    _check_const_str_dtype("ones", dtype)
-
-    def impl(shape, dtype=None):
-        arr = np.empty(shape, dtype=dtype)
-        arr_flat = arr.flat
-        for idx in range(len(arr_flat)):
-            arr_flat[idx] = 1
-        return arr
-    return impl
-
-
-@overload(np.identity)
-def impl_np_identity(n, dtype=None):
-    _check_const_str_dtype("identity", dtype)
-    if not is_nonelike(dtype):
-        nb_dtype = ty_parse_dtype(dtype)
-    else:
-        nb_dtype = types.double
-
-    def identity(n, dtype=None):
-        arr = np.zeros((n, n), nb_dtype)
-        for i in range(n):
-            arr[i, i] = 1
-        return arr
-    return identity
-
-
 def _eye_none_handler(N, M):
     pass
 
@@ -4624,126 +3841,6 @@ def _eye_none_handler_impl(N, M):
     else:
         def impl(N, M):
             return M
-    return impl
-
-
-@extending.overload(np.eye)
-def numpy_eye(N, M=None, k=0, dtype=float):
-
-    if dtype is None or isinstance(dtype, types.NoneType):
-        dt = np.dtype(float)
-    elif isinstance(dtype, (types.DTypeSpec, types.Number)):
-        # dtype or instance of dtype
-        dt = as_dtype(getattr(dtype, 'dtype', dtype))
-    else:
-        dt = np.dtype(dtype)
-
-    def impl(N, M=None, k=0, dtype=float):
-        _M = _eye_none_handler(N, M)
-        arr = np.zeros((N, _M), dt)
-        if k >= 0:
-            d = min(N, _M - k)
-            for i in range(d):
-                arr[i, i + k] = 1
-        else:
-            d = min(N + k, _M)
-            for i in range(d):
-                arr[i - k, i] = 1
-        return arr
-    return impl
-
-
-@overload(np.diag)
-def impl_np_diag(v, k=0):
-    if not type_can_asarray(v):
-        raise errors.TypingError('The argument "v" must be array-like')
-
-    if isinstance(v, types.Array):
-        if v.ndim not in (1, 2):
-            raise errors.NumbaTypeError("Input must be 1- or 2-d.")
-
-        def diag_impl(v, k=0):
-            if v.ndim == 1:
-                s = v.shape
-                n = s[0] + abs(k)
-                ret = np.zeros((n, n), v.dtype)
-                if k >= 0:
-                    for i in range(n - k):
-                        ret[i, k + i] = v[i]
-                else:
-                    for i in range(n + k):
-                        ret[i - k, i] = v[i]
-                return ret
-            else:  # 2-d
-                rows, cols = v.shape
-                if k < 0:
-                    rows = rows + k
-                if k > 0:
-                    cols = cols - k
-                n = max(min(rows, cols), 0)
-                ret = np.empty(n, v.dtype)
-                if k >= 0:
-                    for i in range(n):
-                        ret[i] = v[i, k + i]
-                else:
-                    for i in range(n):
-                        ret[i] = v[i - k, i]
-                return ret
-        return diag_impl
-
-
-@overload(np.indices)
-def numpy_indices(dimensions):
-    if not isinstance(dimensions, types.UniTuple):
-        msg = 'The argument "dimensions" must be a tuple of integers'
-        raise errors.TypingError(msg)
-
-    if not isinstance(dimensions.dtype, types.Integer):
-        msg = 'The argument "dimensions" must be a tuple of integers'
-        raise errors.TypingError(msg)
-
-    N = len(dimensions)
-    shape = (1,) * N
-
-    def impl(dimensions):
-        res = np.empty((N,) + dimensions, dtype=np.int64)
-        i = 0
-        for dim in dimensions:
-            idx = np.arange(dim, dtype=np.int64).reshape(
-                tuple_setitem(shape, i, dim)
-            )
-            res[i] = idx
-            i += 1
-
-        return res
-
-    return impl
-
-
-@overload(np.diagflat)
-def numpy_diagflat(v, k=0):
-    if not type_can_asarray(v):
-        msg = 'The argument "v" must be array-like'
-        raise errors.TypingError(msg)
-
-    if not isinstance(k, (int, types.Integer)):
-        msg = 'The argument "k" must be an integer'
-        raise errors.TypingError(msg)
-
-    def impl(v, k=0):
-        v = np.asarray(v)
-        v = v.ravel()
-        s = len(v)
-        abs_k = abs(k)
-        n = s + abs_k
-        res = np.zeros((n, n), v.dtype)
-        i = np.maximum(0, -k)
-        j = np.maximum(0, k)
-        for t in range(s):
-            res[i + t, j + t] = v[t]
-
-        return res
-
     return impl
 
 
@@ -4782,7 +3879,6 @@ def generate_getitem_setitem_with_axis(ndim, kind):
     return register_jitable(fn)
 
 
-@overload(np.take)
 @overload_method(types.Array, 'take')
 def numpy_take(a, indices, axis=None):
 
@@ -4900,117 +3996,6 @@ def _arange_dtype(*args):
     return dtype
 
 
-@overload(np.arange)
-def np_arange(start, / ,stop=None, step=None, dtype=None):
-    if isinstance(stop, types.Optional):
-        stop = stop.type
-    if isinstance(step, types.Optional):
-        step = step.type
-    if isinstance(dtype, types.Optional):
-        dtype = dtype.type
-
-    if stop is None:
-        stop = types.none
-    if step is None:
-        step = types.none
-    if dtype is None:
-        dtype = types.none
-
-    if (not isinstance(start, types.Number) or
-        not isinstance(stop, (types.NoneType, types.Number)) or
-        not isinstance(step, (types.NoneType, types.Number)) or
-            not isinstance(dtype, (types.NoneType, types.DTypeSpec))):
-
-        return
-
-    if isinstance(dtype, types.NoneType):
-        true_dtype = _arange_dtype(start, stop, step)
-    else:
-        true_dtype = dtype.dtype
-
-    use_complex = any([isinstance(x, types.Complex)
-                       for x in (start, stop, step)])
-
-    start_value = getattr(start, "literal_value", None)
-    stop_value = getattr(stop, "literal_value", None)
-    step_value = getattr(step, "literal_value", None)
-
-    def impl(start, /, stop=None, step=None, dtype=None):
-        # Allow for improved performance if given literal arguments.
-        lit_start = start_value if start_value is not None else start
-        lit_stop = stop_value if stop_value is not None else stop
-        lit_step = step_value if step_value is not None else step
-
-        _step = lit_step if lit_step is not None else 1
-        if lit_stop is None:
-            _start, _stop = 0, lit_start
-        else:
-            _start, _stop = lit_start, lit_stop
-
-        if _step == 0:
-            raise ValueError("Maximum allowed size exceeded")
-
-        nitems_c = (_stop - _start) / _step
-        nitems_r = int(math.ceil(nitems_c.real))
-
-        # Binary operator needed for compiler branch pruning.
-        if use_complex is True:
-            nitems_i = int(math.ceil(nitems_c.imag))
-            nitems = max(min(nitems_i, nitems_r), 0)
-        else:
-            nitems = max(nitems_r, 0)
-        arr = np.empty(nitems, true_dtype)
-        val = _start
-        for i in range(nitems):
-            arr[i] = val + (i * _step)
-        return arr
-
-    return impl
-
-
-@overload(np.linspace)
-def numpy_linspace(start, stop, num=50):
-    if not all(isinstance(arg, types.Number) for arg in [start, stop]):
-        return
-
-    if not isinstance(num, (int, types.Integer)):
-        msg = 'The argument "num" must be an integer'
-        raise errors.TypingError(msg)
-
-    if any(isinstance(arg, types.Complex) for arg in [start, stop]):
-        if config.USE_LEGACY_TYPE_SYSTEM:
-            dtype = types.complex128
-        else:
-            dtype = types.np_complex128
-    else:
-        dtype = types.float64
-
-    # Implementation based on https://github.com/numpy/numpy/blob/v1.20.0/numpy/core/function_base.py#L24 # noqa: E501
-    def linspace(start, stop, num=50):
-        arr = np.empty(num, dtype)
-        # The multiply by 1.0 mirrors
-        # https://github.com/numpy/numpy/blob/v1.20.0/numpy/core/function_base.py#L125-L128  # noqa: E501
-        # the side effect of this is important... start and stop become the same
-        # type as `dtype` i.e. 64/128 bits wide (float/complex). This is
-        # important later when used in the `np.divide`.
-        start = start * 1.0
-        stop = stop * 1.0
-        if num == 0:
-            return arr
-        div = num - 1
-        if div > 0:
-            delta = stop - start
-            step = np.divide(delta, div)
-            for i in range(0, num):
-                arr[i] = start + (i * step)
-        else:
-            arr[0] = start
-        if num > 1:
-            arr[-1] = stop
-        return arr
-    return linspace
-
-
 def _array_copy(context, builder, sig, args):
     """
     Array copy.
@@ -5060,14 +4045,6 @@ def _array_copy_intrinsic(typingctx, a):
 @lower_builtin("array.copy", types.Array)
 def array_copy(context, builder, sig, args):
     return _array_copy(context, builder, sig, args)
-
-
-@overload(np.copy)
-def impl_numpy_copy(a):
-    if isinstance(a, types.Array):
-        def numpy_copy(a):
-            return _array_copy_intrinsic(a)
-    return numpy_copy
 
 
 def _as_layout_array(context, builder, sig, args, output_layout):
@@ -5145,35 +4122,6 @@ def _as_layout_array_intrinsic(typingctx, a, output_layout):
 
     return sig, lambda c, b, s, a: _as_layout_array(
         c, b, s, a, output_layout=output_layout.literal_value)
-
-
-@overload(np.ascontiguousarray)
-def array_ascontiguousarray(a):
-    if not type_can_asarray(a):
-        raise errors.TypingError('The argument "a" must be array-like')
-
-    if isinstance(a, (types.Number, types.Boolean,)):
-        def impl(a):
-            return np.ascontiguousarray(np.array(a))
-    elif isinstance(a, types.Array):
-        def impl(a):
-            return _as_layout_array_intrinsic(a, 'C')
-    return impl
-
-
-@overload(np.asfortranarray)
-def array_asfortranarray(a):
-    if not type_can_asarray(a):
-        raise errors.TypingError('The argument "a" must be array-like')
-
-    if isinstance(a, (types.Number, types.Boolean,)):
-        def impl(a):
-            return np.asfortranarray(np.array(a))
-        return impl
-    elif isinstance(a, types.Array):
-        def impl(a):
-            return _as_layout_array_intrinsic(a, 'F')
-        return impl
 
 
 @lower_builtin("array.astype", types.Array, types.DTypeSpec)
@@ -5300,34 +4248,6 @@ def np_frombuffer(typingctx, buffer, dtype, retty):
         res = out_ary._getvalue()
         return impl_ret_borrowed(context, builder, sig.return_type, res)
     return sig, codegen
-
-
-@overload(np.frombuffer)
-def impl_np_frombuffer(buffer, dtype=float):
-    _check_const_str_dtype("frombuffer", dtype)
-
-    if not isinstance(buffer, types.Buffer) or buffer.layout != 'C':
-        msg = f'Argument "buffer" must be buffer-like. Got {buffer}'
-        raise errors.TypingError(msg)
-
-    if (dtype is float or
-        (isinstance(dtype, types.Function) and dtype.typing_key is float) or
-            is_nonelike(dtype)): #default
-        nb_dtype = types.double
-    else:
-        nb_dtype = ty_parse_dtype(dtype)
-
-    if nb_dtype is not None:
-        retty = types.Array(dtype=nb_dtype, ndim=1, layout='C',
-                            readonly=not buffer.mutable)
-    else:
-        msg = ("Cannot parse input types to function "
-               f"np.frombuffer({buffer}, {dtype})")
-        raise errors.TypingError(msg)
-
-    def impl(buffer, dtype=float):
-        return np_frombuffer(buffer, dtype, retty)
-    return impl
 
 
 @overload(carray)
@@ -5626,21 +4546,6 @@ def np_array(typingctx, obj, dtype):
     return sig, codegen
 
 
-@overload(np.array)
-def impl_np_array(object, dtype=None):
-    _check_const_str_dtype("array", dtype)
-    if not type_can_asarray(object):
-        raise errors.TypingError('The argument "object" must '
-                                 'be array-like')
-    if not is_nonelike(dtype) and ty_parse_dtype(dtype) is None:
-        msg = 'The argument "dtype" must be a data-type if it is provided'
-        raise errors.TypingError(msg)
-
-    def impl(object, dtype=None):
-        return np_array(object, dtype)
-    return impl
-
-
 def _normalize_axis(context, builder, func_name, ndim, axis):
     zero = axis.type(0)
     ll_ndim = axis.type(ndim)
@@ -5763,21 +4668,6 @@ def np_expand_dims(typingctx, a, axis):
     return sig, codegen
 
 
-@overload(np.expand_dims)
-def impl_np_expand_dims(a, axis):
-    if not isinstance(a, types.Array):
-        msg = f'First argument "a" must be an array. Got {a}'
-        raise errors.TypingError(msg)
-
-    if not isinstance(axis, types.Integer):
-        msg = f'Argument "axis" must be an integer. Got {axis}'
-        raise errors.TypingError(msg)
-
-    def impl(a, axis):
-        return np_expand_dims(a, axis)
-    return impl
-
-
 def _atleast_nd(minimum, axes):
     @intrinsic
     def impl(typingcontext, *args):
@@ -5824,24 +4714,6 @@ def _atleast_nd_transform(min_ndim, axes):
         return arr
 
     return transform
-
-
-@overload(np.atleast_1d)
-def np_atleast_1d(*args):
-    if all(isinstance(arg, types.Array) for arg in args):
-        return _atleast_nd(1, [0])
-
-
-@overload(np.atleast_2d)
-def np_atleast_2d(*args):
-    if all(isinstance(arg, types.Array) for arg in args):
-        return _atleast_nd(2, [0, 0])
-
-
-@overload(np.atleast_3d)
-def np_atleast_3d(*args):
-    if all(isinstance(arg, types.Array) for arg in args):
-        return _atleast_nd(3, [0, 0, 2])
 
 
 def _do_concatenate(context, builder, axis,
@@ -6079,14 +4951,6 @@ def np_concatenate(typingctx, arrays, axis):
     return sig, codegen
 
 
-@overload(np.concatenate)
-def impl_np_concatenate(arrays, axis=0):
-    if isinstance(arrays, types.BaseTuple):
-        def impl(arrays, axis=0):
-            return np_concatenate(arrays, axis)
-        return impl
-
-
 def _column_stack_dims(context, func_name, arrays):
     # column_stack() allows stacking 1-d and 2-d arrays together
     for a in arrays:
@@ -6134,14 +4998,6 @@ def np_column_stack(typingctx, tup):
     return sig, codegen
 
 
-@overload(np.column_stack)
-def impl_column_stack(tup):
-    if isinstance(tup, types.BaseTuple):
-        def impl(tup):
-            return np_column_stack(tup)
-        return impl
-
-
 def _np_stack_common(context, builder, sig, args, axis):
     """
     np.stack() with the given axis value.
@@ -6167,14 +5023,6 @@ def np_stack_common(typingctx, arrays, axis):
         return _np_stack_common(context, builder, sig, args, axis)
 
     return sig, codegen
-
-
-@overload(np.stack)
-def impl_np_stack(arrays, axis=0):
-    if isinstance(arrays, types.BaseTuple):
-        def impl(arrays, axis=0):
-            return np_stack_common(arrays, axis)
-        return impl
 
 
 def NdStack_typer(typingctx, func_name, arrays, ndim_min):
@@ -6213,14 +5061,6 @@ def _np_hstack(typingctx, tup):
     return sig, codegen
 
 
-@overload(np.hstack)
-def impl_np_hstack(tup):
-    if isinstance(tup, types.BaseTuple):
-        def impl(tup):
-            return _np_hstack(tup)
-        return impl
-
-
 @intrinsic
 def _np_vstack(typingctx, tup):
     ret = NdStack_typer(typingctx, "np.vstack", tup, 2)
@@ -6246,18 +5086,6 @@ def _np_vstack(typingctx, tup):
         return context.compile_internal(builder, np_vstack_impl, sig, args)
 
     return sig, codegen
-
-
-@overload(np.vstack)
-def impl_np_vstack(tup):
-    if isinstance(tup, types.BaseTuple):
-        def impl(tup):
-            return _np_vstack(tup)
-        return impl
-
-
-if numpy_version >= (2, 0):
-    overload(np.row_stack)(impl_np_vstack)
 
 
 @intrinsic
@@ -6302,14 +5130,6 @@ def _np_dstack(typingctx, tup):
     return sig, codegen
 
 
-@overload(np.dstack)
-def impl_np_dstack(tup):
-    if isinstance(tup, types.BaseTuple):
-        def impl(tup):
-            return _np_dstack(tup)
-        return impl
-
-
 @extending.overload_method(types.Array, 'fill')
 def arr_fill(arr, val):
 
@@ -6326,40 +5146,6 @@ def array_dot(arr, other):
         return np.dot(arr, other)
 
     return dot_impl
-
-
-@overload(np.fliplr)
-def np_flip_lr(m):
-
-    if not type_can_asarray(m):
-        raise errors.TypingError("Cannot np.fliplr on %s type" % m)
-
-    def impl(m):
-        A = np.asarray(m)
-        # this handling is superfluous/dead as < 2d array cannot be indexed as
-        # present below and so typing fails. If the typing doesn't fail due to
-        # some future change, this will catch it.
-        if A.ndim < 2:
-            raise ValueError('Input must be >= 2-d.')
-        return A[::, ::-1, ...]
-    return impl
-
-
-@overload(np.flipud)
-def np_flip_ud(m):
-
-    if not type_can_asarray(m):
-        raise errors.TypingError("Cannot np.flipud on %s type" % m)
-
-    def impl(m):
-        A = np.asarray(m)
-        # this handling is superfluous/dead as a 0d array cannot be indexed as
-        # present below and so typing fails. If the typing doesn't fail due to
-        # some future change, this will catch it.
-        if A.ndim < 1:
-            raise ValueError('Input must be >= 1-d.')
-        return A[::-1, ...]
-    return impl
 
 
 @intrinsic
@@ -6390,172 +5176,6 @@ def _build_flip_slice_tuple(tyctx, sz):
         return res
 
     return sig, codegen
-
-
-@overload(np.flip)
-def np_flip(m):
-    # a constant value is needed for the tuple slice, types.Array.ndim can
-    # provide this and so at presnet only type.Array is support
-    if not isinstance(m, types.Array):
-        raise errors.TypingError("Cannot np.flip on %s type" % m)
-
-    def impl(m):
-        sl = _build_flip_slice_tuple(m.ndim)
-        return m[sl]
-
-    return impl
-
-
-@overload(np.array_split)
-def np_array_split(ary, indices_or_sections, axis=0):
-    if isinstance(ary, (types.UniTuple, types.ListType, types.List)):
-        def impl(ary, indices_or_sections, axis=0):
-            return np.array_split(
-                np.asarray(ary),
-                indices_or_sections,
-                axis=axis
-            )
-
-        return impl
-
-    if isinstance(indices_or_sections, types.Integer):
-        def impl(ary, indices_or_sections, axis=0):
-            l, rem = divmod(ary.shape[axis], indices_or_sections)
-            indices = np.cumsum(np.array(
-                [l + 1] * rem +
-                [l] * (indices_or_sections - rem - 1)
-            ))
-            return np.array_split(ary, indices, axis=axis)
-
-        return impl
-
-    elif (
-        isinstance(indices_or_sections, types.IterableType)
-        and isinstance(
-            indices_or_sections.iterator_type.yield_type,
-            types.Integer
-        )
-    ):
-        def impl(ary, indices_or_sections, axis=0):
-            slice_tup = build_full_slice_tuple(ary.ndim)
-            axis = normalize_axis("np.split", "axis", ary.ndim, axis)
-            out = []
-            prev = 0
-            for cur in indices_or_sections:
-                idx = tuple_setitem(slice_tup, axis, slice(prev, cur))
-                out.append(ary[idx])
-                prev = cur
-            out.append(ary[tuple_setitem(slice_tup, axis, slice(cur, None))])
-            return out
-
-        return impl
-
-    elif (
-        isinstance(indices_or_sections, types.Tuple)
-        and all(isinstance(t, types.Integer) for t in indices_or_sections.types)
-    ):
-        def impl(ary, indices_or_sections, axis=0):
-            slice_tup = build_full_slice_tuple(ary.ndim)
-            axis = normalize_axis("np.split", "axis", ary.ndim, axis)
-            out = []
-            prev = 0
-            for cur in literal_unroll(indices_or_sections):
-                idx = tuple_setitem(slice_tup, axis, slice(prev, cur))
-                out.append(ary[idx])
-                prev = cur
-            out.append(ary[tuple_setitem(slice_tup, axis, slice(cur, None))])
-            return out
-
-        return impl
-
-
-@overload(np.split)
-def np_split(ary, indices_or_sections, axis=0):
-    # This is just a wrapper of array_split, but with an extra error if
-    # indices is an int.
-    if isinstance(ary, (types.UniTuple, types.ListType, types.List)):
-        def impl(ary, indices_or_sections, axis=0):
-            return np.split(np.asarray(ary), indices_or_sections, axis=axis)
-
-        return impl
-
-    if isinstance(indices_or_sections, types.Integer):
-        def impl(ary, indices_or_sections, axis=0):
-            _, rem = divmod(ary.shape[axis], indices_or_sections)
-            if rem != 0:
-                raise ValueError(
-                    "array split does not result in an equal division"
-                )
-            return np.array_split(
-                ary, indices_or_sections, axis=axis
-            )
-
-        return impl
-
-    else:
-        return np_array_split(ary, indices_or_sections, axis=axis)
-
-
-@overload(np.vsplit)
-def numpy_vsplit(ary, indices_or_sections):
-    if not isinstance(ary, types.Array):
-        msg = 'The argument "ary" must be an array'
-        raise errors.TypingError(msg)
-
-    if not isinstance(indices_or_sections, (types.Integer, types.Array,
-                                            types.List, types.UniTuple)):
-        msg = ('The argument "indices_or_sections" must be int or 1d-array')
-        raise errors.TypingError(msg)
-
-    def impl(ary, indices_or_sections):
-        if ary.ndim < 2:
-            raise ValueError(('vsplit only works on '
-                              'arrays of 2 or more dimensions'))
-        return np.split(ary, indices_or_sections, axis=0)
-
-    return impl
-
-
-@overload(np.hsplit)
-def numpy_hsplit(ary, indices_or_sections):
-    if not isinstance(ary, types.Array):
-        msg = 'The argument "ary" must be an array'
-        raise errors.TypingError(msg)
-
-    if not isinstance(indices_or_sections, (types.Integer, types.Array,
-                                            types.List, types.UniTuple)):
-        msg = ('The argument "indices_or_sections" must be int or 1d-array')
-        raise errors.TypingError(msg)
-
-    def impl(ary, indices_or_sections):
-        if ary.ndim == 0:
-            raise ValueError(('hsplit only works on '
-                              'arrays of 1 or more dimensions'))
-        if ary.ndim > 1:
-            return np.split(ary, indices_or_sections, axis=1)
-        return np.split(ary, indices_or_sections, axis=0)
-
-    return impl
-
-
-@overload(np.dsplit)
-def numpy_dsplit(ary, indices_or_sections):
-    if not isinstance(ary, types.Array):
-        msg = 'The argument "ary" must be an array'
-        raise errors.TypingError(msg)
-
-    if not isinstance(indices_or_sections, (types.Integer, types.Array,
-                                            types.List, types.UniTuple)):
-        msg = ('The argument "indices_or_sections" must be int or 1d-array')
-        raise errors.TypingError(msg)
-
-    def impl(ary, indices_or_sections):
-        if ary.ndim < 3:
-            raise ValueError('dsplit only works on arrays of 3 or more '
-                             'dimensions')
-        return np.split(ary, indices_or_sections, axis=2)
-
-    return impl
 
 
 # -----------------------------------------------------------------------------
@@ -6618,21 +5238,7 @@ def array_sort(context, builder, sig, args):
     return context.compile_internal(builder, array_sort_impl, sig, args)
 
 
-@overload(np.sort)
-def impl_np_sort(a):
-    if not type_can_asarray(a):
-        raise errors.TypingError('Argument "a" must '
-                                 'be array-like')
-
-    def np_sort_impl(a):
-        res = a.copy()
-        res.sort()
-        return res
-    return np_sort_impl
-
-
 @lower_builtin("array.argsort", types.Array, types.StringLiteral)
-@lower_builtin(np.argsort, types.Array, types.StringLiteral)
 def array_argsort(context, builder, sig, args):
     arytype, kind = sig.args
 
@@ -6664,8 +5270,6 @@ def array_to_array(context, builder, fromty, toty, val):
 @lower_cast(types.Array, types.Integer)
 @lower_cast(types.Array, types.Complex)
 @lower_cast(types.Array, types.Boolean)
-@lower_cast(types.Array, types.NPTimedelta)
-@lower_cast(types.Array, types.NPDatetime)
 def array0d_to_scalar(context, builder, fromty, toty, val):
     def impl(a):
         # a is an array(T, 0d, O), T is type, O is order
@@ -6736,130 +5340,6 @@ def impl_shape_unchecked(context, builder, sig, args):
     return impl_ret_borrowed(context, builder, retty, res)
 
 
-@extending.overload(np.lib.stride_tricks.as_strided)
-def as_strided(x, shape=None, strides=None):
-    if shape in (None, types.none):
-        @register_jitable
-        def get_shape(x, shape):
-            return x.shape
-    else:
-        @register_jitable
-        def get_shape(x, shape):
-            return shape
-
-    if strides in (None, types.none):
-        # When *strides* is not passed, as_strided() does a non-size-checking
-        # reshape(), possibly changing the original strides.  This is too
-        # cumbersome to support right now, and a Web search shows all example
-        # use cases of as_strided() pass explicit *strides*.
-        raise errors.TypingError("as_strided() strides argument cannot be None")
-    else:
-        @register_jitable
-        def get_strides(x, strides):
-            return strides
-
-    def as_strided_impl(x, shape=None, strides=None):
-        x = reshape_unchecked(x, get_shape(x, shape), get_strides(x, strides))
-        return x
-
-    return as_strided_impl
-
-
-@extending.overload(np.lib.stride_tricks.sliding_window_view)
-def sliding_window_view(x, window_shape, axis=None):
-
-    # Window shape must be given as either an integer or tuple of integers.
-    # We also need to generate buffer tuples we can modify to contain the
-    # final shape and strides (reshape_unchecked does not accept lists).
-    if isinstance(window_shape, types.Integer):
-        shape_buffer = tuple(range(x.ndim + 1))
-        stride_buffer = tuple(range(x.ndim + 1))
-
-        @register_jitable
-        def get_window_shape(window_shape):
-            return (window_shape,)
-
-    elif (isinstance(window_shape, types.UniTuple) and
-            isinstance(window_shape.dtype, types.Integer)):
-        shape_buffer = tuple(range(x.ndim + len(window_shape)))
-        stride_buffer = tuple(range(x.ndim + len(window_shape)))
-
-        @register_jitable
-        def get_window_shape(window_shape):
-            return window_shape
-
-    else:
-        raise errors.TypingError(
-            "window_shape must be an integer or tuple of integers"
-        )
-
-    # Axis must be integer, tuple of integers, or None for all axes.
-    if is_nonelike(axis):
-        @register_jitable
-        def get_axis(window_shape, axis, ndim):
-            return list(range(ndim))
-
-    elif isinstance(axis, types.Integer):
-        @register_jitable
-        def get_axis(window_shape, axis, ndim):
-            return [
-                normalize_axis("sliding_window_view", "axis", ndim, axis)
-            ]
-
-    elif (isinstance(axis, types.UniTuple) and
-            isinstance(axis.dtype, types.Integer)):
-        @register_jitable
-        def get_axis(window_shape, axis, ndim):
-            return [normalize_axis("sliding_window_view", "axis", ndim, a)
-                    for a in axis]
-
-    else:
-        raise errors.TypingError(
-            "axis must be None, an integer or tuple of integers"
-        )
-
-    def sliding_window_view_impl(x, window_shape, axis=None):
-        window_shape = get_window_shape(window_shape)
-        axis = get_axis(window_shape, axis, x.ndim)
-        if len(window_shape) != len(axis):
-            raise ValueError(
-                "Must provide matching length window_shape and axis"
-            )
-
-        # Initialise view details with shape and strides of x.
-        out_shape = shape_buffer
-        out_strides = stride_buffer
-        for i in range(x.ndim):
-            out_shape = tuple_setitem(out_shape, i, x.shape[i])
-            out_strides = tuple_setitem(out_strides, i, x.strides[i])
-
-        # Trim the dimensions being windowed and set the window shape and
-        # strides. Note: the same axis can be windowed repeatedly.
-        i = x.ndim
-        for ax, dim in zip(axis, window_shape):
-            if dim < 0:
-                raise ValueError(
-                    "`window_shape` cannot contain negative values"
-                )
-            if out_shape[ax] < dim:
-                raise ValueError(
-                    "window_shape cannot be larger than input array shape"
-                )
-
-            trimmed = out_shape[ax] - dim + 1
-            out_shape = tuple_setitem(out_shape, ax, trimmed)
-            out_shape = tuple_setitem(out_shape, i, dim)
-            out_strides = tuple_setitem(out_strides, i, x.strides[ax])
-            i += 1
-
-        # The NumPy version calls as_strided, but our implementation of
-        # as_strided is effectively a wrapper for reshape_unchecked.
-        view = reshape_unchecked(x, out_shape, out_strides)
-        return view
-
-    return sliding_window_view_impl
-
-
 @overload(bool)
 def ol_bool(arr):
     if isinstance(arr, types.Array):
@@ -6878,38 +5358,6 @@ def ol_bool(arr):
                                   " one element is ambiguous. Use a.any() or"
                                   " a.all()"))
         return impl
-
-
-@overload(np.swapaxes)
-def numpy_swapaxes(a, axis1, axis2):
-    if not isinstance(axis1, (int, types.Integer)):
-        raise errors.TypingError('The second argument "axis1" must be an '
-                                 'integer')
-    if not isinstance(axis2, (int, types.Integer)):
-        raise errors.TypingError('The third argument "axis2" must be an '
-                                 'integer')
-    if not isinstance(a, types.Array):
-        raise errors.TypingError('The first argument "a" must be an array')
-
-    # create tuple list for transpose
-    ndim = a.ndim
-    axes_list = tuple(range(ndim))
-
-    def impl(a, axis1, axis2):
-        axis1 = normalize_axis("np.swapaxes", "axis1", ndim, axis1)
-        axis2 = normalize_axis("np.swapaxes", "axis2", ndim, axis2)
-
-        # to ensure tuple_setitem support of negative values
-        if axis1 < 0:
-            axis1 += ndim
-        if axis2 < 0:
-            axis2 += ndim
-
-        axes_tuple = tuple_setitem(axes_list, axis1, axis2)
-        axes_tuple = tuple_setitem(axes_tuple, axis2, axis1)
-        return np.transpose(a, axes_tuple)
-
-    return impl
 
 
 @register_jitable
@@ -6970,114 +5418,3 @@ def _take_along_axis_impl(
             for j in range(J):
                 out_1d[j] = a_1d[indices_1d[j]]
     return out
-
-
-@overload(np.take_along_axis)
-def arr_take_along_axis(arr, indices, axis):
-    if not isinstance(arr, types.Array):
-        raise errors.TypingError('The first argument "arr" must be an array')
-    if not isinstance(indices, types.Array):
-        raise errors.TypingError(
-            'The second argument "indices" must be an array')
-    if not isinstance(indices.dtype, types.Integer):
-        raise errors.TypingError('The indices array must contain integers')
-    if is_nonelike(axis):
-        arr_ndim = 1
-    else:
-        arr_ndim = arr.ndim
-    if arr_ndim != indices.ndim:
-        # Matches NumPy error:
-        raise errors.TypingError(
-            "`indices` and `arr` must have the same number of dimensions"
-        )
-
-    indices_broadcast_shape = tuple(range(indices.ndim))
-    if is_nonelike(axis):
-        def take_along_axis_impl(arr, indices, axis):
-            return _take_along_axis_impl(arr.flatten(), indices, 0, (), (),
-                                         indices_broadcast_shape)
-    else:
-        check_is_integer(axis, "axis")
-        if not isinstance(axis, types.IntegerLiteral):
-            raise errors.NumbaValueError("axis must be a literal value")
-        axis = axis.literal_value
-        if axis < 0:
-            axis = arr.ndim + axis
-
-        if axis < 0 or axis >= arr.ndim:
-            raise errors.NumbaValueError("axis is out of bounds")
-
-        Ni = tuple(range(axis))
-        Nk = tuple(range(axis + 1, arr.ndim))
-
-        def take_along_axis_impl(arr, indices, axis):
-            return _take_along_axis_impl(arr, indices, axis, Ni, Nk,
-                                         indices_broadcast_shape)
-    return take_along_axis_impl
-
-
-@overload(np.nan_to_num)
-def nan_to_num_impl(x, copy=True, nan=0.0):
-    if isinstance(x, types.Number):
-        if isinstance(x, types.Integer):
-            # Integers do not have nans or infs
-            def impl(x, copy=True, nan=0.0):
-                return x
-
-        elif isinstance(x, types.Float):
-            def impl(x, copy=True, nan=0.0):
-                if np.isnan(x):
-                    return nan
-                elif np.isneginf(x):
-                    return np.finfo(type(x)).min
-                elif np.isposinf(x):
-                    return np.finfo(type(x)).max
-                return x
-        elif isinstance(x, types.Complex):
-            def impl(x, copy=True, nan=0.0):
-                r = np.nan_to_num(x.real, nan=nan)
-                c = np.nan_to_num(x.imag, nan=nan)
-                return complex(r, c)
-        else:
-            raise errors.TypingError(
-                "Only Integer, Float, and Complex values are accepted"
-            )
-
-    elif type_can_asarray(x):
-        if isinstance(x.dtype, types.Integer):
-            # Integers do not have nans or infs
-            def impl(x, copy=True, nan=0.0):
-                return x
-        elif isinstance(x.dtype, types.Float):
-            def impl(x, copy=True, nan=0.0):
-                min_inf = np.finfo(x.dtype).min
-                max_inf = np.finfo(x.dtype).max
-
-                x_ = np.asarray(x)
-                output = np.copy(x_) if copy else x_
-
-                output_flat = output.flat
-                for i in range(output.size):
-                    if np.isnan(output_flat[i]):
-                        output_flat[i] = nan
-                    elif np.isneginf(output_flat[i]):
-                        output_flat[i] = min_inf
-                    elif np.isposinf(output_flat[i]):
-                        output_flat[i] = max_inf
-                return output
-        elif isinstance(x.dtype, types.Complex):
-            def impl(x, copy=True, nan=0.0):
-                x_ = np.asarray(x)
-                output = np.copy(x_) if copy else x_
-
-                np.nan_to_num(output.real, copy=False, nan=nan)
-                np.nan_to_num(output.imag, copy=False, nan=nan)
-                return output
-        else:
-            raise errors.TypingError(
-                "Only Integer, Float, and Complex values are accepted"
-            )
-    else:
-        raise errors.TypingError("The first argument must be a scalar or an "
-                                 "array-like")
-    return impl

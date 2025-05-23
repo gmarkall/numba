@@ -30,7 +30,7 @@ _Py_uhash_t = getattr(types, 'uint%s' % _hash_width)
 # https://github.com/python/cpython/blob/d1dd6be613381b996b9071443ef081de8e5f3aff/Include/pyhash.h    # noqa: E501
 _PyHASH_INF = sys.hash_info.inf
 _PyHASH_NAN = sys.hash_info.nan
-_PyHASH_MODULUS = _Py_uhash_t(sys.hash_info.modulus)
+_PyHASH_MODULUS = sys.hash_info.modulus  # XXX: compiler-core: was _Py_uhash_t(sys.hash_info.modulus)
 _PyHASH_BITS = 31 if types.intp.bitwidth == 32 else 61  # mersenne primes
 _PyHASH_MULTIPLIER = 0xf4243  # 1000003UL
 _PyHASH_IMAG = _PyHASH_MULTIPLIER
@@ -307,9 +307,14 @@ def complex_hash(val):
 # These consts are needed for this alg variant, they are from:
 # https://github.com/python/cpython/blob/b738237d6792acba85b1f6e6c8993a812c7fd815/Objects/tupleobject.c#L353-L363    # noqa: E501
 if _Py_uhash_t.bitwidth // 8 > 4:
-    _PyHASH_XXPRIME_1 = _Py_uhash_t(11400714785074694791)
-    _PyHASH_XXPRIME_2 = _Py_uhash_t(14029467366897019727)
-    _PyHASH_XXPRIME_5 = _Py_uhash_t(2870177450012600261)
+    # XXX: compiler-core: was
+    # _PyHASH_XXPRIME_1 = _Py_uhash_t(11400714785074694791)
+    # _PyHASH_XXPRIME_2 = _Py_uhash_t(14029467366897019727)
+    # _PyHASH_XXPRIME_5 = _Py_uhash_t(2870177450012600261)
+
+    _PyHASH_XXPRIME_1 = 11400714785074694791
+    _PyHASH_XXPRIME_2 = 14029467366897019727
+    _PyHASH_XXPRIME_5 = 2870177450012600261
 
     @register_jitable(locals={'x': types.uint64})
     def _PyHASH_XXROTATE(x):

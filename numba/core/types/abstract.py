@@ -5,6 +5,7 @@ import weakref
 from functools import cached_property
 
 
+from numba.core.typeconv import Conversion
 from numba.core.utils import get_hashable_key
 
 # Types are added to a global registry (_typecache) in order to assign
@@ -255,12 +256,43 @@ class Number(Hashable):
         """
         from numba.np import numpy_support
         if isinstance(other, Number):
-            # XXX: this can produce unsafe conversions,
-            # e.g. would unify {int64, uint64} to float64
-            a = numpy_support.as_dtype(self)
-            b = numpy_support.as_dtype(other)
-            sel = np.promote_types(a, b)
-            return numpy_support.from_dtype(sel)
+            from numba.core import types # XXX: compiler-core: Quick attempt to
+                                         # pre-empt a circular import due to
+                                         # hack / bodge below
+
+            # XXX: compiler-core: Bodge up our own conversion logic instead,
+            # since we can no longer use NumPy's. Original code below:
+            #
+            # # XXX: this can produce unsafe conversions,
+            # # e.g. would unify {int64, uint64} to float64
+            # a = numpy_support.as_dtype(self)
+            # b = numpy_support.as_dtype(other)
+            # sel = np.promote_types(a, b)
+            # return numpy_support.from_dtype(sel)
+            #
+            # XXX: compiler-core: Ideally we would replace this with the same
+            # logic as PyArray_PromoteTypes, so that we are consistent.
+            #
+            # compiler-core implementation follows (based on old Numba logic,
+            # see d776c86560 and 83d983c5a6:
+
+            # Original description: "Other types with simple coercion rules"
+            forward = self.can_convert_to(typingctx, other)
+            backward = other.can_convert_to(typingctx, self)
+
+            if forward is not None and forward <= Conversion.safe:
+                return other
+            elif backward is not None and backward <= Conversion.safe:
+                return self
+            if forward is None and backward is None:
+                return types.pyobject
+
+            # There exists only an unsafe conversion from one type to the other
+            # XXX should we return pyobject instead?
+            msg = ("Cannot unify {{{first}, {second}}}\n"
+                   "{first}->{second}::{forward}\n"
+                   "{second}->{first}::{backward} ")
+            raise AssertionError(msg.format(**locals()))
 
 
 class Callable(Type):

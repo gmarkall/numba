@@ -9,7 +9,7 @@ import numpy as np
 from numba import jit, njit, typeof
 from numba.core import types
 from numba.core.errors import TypingError, NumbaValueError
-from numba.np.numpy_support import as_dtype, numpy_version
+from numba.np.numpy_support import as_dtype
 from numba.tests.support import (TestCase, MemoryLeakMixin,
                                  needs_blas, skip_if_numpy_2,
                                  expected_failure_np2)
@@ -379,8 +379,6 @@ class TestArrayMethods(MemoryLeakMixin, TestCase):
 
     def test_around_bad_out(self):
         funcs = [np_round_array, np_around_array]
-        if numpy_version < (2, 0):
-            funcs.append(np_round__array)
         for py_func in funcs:
             cfunc = jit(nopython=True)(py_func)
             msg = '.*The argument "out" must be an array if it is provided.*'
@@ -779,14 +777,11 @@ class TestArrayMethods(MemoryLeakMixin, TestCase):
 
         for v in (0.0, 1.5, float('nan')):
             arr = np.array([v]).reshape(())
-            if numpy_version < (2, 1):
-                check_arr(arr)
-            else:
-                with self.assertRaises((ValueError, TypingError)) as raises:
-                    njit((typeof(arr),))(pyfunc)
-                msg = "Calling nonzero on 0d arrays is not allowed. Use " \
-                      "np.atleast_1d(scalar).nonzero() instead."
-                self.assertIn(msg, str(raises.exception))
+            with self.assertRaises((ValueError, TypingError)) as raises:
+                njit((typeof(arr),))(pyfunc)
+            msg = "Calling nonzero on 0d arrays is not allowed. Use " \
+                  "np.atleast_1d(scalar).nonzero() instead."
+            self.assertIn(msg, str(raises.exception))
 
     def test_array_nonzero(self):
         self.check_nonzero(array_nonzero)
@@ -1090,9 +1085,6 @@ class TestArrayMethods(MemoryLeakMixin, TestCase):
             check_ok(4, 0.5, pyfunc, cfunc)
             check_ok(0.5, 4, pyfunc, cfunc)
             check_ok(3, None, pyfunc, cfunc)
-            if numpy_version < (2, 0):
-                check_ok(complex(1, 1), complex(4, 4), pyfunc, cfunc)
-                check_ok(complex(4, 4), complex(1, 1), pyfunc, cfunc)
 
         pyfunc = np_arange_1_dtype
         cfunc = jit(nopython=True)(pyfunc)
@@ -1102,9 +1094,6 @@ class TestArrayMethods(MemoryLeakMixin, TestCase):
         check_ok(7, None, pyfunc, cfunc)
         check_ok(np.int8(0), None, pyfunc, cfunc)
 
-        if numpy_version < (2, 0):
-            check_ok(10, np.complex128, pyfunc, cfunc)
-            check_ok(np.complex64(10), np.complex128, pyfunc, cfunc)
 
     def test_arange_3_arg(self):
         windows64 = sys.platform.startswith('win32') and sys.maxsize > 2 ** 32
@@ -1135,8 +1124,6 @@ class TestArrayMethods(MemoryLeakMixin, TestCase):
             i8 = np.int8
             check_ok(i8(0), i8(5), i8(1), pyfunc, cfunc, True) # C int
             check_ok(np.int64(0), i8(5), i8(1), pyfunc, cfunc, True) # int64
-            if numpy_version < (2, 0):
-                check_ok(0, complex(4, 4), complex(1, 1), pyfunc, cfunc)
 
         pyfunc = np_arange_2_dtype
         cfunc = jit(nopython=True)(pyfunc)
@@ -1145,9 +1132,6 @@ class TestArrayMethods(MemoryLeakMixin, TestCase):
         check_ok(2.0, 8, np.int32, pyfunc, cfunc)
         check_ok(1, 7, None, pyfunc, cfunc)
         check_ok(np.int8(0), np.int32(5), None, pyfunc, cfunc, True)
-        if numpy_version < (2, 0):
-            check_ok(-2, 10, np.complex128, pyfunc, cfunc)
-            check_ok(3, np.complex64(10), np.complex128, pyfunc, cfunc)
 
     def test_arange_4_arg(self):
         for pyfunc in (np_arange_4, np_arange_start_stop_step_dtype):
@@ -1164,9 +1148,6 @@ class TestArrayMethods(MemoryLeakMixin, TestCase):
             check_ok(0.5, 4, 2, None)
             check_ok(3, 6, None, None)
             check_ok(3, None, None, None)
-            if numpy_version < (2, 0):
-                check_ok(0, 1, 0.1, np.complex128)
-                check_ok(0, complex(4, 4), complex(1, 1), np.complex128)
 
     def test_arange_throws(self):
         # Exceptions leak references
