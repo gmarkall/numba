@@ -37,7 +37,7 @@ class Integer(Number):
         self.signed = signed
 
     def can_convert_to(self, typingctx, other):
-        if isinstance(other, Integer) and self.signed == other.signed:
+        if type(self) == type(other) and self.signed == other.signed:
             if self.bitwidth <= other.bitwidth:
                 return Conversion.safe
             else:
@@ -99,6 +99,11 @@ class IntegerLiteral(Literal, Integer):
         if conv is not None:
             return max(conv, Conversion.promote)
 
+    def unify(self, typingctx, other):
+        if isinstance(other, IntegerLiteral):
+            return super().unify(typingctx, other.literal_type)
+
+        return super().unify(typingctx, other)
 
 Literal.ctor_map[int] = IntegerLiteral
 
