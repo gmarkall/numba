@@ -1,5 +1,4 @@
 from numba import cuda
-import numpy as np
 from numba.cuda.testing import skip_on_cudasim, CUDATestCase
 import threading
 import unittest

@@ -10,7 +10,6 @@ import operator
 import copy
 from ctypes import c_void_p
 
-import numpy as np
 
 import numba
 from numba import _devicearray
@@ -253,7 +252,6 @@ class DeviceNDArrayBase(_devicearray.DeviceArray):
 
         Example::
 
-            import numpy as np
             from numba import cuda
 
             arr = np.arange(1000)

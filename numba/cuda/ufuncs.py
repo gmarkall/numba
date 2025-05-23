@@ -7,7 +7,6 @@ Use get_ufunc_info() to get the information related to a ufunc.
 """
 
 import math
-import numpy as np
 from functools import lru_cache
 from numba.core import typing
 

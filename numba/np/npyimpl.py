@@ -10,7 +10,6 @@ from collections import namedtuple
 
 import llvmlite.ir as ir
 
-import numpy as np
 import operator
 
 from numba.np import arrayobj, ufunc_db, numpy_support

@@ -1,4 +1,3 @@
-import numpy as np
 
 from numba import uint64, uint32, uint16, uint8
 from numba.core.extending import register_jitable

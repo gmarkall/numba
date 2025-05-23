@@ -1,4 +1,3 @@
-import numpy as np
 
 from collections import namedtuple
 from numba import void, int32, float32, float64

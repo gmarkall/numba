@@ -1,6 +1,5 @@
 import threading
 
-import numpy as np
 
 from numba import cuda
 from numba.cuda.testing import CUDATestCase, skip_unless_cudasim

@@ -4,7 +4,6 @@ import itertools
 import weakref
 from functools import cached_property
 
-import numpy as np
 
 from numba.core.utils import get_hashable_key
 

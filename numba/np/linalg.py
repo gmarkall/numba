@@ -8,7 +8,6 @@ import warnings
 
 from llvmlite import ir
 
-import numpy as np
 import operator
 
 from numba.core.imputils import (lower_builtin, impl_ret_borrowed,

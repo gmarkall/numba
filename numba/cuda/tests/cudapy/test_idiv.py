@@ -1,4 +1,3 @@
-import numpy as np
 from numba import cuda, float32, float64, int32, void
 from numba.cuda.testing import unittest, CUDATestCase
 

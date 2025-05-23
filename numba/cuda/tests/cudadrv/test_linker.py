@@ -1,4 +1,3 @@
-import numpy as np
 import warnings
 from numba.cuda.testing import unittest
 from numba.cuda.testing import (skip_on_cudasim, skip_if_cuda_includes_missing)

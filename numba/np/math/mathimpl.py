@@ -5,7 +5,6 @@ Provide math calls that uses intrinsics or libc math functions.
 import math
 import operator
 import sys
-import numpy as np
 
 import llvmlite.ir
 from llvmlite.ir import Constant

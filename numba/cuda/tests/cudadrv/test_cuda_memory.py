@@ -1,6 +1,5 @@
 import ctypes
 
-import numpy as np
 
 from numba.cuda.cudadrv import driver, drvapi, devices
 from numba.cuda.testing import unittest, ContextResettingTestCase

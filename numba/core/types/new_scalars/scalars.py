@@ -1,6 +1,5 @@
 import enum
 import re
-import numpy as np
 
 from numba.core.types.abstract import Dummy, Hashable, Literal, Number, Type
 from functools import total_ordering, cached_property

@@ -1,7 +1,6 @@
 import math
 import numbers
 
-import numpy as np
 
 from llvmlite import ir
 from llvmlite.ir import Constant

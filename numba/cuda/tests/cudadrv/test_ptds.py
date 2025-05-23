@@ -11,7 +11,6 @@ def child_test():
     from numba import cuda, int32, void
     from numba.core import config
     import io
-    import numpy as np
     import threading
 
     # Enable PTDS before we make any CUDA driver calls.  Enabling it first

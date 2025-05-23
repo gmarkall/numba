@@ -1,4 +1,3 @@
-import numpy as np
 from numba import cuda, float32, int32, void
 from numba.core.errors import TypingError
 from numba.cuda.testing import unittest, CUDATestCase

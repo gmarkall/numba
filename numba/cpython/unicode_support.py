@@ -8,7 +8,6 @@ from collections import namedtuple
 from enum import IntEnum
 
 import llvmlite.ir
-import numpy as np
 
 from numba.core import types, cgutils, config
 from numba.core.imputils import (impl_ret_untracked)

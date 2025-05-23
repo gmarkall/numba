@@ -2,7 +2,6 @@
 Implementation of method overloads for Generator objects.
 """
 
-import numpy as np
 from numba.core import types
 from numba.core.extending import overload_method, register_jitable
 from numba.np.numpy_support import as_dtype, from_dtype

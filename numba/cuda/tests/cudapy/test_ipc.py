@@ -3,7 +3,6 @@ import itertools
 import traceback
 import pickle
 
-import numpy as np
 
 from numba import cuda
 from numba.cuda.cudadrv import driver

@@ -1,6 +1,5 @@
 import struct
 
-import numpy as np
 from numba.core import utils
 
 from .abstract import *

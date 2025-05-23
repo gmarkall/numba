@@ -12,7 +12,6 @@ class TestRandom(CUDATestCase):
         from numba import cuda
         from numba.cuda.random import (create_xoroshiro128p_states,
                                        xoroshiro128p_uniform_float32)
-        import numpy as np
 
         @cuda.jit
         def random_3d(arr, rng_states):

@@ -57,7 +57,6 @@ cuda.synchronize()
 
 print_too_many_usecase = """\
 from numba import cuda
-import numpy as np
 
 @cuda.jit
 def print_too_many(r):

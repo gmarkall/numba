@@ -1,7 +1,6 @@
 import setuptools
 from setuptools.command.build_ext import build_ext
 from setuptools.dist import Distribution
-import numpy as np
 
 import functools
 import os

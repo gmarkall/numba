@@ -1,6 +1,5 @@
 import itertools
 
-import numpy as np
 import operator
 
 from numba.core import types, errors, config

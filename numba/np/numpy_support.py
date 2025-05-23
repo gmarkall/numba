@@ -2,7 +2,6 @@ import collections
 import ctypes
 import re
 
-import numpy as np
 
 from numba.core import errors, types, config
 from numba.core.typing.templates import signature

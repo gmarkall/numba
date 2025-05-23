@@ -24,7 +24,6 @@ class TestVecAdd(CUDATestCase):
 
     def test_ex_vecadd(self):
         # ex_vecadd.import.begin
-        import numpy as np
         from numba import cuda
         # ex_vecadd.import.end
 

@@ -6,7 +6,6 @@ and should not be imported by user, user should only import the
 corresponding vector type from `cuda` module in kernel to use them.
 """
 
-import numpy as np
 
 from numba.core import config
 from numba.cuda.testing import CUDATestCase

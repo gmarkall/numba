@@ -3,7 +3,6 @@ import math
 from numba import (config, cuda, float32, float64, uint32, int64, uint64,
                    from_dtype, jit)
 
-import numpy as np
 
 # This implementation is based upon the xoroshiro128+ and splitmix64 algorithms
 # described at:

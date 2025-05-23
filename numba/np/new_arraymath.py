@@ -8,7 +8,6 @@ from collections import namedtuple
 import operator
 
 import llvmlite.ir
-import numpy as np
 
 from numba.core import types, cgutils
 from numba.core.extending import overload, overload_method, register_jitable

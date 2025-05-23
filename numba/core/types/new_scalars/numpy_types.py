@@ -2,7 +2,6 @@
     Type definitions for NumPy types.
 """
 
-import numpy as np
 
 from numba.core.types.abstract import Literal
 from numba.core.types.new_scalars.scalars \

@@ -1,6 +1,5 @@
 from numba import vectorize
 from numba import cuda, float32
-import numpy as np
 from numba.cuda.testing import skip_on_cudasim, CUDATestCase
 import unittest
 

@@ -1,5 +1,4 @@
 import functools
-import numpy as np
 import unittest
 
 from numba import config, cuda, types

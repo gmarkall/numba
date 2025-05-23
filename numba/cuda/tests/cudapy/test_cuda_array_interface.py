@@ -1,4 +1,3 @@
-import numpy as np
 
 from numba import vectorize, guvectorize
 from numba import cuda

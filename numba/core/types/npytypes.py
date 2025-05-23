@@ -10,7 +10,6 @@ from numba.core.typeconv import Conversion
 from numba.core import utils
 from .misc import UnicodeType
 from .containers import Bytes
-import numpy as np
 
 class CharSeq(Type):
     """

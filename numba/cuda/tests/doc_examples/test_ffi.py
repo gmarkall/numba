@@ -12,7 +12,6 @@ class TestFFI(CUDATestCase):
     def test_ex_linking_cu(self):
         # magictoken.ex_linking_cu.begin
         from numba import cuda
-        import numpy as np
         import os
 
         # Declaration of the foreign function
@@ -67,7 +66,6 @@ class TestFFI(CUDATestCase):
             result[()] = sum_reduce(array_ptr, len(array))
         # magictoken.ex_from_buffer_kernel.end
 
-        import numpy as np
         x = np.arange(10).astype(np.float32)
         r = np.ndarray((), dtype=np.float32)
 

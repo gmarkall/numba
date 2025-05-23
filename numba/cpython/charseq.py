@@ -1,6 +1,5 @@
 """Implements operations on bytes and str (unicode) array items."""
 import operator
-import numpy as np
 from llvmlite import ir
 
 from numba.core import types, cgutils, config

@@ -4,7 +4,6 @@ import functools
 import operator
 import ctypes
 
-import numpy as np
 
 from numba import _helperlib
 

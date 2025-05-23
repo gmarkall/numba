@@ -1,4 +1,3 @@
-import numpy as np
 from numba.core import types
 from numba.cuda.testing import skip_on_cudasim, unittest, CUDATestCase
 from numba import cuda

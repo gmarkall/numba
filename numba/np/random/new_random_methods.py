@@ -1,4 +1,3 @@
-import numpy as np
 
 from numba.core.extending import register_jitable
 

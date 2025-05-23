@@ -8,7 +8,6 @@ ufunc
 """
 
 
-import numpy as np
 import sys
 
 # this is lazily initialized to avoid circular imports

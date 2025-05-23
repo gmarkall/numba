@@ -2,7 +2,6 @@ import unittest
 
 from numba.cuda.testing import CUDATestCase, skip_on_cudasim
 from numba.tests.support import captured_stdout
-import numpy as np
 
 
 @skip_on_cudasim("cudasim doesn't support cuda import at non-top-level")

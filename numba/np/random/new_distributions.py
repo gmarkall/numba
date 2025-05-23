@@ -3,7 +3,6 @@ Algorithmic implementations for generating different types
 of random distributions.
 """
 
-import numpy as np
 
 from numba.core.extending import register_jitable
 from numba.np.random._constants import (wi_double, ki_double,

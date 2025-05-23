@@ -1,7 +1,6 @@
 """
 This scripts specifies all PTX special objects.
 """
-import numpy as np
 from collections import defaultdict
 import functools
 import itertools

@@ -1,4 +1,3 @@
-import numpy as np
 
 from numba.cuda import compile_ptx
 from numba.core.types import f2, i1, i2, i4, i8, u1, u2, u4, u8

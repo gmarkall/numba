@@ -1,4 +1,3 @@
-import numpy as np
 import math
 from numba import cuda
 from numba.types import float32, float64, int32, void

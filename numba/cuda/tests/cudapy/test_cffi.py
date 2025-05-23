@@ -1,4 +1,3 @@
-import numpy as np
 
 from numba import cuda, types
 from numba.cuda.testing import (skip_on_cudasim, test_data_dir, unittest,

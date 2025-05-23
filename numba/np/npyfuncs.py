@@ -8,7 +8,6 @@ Python builtins
 import math
 
 import llvmlite.ir
-import numpy as np
 
 from numba.core.extending import overload
 from numba.core.imputils import impl_ret_untracked

@@ -1,4 +1,3 @@
-import numpy as np
 import ctypes
 from numba.cuda.cudadrv.devicearray import (DeviceRecord, from_record_like,
                                             auto_device)

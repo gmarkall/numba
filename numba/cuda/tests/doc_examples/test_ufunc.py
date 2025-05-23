@@ -24,7 +24,6 @@ class TestUFunc(CUDATestCase):
 
     def test_ex_cuda_ufunc_call(self):
         # ex_cuda_ufunc.begin
-        import numpy as np
         from numba import cuda
 
         # A kernel calling a ufunc (sin, in this case)

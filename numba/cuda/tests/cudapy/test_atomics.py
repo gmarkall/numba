@@ -1,4 +1,3 @@
-import numpy as np
 from textwrap import dedent
 
 from numba import cuda, uint32, uint64, float32, float64

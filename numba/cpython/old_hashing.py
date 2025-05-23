@@ -3,7 +3,6 @@ Hash implementations for Numba types
 """
 
 import math
-import numpy as np
 import sys
 import ctypes
 import warnings

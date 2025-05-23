@@ -5,7 +5,6 @@ of seconds) are not supported.
 """
 
 
-import numpy as np
 
 
 DATETIME_UNITS = {

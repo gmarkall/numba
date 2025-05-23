@@ -1,7 +1,6 @@
 import math
 import itertools
 
-import numpy as np
 
 from numba.cuda.testing import unittest, CUDATestCase
 from numba.core import types

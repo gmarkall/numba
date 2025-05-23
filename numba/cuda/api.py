@@ -6,7 +6,6 @@ API that are reported to numba.cuda
 import contextlib
 import os
 
-import numpy as np
 
 from .cudadrv import devicearray, devices, driver
 from numba.core import config

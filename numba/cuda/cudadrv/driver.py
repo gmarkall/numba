@@ -27,7 +27,6 @@ from ctypes import (c_int, byref, c_size_t, c_char, c_char_p, addressof,
                     c_void_p, c_float, c_uint)
 import contextlib
 import importlib
-import numpy as np
 from collections import namedtuple, deque
 
 from numba import mviewbuf

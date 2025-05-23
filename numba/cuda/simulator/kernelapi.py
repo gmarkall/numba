@@ -8,7 +8,6 @@ import sys
 import threading
 import traceback
 from numba.core import types
-import numpy as np
 
 from numba.np import numpy_support
 

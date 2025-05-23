@@ -1,6 +1,5 @@
 import enum
 
-import numpy as np
 
 from .abstract import Dummy, Hashable, Literal, Number, Type
 from functools import total_ordering, cached_property

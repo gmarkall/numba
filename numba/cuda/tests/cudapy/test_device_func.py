@@ -1,7 +1,6 @@
 import re
 import types
 
-import numpy as np
 
 from numba.cuda.testing import unittest, skip_on_cudasim, CUDATestCase
 from numba import cuda, jit, float32, int32

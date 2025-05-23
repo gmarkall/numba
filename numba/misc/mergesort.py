@@ -4,7 +4,6 @@ See numpy/core/src/npysort/mergesort.c.src.
 The high-level numba code is adding a little overhead comparing to
 the pure-C implementation in numpy.
 """
-import numpy as np
 from collections import namedtuple
 
 # Array size smaller than this will be sorted by insertion sort

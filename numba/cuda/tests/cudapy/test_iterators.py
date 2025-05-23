@@ -1,7 +1,6 @@
 from numba import cuda
 from numba.cuda.testing import unittest, CUDATestCase
 
-import numpy as np
 
 
 class TestIterators(CUDATestCase):

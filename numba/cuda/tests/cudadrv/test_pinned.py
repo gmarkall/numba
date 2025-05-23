@@ -1,4 +1,3 @@
-import numpy as np
 import platform
 
 from numba import cuda

@@ -6,7 +6,6 @@ Implement the random and np.random module functions.
 import math
 import random
 
-import numpy as np
 
 from llvmlite import ir
 

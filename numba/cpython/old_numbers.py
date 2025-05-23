@@ -1,7 +1,6 @@
 import math
 import numbers
 
-import numpy as np
 import operator
 
 from llvmlite import ir

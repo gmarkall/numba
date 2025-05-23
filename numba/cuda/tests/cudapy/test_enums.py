@@ -2,7 +2,6 @@
 Test cases adapted from numba/tests/test_enums.py
 """
 
-import numpy as np
 
 from numba import int16, int32
 from numba import cuda, vectorize, njit

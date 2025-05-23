@@ -1,5 +1,4 @@
 import itertools
-import numpy as np
 from numba.cuda.cudadrv import devicearray
 from numba import cuda
 from numba.cuda.testing import unittest, CUDATestCase

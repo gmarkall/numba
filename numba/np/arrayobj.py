@@ -11,7 +11,6 @@ import textwrap
 from llvmlite import ir
 from llvmlite.ir import Constant
 
-import numpy as np
 
 from numba import literal_unroll
 from numba.core import types, typing, errors, cgutils, extending, config

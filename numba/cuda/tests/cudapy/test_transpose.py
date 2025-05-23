@@ -1,4 +1,3 @@
-import numpy as np
 from numba import cuda
 from numba.cuda.kernels.transpose import transpose
 from numba.cuda.testing import unittest

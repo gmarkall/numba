@@ -33,7 +33,6 @@ class TestLaplace(CUDATestCase):
         plot = False
 
         # ex_laplace.import.begin
-        import numpy as np
         from numba import cuda
         # ex_laplace.import.end
 

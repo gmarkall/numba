@@ -1,4 +1,3 @@
-import numpy as np
 from numba import vectorize
 from numba import cuda, float64
 from numba.cuda.testing import skip_on_cudasim, CUDATestCase

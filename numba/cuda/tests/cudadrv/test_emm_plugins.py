@@ -1,5 +1,4 @@
 import ctypes
-import numpy as np
 import weakref
 
 from numba import cuda

@@ -1,5 +1,4 @@
 import itertools
-import numpy as np
 import operator
 import re
 from numba import cuda, int64

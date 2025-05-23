@@ -31,7 +31,6 @@ def _ensure_critical_deps():
                f"{PYVERSION[0]}.{PYVERSION[1]}.")
         raise ImportError(msg)
 
-    import numpy as np
     numpy_version = extract_version(np)
 
     if numpy_version < (1, 24):

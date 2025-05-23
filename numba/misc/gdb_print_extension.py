@@ -16,7 +16,6 @@ class NumbaArrayPrinter:
 
     def to_string(self):
         try:
-            import numpy as np
             HAVE_NUMPY = True
         except ImportError:
             HAVE_NUMPY = False

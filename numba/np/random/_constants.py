@@ -1,4 +1,3 @@
-import numpy as np
 import ctypes
 
 # These constants are directly obtained from:

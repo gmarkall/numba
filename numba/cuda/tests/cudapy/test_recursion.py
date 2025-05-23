@@ -1,7 +1,6 @@
 from numba import cuda
 from numba.core.errors import TypingError
 from numba.cuda.testing import CUDATestCase, skip_on_cudasim
-import numpy as np
 import unittest
 
 

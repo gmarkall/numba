@@ -38,7 +38,6 @@ from numba.np.arrayobj import make_array
 
 from numba.core import postproc
 from numba.np.unsafe.ndarray import empty_inferred as unsafe_empty_inferred
-import numpy as np
 import operator
 import numba.misc.special
 

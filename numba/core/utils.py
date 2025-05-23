@@ -18,7 +18,6 @@ from pprint import pformat
 
 from types import ModuleType
 from importlib import import_module
-import numpy as np
 
 from inspect import signature as pysignature # noqa: F401
 from inspect import Signature as pySignature # noqa: F401

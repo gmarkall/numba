@@ -2,7 +2,6 @@ from collections import namedtuple
 import math
 from functools import reduce
 
-import numpy as np
 import operator
 import warnings
 

@@ -7,7 +7,6 @@ obtaining the pointer and numba signature.
 from types import BuiltinFunctionType
 import ctypes
 from functools import partial
-import numpy as np
 
 from numba.core import types
 from numba.core.errors import TypingError

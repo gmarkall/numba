@@ -1,6 +1,5 @@
 import unittest
 import itertools
-import numpy as np
 from numba.cuda.cudadrv.dummyarray import Array
 from numba.cuda.testing import skip_on_cudasim
 

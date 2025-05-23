@@ -175,7 +175,6 @@ class _ObjModeContextType(WithContext):
 
     Example::
 
-        import numpy as np
         from numba import njit, objmode, types
 
         def bar(x):

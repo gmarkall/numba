@@ -28,7 +28,6 @@ class TestSessionization(CUDATestCase):
 
     def test_ex_sessionize(self):
         # ex_sessionize.import.begin
-        import numpy as np
         from numba import cuda
 
         # Set the timeout to one hour

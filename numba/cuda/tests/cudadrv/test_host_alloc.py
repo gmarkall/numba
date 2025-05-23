@@ -1,4 +1,3 @@
-import numpy as np
 from numba.cuda.cudadrv import driver
 from numba import cuda
 from numba.cuda.testing import unittest, ContextResettingTestCase

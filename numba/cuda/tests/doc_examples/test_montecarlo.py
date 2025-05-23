@@ -24,7 +24,6 @@ class TestMonteCarlo(CUDATestCase):
     def test_ex_montecarlo(self):
         # ex_montecarlo.import.begin
         import numba
-        import numpy as np
         from numba import cuda
         from numba.cuda.random import (
             create_xoroshiro128p_states,

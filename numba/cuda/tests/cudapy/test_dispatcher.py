@@ -1,4 +1,3 @@
-import numpy as np
 import threading
 
 from numba import boolean, config, cuda, float32, float64, int32, int64, void

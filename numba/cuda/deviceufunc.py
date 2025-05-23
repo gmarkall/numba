@@ -8,7 +8,6 @@ import operator
 import warnings
 from functools import reduce
 
-import numpy as np
 
 from numba.np.ufunc.ufuncbuilder import _BaseUFuncBuilder, parse_identity
 from numba.core import types, sigutils

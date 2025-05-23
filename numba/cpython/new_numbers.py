@@ -2,7 +2,6 @@ import math
 import numbers
 import itertools
 
-import numpy as np
 import operator
 
 from llvmlite import ir

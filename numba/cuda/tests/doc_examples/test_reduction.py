@@ -23,7 +23,6 @@ class TestReduction(CUDATestCase):
 
     def test_ex_reduction(self):
         # ex_reduction.import.begin
-        import numpy as np
         from numba import cuda
         from numba.types import int32
         # ex_reduction.import.end

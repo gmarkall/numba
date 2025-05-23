@@ -1,4 +1,3 @@
-import numpy as np
 import operator
 from collections import namedtuple
 

@@ -1,4 +1,3 @@
-import numpy as np
 
 from numba import cuda, int32, complex128, void
 from numba.core import types

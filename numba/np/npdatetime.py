@@ -2,7 +2,6 @@
 Implementation of operations on numpy timedelta64.
 """
 
-import numpy as np
 import operator
 
 import llvmlite.ir

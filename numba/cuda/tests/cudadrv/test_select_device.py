@@ -4,7 +4,6 @@
 import threading
 from queue import Queue
 
-import numpy as np
 from numba import cuda
 from numba.cuda.testing import unittest, ContextResettingTestCase
 

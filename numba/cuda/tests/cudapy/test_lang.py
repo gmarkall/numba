@@ -3,7 +3,6 @@ Test basic language features
 
 """
 
-import numpy as np
 from numba import cuda, float64
 from numba.cuda.testing import unittest, CUDATestCase
 

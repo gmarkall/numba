@@ -1,4 +1,3 @@
-import numpy as np
 
 
 def prepare_shape_strides_dtype(shape, strides, dtype, order):
