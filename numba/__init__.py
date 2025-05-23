@@ -86,9 +86,6 @@ from numba.core.types import *
 # Re-export decorators
 from numba.core.decorators import cfunc, jit, njit, jit_module
 
-# Re-export Numpy helpers
-from numba.np.numpy_support import carray, farray, from_dtype
-
 # Re-export experimental
 from numba import experimental
 
@@ -112,7 +109,6 @@ def test(argv, **kwds):
 
 __all__ = """
     cfunc
-    from_dtype
     jit
     experimental
     njit

@@ -5,7 +5,6 @@ from llvmlite import ir
 
 from numba.core.datamodel.registry import register_default
 from numba.core import types, cgutils
-from numba.np import numpy_support
 
 
 class DataModel(object):
@@ -987,7 +986,8 @@ class RecordModel(CompositeModel):
 class UnicodeCharSeq(DataModel):
     def __init__(self, dmm, fe_type):
         super(UnicodeCharSeq, self).__init__(dmm, fe_type)
-        charty = ir.IntType(numpy_support.sizeof_unicode_char * 8)
+        SIZEOF_UNICODE_CHAR = 4  # XXX: Wrong on Windows / macOS?
+        charty = ir.IntType(SIZEOF_UNICODE_CHAR * 8)
         self._be_type = ir.ArrayType(charty, fe_type.count)
 
     def get_value_type(self):
@@ -1093,14 +1093,6 @@ class SliceModel(StructModel):
                    ('step', types.intp),
                    ]
         super(SliceModel, self).__init__(dmm, fe_type, members)
-
-
-@register_default(types.NPDatetime)
-@register_default(types.NPTimedelta)
-class NPDatetimeModel(PrimitiveModel):
-    def __init__(self, dmm, fe_type):
-        be_type = ir.IntType(64)
-        super(NPDatetimeModel, self).__init__(dmm, fe_type, be_type)
 
 
 @register_default(types.ArrayIterator)
