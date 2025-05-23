@@ -11,8 +11,6 @@ from .npytypes import *
 from .scalars import *
 from .function_type import *
 
-numpy_version = tuple(map(int, np.__version__.split('.')[:2]))
-
 # Short names
 
 pyobject = PyObject('pyobject')
@@ -52,8 +50,7 @@ void = none
 
 if config.USE_LEGACY_TYPE_SYSTEM: # type: ignore
     boolean = bool_ = Boolean('bool')
-    if numpy_version >= (2, 0):
-        bool = bool_
+    bool = bool_
 
     byte = uint8 = Integer('uint8')
     uint16 = Integer('uint16')
@@ -143,24 +140,23 @@ if config.USE_LEGACY_TYPE_SYSTEM: # type: ignore
 
     np_float_ = float32
     np_double = double = float64
-    if numpy_version < (2, 0):
-        float_ = float32
+    float_ = float32
 
     _make_signed = lambda x: globals()["int%d" % (np.dtype(x).itemsize * 8)]
     _make_unsigned = lambda x: globals()["uint%d" % (np.dtype(x).itemsize * 8)]
 
-    char = np_char = _make_signed(np.byte)
-    uchar = np_uchar = byte = _make_unsigned(np.byte)
-    short = np_short = _make_signed(np.short)
-    ushort = np_ushort = _make_unsigned(np.short)
-    int_ = np_int_ = _make_signed(np.int_)
-    uint = np_uint = _make_unsigned(np.int_)
-    intc = np_intc = _make_signed(np.intc) # C-compat int
-    uintc = np_uintc = _make_unsigned(np.uintc) # C-compat uint
-    long_ = np_long = _make_signed(np.int_)  # C-compat long
-    ulong = np_ulong = _make_unsigned(np.int_)  # C-compat ulong
-    longlong = np_longlong = _make_signed(np.longlong)
-    ulonglong = np_ulonglong = _make_unsigned(np.longlong)
+    char = np_char = int8  # _make_signed(np.byte)
+    uchar = np_uchar = uint8  # byte = _make_unsigned(np.byte)
+    short = np_short = int16  # _make_signed(np.short)
+    ushort = np_ushort = uint16  # _make_unsigned(np.short)
+    int_ = np_int_ = int32  # _make_signed(np.int_)
+    uint = np_uint = uint32  # _make_unsigned(np.int_)
+    intc = np_intc = int32  # _make_signed(np.intc) # C-compat int
+    uintc = np_uintc = uint32  # _make_unsigned(np.uintc) # C-compat uint
+    long_ = np_long = int64  # _make_signed(np.int_)  # C-compat long
+    ulong = np_ulong = uint64  # _make_unsigned(np.int_)  # C-compat ulong
+    longlong = np_longlong = int64  # _make_signed(np.longlong)
+    ulonglong = np_ulonglong = uint64  # _make_unsigned(np.longlong)
 
     all_str = '''
     int8
@@ -380,6 +376,6 @@ else:
 
 
 __all__ = all_str.split()
-if numpy_version >= (2, 0) and config.USE_LEGACY_TYPE_SYSTEM:
+if config.USE_LEGACY_TYPE_SYSTEM:
     __all__.remove('float_')
     __all__.append('bool')

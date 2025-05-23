@@ -7,54 +7,6 @@ import re
 import sys
 import warnings
 
-
-# ---------------------- WARNING WARNING WARNING ----------------------------
-# THIS MUST RUN FIRST, DO NOT MOVE... SEE DOCSTRING IN _ensure_critical_deps
-def _ensure_critical_deps():
-    """
-    Make sure the Python, NumPy and SciPy present are supported versions.
-    This has to be done _before_ importing anything from Numba such that
-    incompatible versions can be reported to the user. If this occurs _after_
-    importing things from Numba and there's an issue in e.g. a Numba c-ext, a
-    SystemError might have occurred which prevents reporting the likely cause of
-    the problem (incompatible versions of critical dependencies).
-    """
-    #NOTE THIS CODE SHOULD NOT IMPORT ANYTHING FROM NUMBA!
-
-    def extract_version(mod):
-        return tuple(map(int, mod.__version__.split('.')[:2]))
-
-    PYVERSION = sys.version_info[:2]
-
-    if PYVERSION < (3, 10):
-        msg = ("Numba needs Python 3.10 or greater. Got Python "
-               f"{PYVERSION[0]}.{PYVERSION[1]}.")
-        raise ImportError(msg)
-
-    numpy_version = extract_version(np)
-
-    if numpy_version < (1, 24):
-        msg = (f"Numba needs NumPy 1.24 or greater. Got NumPy "
-               f"{numpy_version[0]}.{numpy_version[1]}.")
-        raise ImportError(msg)
-
-    try:
-        import scipy
-    except ImportError:
-        pass
-    else:
-        sp_version = extract_version(scipy)
-        if sp_version < (1, 0):
-            msg = ("Numba requires SciPy version 1.0 or greater. Got SciPy "
-                   f"{scipy.__version__}.")
-            raise ImportError(msg)
-
-
-_ensure_critical_deps()
-# END DO NOT MOVE
-# ---------------------- WARNING WARNING WARNING ----------------------------
-
-
 from ._version import get_versions
 from numba.misc.init_utils import generate_version_info
 
