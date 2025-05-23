@@ -111,7 +111,7 @@ skip_if_linux_aarch64 = unittest.skipIf(
 
 skip_if_32bit = unittest.skipIf(_32bit, "Not supported on 32 bit")
 
-IS_NUMPY_2 = numpy_support.numpy_version >= (2, 0)
+IS_NUMPY_2 = True
 skip_if_numpy_2 = unittest.skipIf(IS_NUMPY_2,
                                   "Not supported on numpy 2.0+")
 

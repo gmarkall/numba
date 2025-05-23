@@ -58,7 +58,7 @@ def make_timsort_impl(wrap, make_temp_area):
 
     make_temp_area = wrap(make_temp_area)
     intp = types.intp
-    zero = intp(0)
+    zero = 0  # XXX: compiler-core: was intp(0) - should this work?
 
     @wrap
     def has_values(keys, values):

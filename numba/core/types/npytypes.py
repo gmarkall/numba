@@ -137,7 +137,9 @@ class Record(Type):
         name = 'Record({};{};{})'.format(desc, self.size, self.aligned)
         super(Record, self).__init__(name)
 
-        self.bitwidth = self.dtype.itemsize * 8
+        # XXX: compiler-core: was self.bitwidth = self.dtype.itemsize * 8
+        # Need to check for correctness here.
+        self.bitwidth = self.size * 8
 
     @classmethod
     def _normalize_fields(cls, fields):

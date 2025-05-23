@@ -138,8 +138,8 @@ def as_dtype(nbtype):
 
     # XXX: compiler-core: initialize this once
     _as_dtype_letters = {
-        types.NPDatetime: 'M8',
-        types.NPTimedelta: 'm8',
+        # types.NPDatetime: 'M8',
+        # types.NPTimedelta: 'm8',
         types.CharSeq: 'S',
         types.UnicodeCharSeq: 'U',
     }
