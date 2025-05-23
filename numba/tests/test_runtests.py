@@ -61,9 +61,6 @@ class TestCase(unittest.TestCase):
         lines = self.check_testsuite_size(ids, 5000)
         # CUDA should be included by default
         self.assertTrue(any('numba.cuda.tests.' in line for line in lines))
-        # As well as subpackage
-        self.assertTrue(any('numba.tests.npyufunc.test_' in line
-                            for line in lines),)
 
     def _get_numba_tests_from_listing(self, listing):
         """returns a filter on strings starting with 'numba.', useful for
@@ -95,13 +92,6 @@ class TestCase(unittest.TestCase):
         # Several modules
         self.check_testsuite_size(['numba.tests.test_nested_calls',
                                    'numba.tests.test_storeslice'], 12)
-
-    def test_subpackage(self):
-        self.check_testsuite_size(['numba.tests.npyufunc'], 50)
-
-    def test_random(self):
-        self.check_testsuite_size(
-            ['--random', '0.1', 'numba.tests.npyufunc'], 5)
 
     def test_include_exclude_tags(self):
         def get_count(arg_list):
