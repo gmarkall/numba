@@ -37,7 +37,7 @@ class Integer(Number):
         self.signed = signed
 
     def can_convert_to(self, typingctx, other):
-        if type(self) == type(other) and self.signed == other.signed:
+        if isinstance(other, Integer) and self.signed == other.signed:
             if self.bitwidth <= other.bitwidth:
                 return Conversion.safe
             else:
