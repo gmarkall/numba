@@ -12,13 +12,11 @@ import llvmlite.ir as ir
 
 import operator
 
-from numba.np import arrayobj, ufunc_db, numpy_support
+from numba.np import arrayobj, numpy_support
 from numba.core.imputils import (Registry, impl_ret_new_ref, force_error_model,
                                  impl_ret_borrowed)
 from numba.core import typing, types, utils, cgutils, callconv, config
-from numba.np.numpy_support import (
-    ufunc_find_matching_loop, select_array_wrapper, from_dtype, _ufunc_loop_sig
-)
+from numba.np.numpy_support import select_array_wrapper, from_dtype
 from numba.np.arrayobj import _getitem_array_generic
 from numba.core.typing import npydecl
 from numba.core.extending import overload, intrinsic
@@ -760,9 +758,6 @@ def register_ufuncs(ufuncs, lower):
                 raise RuntimeError("There shouldn't be any non-unary or binary operators")
 
 
-register_ufuncs(ufunc_db.get_ufuncs(), registry.lower)
-
-
 @intrinsic
 def _make_dtype_object(typingctx, desc):
     """Given a string or NumberClass description *desc*, returns the dtype object.
@@ -787,14 +782,3 @@ def _make_dtype_object(typingctx, desc):
         # Convert the str description into np.dtype then to numba type.
         nb_type = from_dtype(np.dtype(thestr))
         return from_nb_type(nb_type)
-
-@overload(np.dtype)
-def numpy_dtype(desc):
-    """Provide an implementation so that numpy.dtype function can be lowered.
-    """
-    if isinstance(desc, (types.Literal, types.functions.NumberClass)):
-        def imp(desc):
-            return _make_dtype_object(desc)
-        return imp
-    else:
-        raise errors.NumbaTypeError('unknown dtype descriptor: {}'.format(desc))

@@ -756,12 +756,6 @@ def has_no_side_effect(rhs, lives, call_table):
               (call_list[0]._name == 'empty_inferred' or
                call_list[0]._name == 'unsafe_empty_inferred')):
             return True
-        from numba.core.registry import CPUDispatcher
-        from numba.np.linalg import dot_3_mv_check_args
-        if isinstance(call_list[0], CPUDispatcher):
-            py_func = call_list[0].py_func
-            if py_func == dot_3_mv_check_args:
-                return True
         for f in remove_call_handlers:
             if f(rhs, lives, call_list):
                 return True
