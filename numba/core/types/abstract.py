@@ -289,9 +289,13 @@ class Number(Hashable):
 
             # There exists only an unsafe conversion from one type to the other
             # XXX should we return pyobject instead?
-            msg = ("Cannot unify {{{first}, {second}}}\n"
-                   "{first}->{second}::{forward}\n"
-                   "{second}->{first}::{backward} ")
+            if forward is not None:
+                forward = Conversion(forward).name
+            if backward is not None:
+                backward = Conversion(backward).name
+            msg = ("Cannot unify {{{self}, {other}}}\n"
+                   "{self}->{other}::{forward}\n"
+                   "{other}->{self}::{backward} ")
             raise AssertionError(msg.format(**locals()))
 
 
