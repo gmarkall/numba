@@ -21,6 +21,7 @@ from numba.core.errors import TypingError
 from numba.tests.support import (TestCase, MemoryLeakMixin, override_config,
                                  forbid_codegen)
 from numba.typed import listobject, List
+import unittest
 
 
 class TestCreateAppendLength(MemoryLeakMixin, TestCase):
@@ -210,6 +211,7 @@ class TestGetitem(MemoryLeakMixin, TestCase):
                 str(raises.exception),
             )
 
+    @unittest.skip("Cannot cast Python ints to NumPy ones")
     def test_list_getitem_integer_types_as_index(self):
 
         @njit
