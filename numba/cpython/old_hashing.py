@@ -713,7 +713,7 @@ def _Py_HashBytes(val, _len):
         # /* Optimize hashing of very small strings with inline DJBX33A. */
         _hash = _Py_uhash_t(5381)  # /* DJBX33A starts with 5381 */
         for idx in range(_len):
-            _hash = ((_hash << 5) + _hash) + np.uint8(grab_byte(val, idx))
+            _hash = ((_hash << 5) + _hash) + types.uint8(grab_byte(val, idx))
 
         _hash ^= _len
         _hash ^= _load_hashsecret('djbx33a_suffix')

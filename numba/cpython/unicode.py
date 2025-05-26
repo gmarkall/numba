@@ -64,7 +64,7 @@ from numba.cpython.unicode_support import (_Py_TOUPPER, _Py_TOLOWER, _Py_UCS4,
 from numba.cpython import slicing
 
 # XXX: compiler-core: potential circular import problems, beware!
-from numba.np.arrayobj import np_zeros
+from numba.np.arrayobj import np_empty, np_zeros
 
 if PYVERSION in ((3, 10), (3, 11)):
     from numba.core.pythonapi import PY_UNICODE_WCHAR_KIND
@@ -2298,7 +2298,7 @@ def _gen_unicode_upper_or_lower(lower):
     def _do_upper_or_lower(data, length, res, maxchars):
         k = 0
         for idx in range(length):
-            mapped = np.zeros(3, dtype=_Py_UCS4)
+            mapped = np_zeros(3, dtype=_Py_UCS4)
             code_point = _get_code_point(data, idx)
             if lower:
                 n_res = _lower_ucs4(code_point, data, length, idx, mapped)
@@ -2420,7 +2420,7 @@ def _unicode_title(data, length, res, maxchars):
     """This is a translation of the function that titles a unicode string."""
     k = 0
     previous_cased = False
-    mapped = np.empty(3, dtype=_Py_UCS4)
+    mapped = np_empty(3, dtype=_Py_UCS4)
     for idx in range(length):
         mapped.fill(0)
         code_point = _get_code_point(data, idx)
@@ -2482,7 +2482,7 @@ def _ascii_swapcase(data, res):
 def _unicode_swapcase(data, length, res, maxchars):
     k = 0
     maxchar = 0
-    mapped = np.empty(3, dtype=_Py_UCS4)
+    mapped = np_empty(3, dtype=_Py_UCS4)
     for idx in range(length):
         mapped.fill(0)
         code_point = _get_code_point(data, idx)

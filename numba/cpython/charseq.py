@@ -122,8 +122,10 @@ def _get_code_impl(a):
         return bytes_get_code
     elif isinstance(a, types.UnicodeCharSeq):
         return unicode_charseq_get_code
-    elif isinstance(a, types.UnicodeType):
-        return unicode_get_code
+    # XXX: compiler-core: suspect this was wrong? Should not be used for a
+    # UnicodeType operation?
+    #elif isinstance(a, types.UnicodeType):
+    #    return unicode_get_code
 
 
 def _same_kind(a, b):
@@ -437,6 +439,7 @@ def charseq_eq(a, b):
     left_code = _get_code_impl(a)
     right_code = _get_code_impl(b)
     if left_code is not None and right_code is not None:
+        breakpoint()
         def eq_impl(a, b):
             n = len(a)
             if n != len(b):
