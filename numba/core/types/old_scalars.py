@@ -36,16 +36,6 @@ class Integer(Number):
         self.bitwidth = bitwidth
         self.signed = signed
 
-    def can_convert_to(self, typingctx, other):
-        if type(self) == type(other) and self.signed == other.signed:
-            if self.bitwidth <= other.bitwidth:
-                return Conversion.safe
-            else:
-                return Conversion.unsafe
-
-    def can_convert_from(self, typingctx, other):
-        return other.can_convert_to(typingctx, self)
-
     @classmethod
     def from_bitwidth(cls, bitwidth, signed=True):
         name = ('int%d' if signed else 'uint%d') % bitwidth

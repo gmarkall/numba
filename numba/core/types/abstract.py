@@ -254,49 +254,19 @@ class Number(Hashable):
         """
         Unify the two number types using Numpy's rules.
         """
-        from numba.np import numpy_support
+        #from numba.np import numpy_support
+        from numba.core.types.promote_types import PROMOTE_TYPES
         if isinstance(other, Number):
-            from numba.core import types # XXX: compiler-core: Quick attempt to
-                                         # pre-empt a circular import due to
-                                         # hack / bodge below
-
-            # XXX: compiler-core: Bodge up our own conversion logic instead,
-            # since we can no longer use NumPy's. Original code below:
-            #
-            # # XXX: this can produce unsafe conversions,
-            # # e.g. would unify {int64, uint64} to float64
-            # a = numpy_support.as_dtype(self)
-            # b = numpy_support.as_dtype(other)
-            # sel = np.promote_types(a, b)
-            # return numpy_support.from_dtype(sel)
-            #
-            # XXX: compiler-core: Ideally we would replace this with the same
-            # logic as PyArray_PromoteTypes, so that we are consistent.
-            #
-            # compiler-core implementation follows (based on old Numba logic,
-            # see d776c86560 and 83d983c5a6:
-
-            # Original description: "Other types with simple coercion rules"
-            forward = self.can_convert_to(typingctx, other)
-            backward = other.can_convert_to(typingctx, self)
-
-            if forward is not None and forward <= Conversion.safe:
-                return other
-            elif backward is not None and backward <= Conversion.safe:
-                return self
-            if forward is None and backward is None:
-                return types.pyobject
-
-            # There exists only an unsafe conversion from one type to the other
-            # XXX should we return pyobject instead?
-            if forward is not None:
-                forward = Conversion(forward).name
-            if backward is not None:
-                backward = Conversion(backward).name
-            msg = ("Cannot unify {{{self}, {other}}}\n"
-                   "{self}->{other}::{forward}\n"
-                   "{other}->{self}::{backward} ")
-            raise AssertionError(msg.format(**locals()))
+            # XXX: this can produce unsafe conversions,
+            # e.g. would unify {int64, uint64} to float64
+            try:
+                return PROMOTE_TYPES[self, other]
+            except KeyError:
+                return None
+            #a = numpy_support.as_dtype(self)
+            #b = numpy_support.as_dtype(other)
+            #sel = np.promote_types(a, b)
+            #return numpy_support.from_dtype(sel)
 
 
 class Callable(Type):
