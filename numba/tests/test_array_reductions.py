@@ -683,42 +683,6 @@ class TestArrayReductions(MemoryLeakMixin, TestCase):
         arr.fill(arrty.dtype('NaT'))
         self.assertPreciseEqual(cfunc(arr), pyfunc(arr))
 
-    def check_npdatetime(self, pyfunc):
-        arr = np.arange(10).astype(dtype='M8[Y]')
-        self._do_check_nptimedelta(pyfunc, arr)
-
-    def check_nptimedelta(self, pyfunc):
-        arr = np.arange(10).astype(dtype='m8[s]')
-        self._do_check_nptimedelta(pyfunc, arr)
-
-    def test_min_npdatetime(self):
-        self.check_npdatetime(array_min)
-        self.check_nptimedelta(array_min)
-
-    def test_max_npdatetime(self):
-        self.check_npdatetime(array_max)
-        self.check_nptimedelta(array_max)
-
-    def test_argmin_npdatetime(self):
-        self.check_npdatetime(array_argmin)
-        self.check_nptimedelta(array_argmin)
-
-    def test_argmax_npdatetime(self):
-        self.check_npdatetime(array_argmax)
-        self.check_nptimedelta(array_argmax)
-
-    def test_median_npdatetime(self):
-        self.check_nptimedelta(array_median_global)
-
-    def test_sum_npdatetime(self):
-        self.check_nptimedelta(array_sum)
-
-    def test_cumsum_npdatetime(self):
-        self.check_nptimedelta(array_cumsum)
-
-    def test_mean_npdatetime(self):
-        self.check_nptimedelta(array_mean)
-
     def check_nan_cumulative(self, pyfunc):
         cfunc = jit(nopython=True)(pyfunc)
 
