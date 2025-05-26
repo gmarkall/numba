@@ -4,6 +4,7 @@ Provide math calls that uses intrinsics or libc math functions.
 
 import math
 import operator
+import struct
 import sys
 
 import llvmlite.ir
@@ -24,17 +25,17 @@ lower = registry.lower
 # Helpers, shared with cmathimpl.
 # XXX: compiler-core: unused?
 # _NP_FLT_FINFO = np.finfo(np.dtype('float32'))
-# FLT_MAX = _NP_FLT_FINFO.max
-# FLT_MIN = _NP_FLT_FINFO.tiny
+FLT_MAX = struct.unpack('>f', b'\x7f\x7f\xff\xff')[0]
+FLT_MIN = struct.unpack('>f', b'\x00\x80\x00\x00')[0]
 # 
 # _NP_DBL_FINFO = np.finfo(np.dtype('float64'))
-# DBL_MAX = _NP_DBL_FINFO.max
-# DBL_MIN = _NP_DBL_FINFO.tiny
+DBL_MAX = struct.unpack('>d', b'\x7f\xef\xff\xff\xff\xff\xff\xff')[0]
+DBL_MIN = struct.unpack('>d', b'\x00\x10\x00\x00\x00\x00\x00\x00')[0]
 # 
-# FLOAT_ABS_MASK = 0x7fffffff
-# FLOAT_SIGN_MASK = 0x80000000
-# DOUBLE_ABS_MASK = 0x7fffffffffffffff
-# DOUBLE_SIGN_MASK = 0x8000000000000000
+FLOAT_ABS_MASK = 0x7fffffff
+FLOAT_SIGN_MASK = 0x80000000
+DOUBLE_ABS_MASK = 0x7fffffffffffffff
+DOUBLE_SIGN_MASK = 0x8000000000000000
 
 
 def is_nan(builder, val):
