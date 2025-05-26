@@ -880,7 +880,7 @@ class MinMaxBase(AbstractTemplate):
 
     def _unify_minmax(self, tys):
         for ty in tys:
-            if not isinstance(ty, (types.Number, types.NPDatetime, types.NPTimedelta)):
+            if not isinstance(ty, types.Number):
                 return
         return self.context.unify_types(*tys)
 

@@ -281,7 +281,8 @@ def _malloc_string(typingctx, kind, char_bytes, length, is_ascii):
 def _empty_string(kind, length, is_ascii=0):
     char_width = _kind_to_byte_width(kind)
     s = _malloc_string(kind, char_width, length, is_ascii)
-    _set_code_point(s, length, np.uint32(0))    # Write NULL character
+    # XXX: compiler-core: Was np.uint32(0)
+    _set_code_point(s, length, 0)    # Write NULL character
     return s
 
 
