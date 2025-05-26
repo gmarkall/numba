@@ -408,12 +408,89 @@ def unbox_string_literal(typ, obj, c):
 # NOTE: boxing functions are supposed to steal any NRT references in
 # the given native value.
 
+# XXX: compiler-core: Copied from numpy_support.py for a private version I
+# don't need to set a breakpoint on
+def _private_as_dtype(nbtype):
+    """
+    Return a numpy dtype instance corresponding to the given Numba type.
+    NotImplementedError is if no correspondence is known.
+    """
+    # XXX: compiler-core: This is what we need to eliminate when we box with
+    # DLPack
+    from numpy import dtype
+
+    # XXX: compiler-core: initialize this once
+    _as_dtype_letters = {
+        # types.NPDatetime: 'M8',
+        # types.NPTimedelta: 'm8',
+        types.CharSeq: 'S',
+        types.UnicodeCharSeq: 'U',
+    }
+
+    nbtype = types.unliteral(nbtype)
+    if isinstance(nbtype, (types.Complex, types.Integer, types.Float)):
+        return dtype(str(nbtype))
+    if isinstance(nbtype, (types.Boolean)):
+        return dtype('?')
+    if isinstance(nbtype, (types.CharSeq, types.UnicodeCharSeq)):
+        letter = _as_dtype_letters[type(nbtype)]
+        return dtype('%s%d' % (letter, nbtype.count))
+    if isinstance(nbtype, types.Record):
+        fields, align =  _private_as_struct_dtype(nbtype)
+        return dtype(fields, align=align)
+    if isinstance(nbtype, types.EnumMember):
+        return dtype(nbtype.dtype)
+    if isinstance(nbtype, types.npytypes.DType):
+        return dtype(nbtype.dtype)
+    if isinstance(nbtype, types.NumberClass):
+        return dtype(nbtype.dtype)
+    if isinstance(nbtype, types.NestedArray):
+        spec = (as_dtype(nbtype.dtype), tuple(nbtype.shape))
+        return dtype(spec)
+    if isinstance(nbtype, types.PyObject):
+        return dtype(object)
+
+    msg = f"{nbtype} cannot be represented as a NumPy dtype"
+    raise errors.NumbaNotImplementedError(msg)
+
+def _private_as_struct_dtype(rec):
+    """Convert Numba Record type to NumPy structured dtype
+    """
+    assert isinstance(rec, types.Record)
+    names = []
+    formats = []
+    offsets = []
+    titles = []
+    # Fill the fields if they are not a title.
+    for k, t in rec.members:
+        if not rec.is_title(k):
+            names.append(k)
+            formats.append(as_dtype(t))
+            offsets.append(rec.offset(k))
+            titles.append(rec.fields[k].title)
+
+    fields = {
+        'names': names,
+        'formats': formats,
+        'offsets': offsets,
+        'itemsize': rec.size,
+        'titles': titles,
+    }
+    # XXX: compiler-core: should check this!
+    # _check_struct_alignment(rec, fields)
+    return (fields, rec.aligned)
+
+
+
+
 @box(types.Array)
 def box_array(typ, val, c):
     nativearycls = c.context.make_array(typ)
     nativeary = nativearycls(c.context, c.builder, value=val)
     if c.context.enable_nrt:
-        np_dtype = numpy_support.as_dtype(typ.dtype)
+        # XXX: compiler-core: critical: Need to implement a DLPack object
+        # instead
+        np_dtype = _private_as_dtype(typ.dtype)
         dtypeptr = c.env_manager.read_const(c.env_manager.add_const(np_dtype))
         newary = c.pyapi.nrt_adapt_ndarray_to_python(typ, val, dtypeptr)
         # Steals NRT ref
@@ -474,7 +551,9 @@ def unbox_array(typ, obj, c):
     # TODO: here we have minimal typechecking by the itemsize.
     #       need to do better
     try:
-        expected_itemsize = numpy_support.as_dtype(typ.dtype).itemsize
+        # XXX: compiler-core: Need to implement this
+        #expected_itemsize = numpy_support.as_dtype(typ.dtype).itemsize
+        raise NumbaNotImplementedError("TODO")
     except NumbaNotImplementedError:
         # Don't check types that can't be `as_dtype()`-ed
         itemsize_mismatch = cgutils.false_bit

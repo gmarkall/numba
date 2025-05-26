@@ -25,6 +25,8 @@ from numba.core.errors import (RequireLiteralValue, TypingError,
                                NumbaTypeError)
 from numba.cpython.unsafe.tuple import tuple_setitem
 
+# XXX: compiler-core: additions for internal use
+from numba.np_internal import np_empty, np_nditer
 
 _HAVE_BLAS = False
 
@@ -453,10 +455,7 @@ def npy_min(a):
     if not isinstance(a, types.Array):
         return
 
-    if isinstance(a.dtype, (types.NPDatetime, types.NPTimedelta)):
-        pre_return_func = np.isnat
-        comparator = min_comparator
-    elif isinstance(a.dtype, types.Complex):
+    if isinstance(a.dtype, types.Complex):
         pre_return_func = return_false
 
         def comp_func(a, min_val):
@@ -469,7 +468,7 @@ def npy_min(a):
 
         comparator = register_jitable(comp_func)
     elif isinstance(a.dtype, types.Float):
-        pre_return_func = np.isnan
+        pre_return_func = math.isnan
         comparator = min_comparator
     else:
         pre_return_func = return_false
@@ -480,7 +479,7 @@ def npy_min(a):
             raise ValueError("zero-size array to reduction operation "
                              "minimum which has no identity")
 
-        it = np.nditer(a)
+        it = np_nditer(a)
         min_value = next(it).take(0)
         if pre_return_func(min_value):
             return min_value
@@ -501,10 +500,7 @@ def npy_max(a):
     if not isinstance(a, types.Array):
         return
 
-    if isinstance(a.dtype, (types.NPDatetime, types.NPTimedelta)):
-        pre_return_func = np.isnat
-        comparator = max_comparator
-    elif isinstance(a.dtype, types.Complex):
+    if isinstance(a.dtype, types.Complex):
         pre_return_func = return_false
 
         def comp_func(a, max_val):
@@ -517,7 +513,7 @@ def npy_max(a):
 
         comparator = register_jitable(comp_func)
     elif isinstance(a.dtype, types.Float):
-        pre_return_func = np.isnan
+        pre_return_func = math.isnan
         comparator = max_comparator
     else:
         pre_return_func = return_false
@@ -528,7 +524,7 @@ def npy_max(a):
             raise ValueError("zero-size array to reduction operation "
                              "maximum which has no identity")
 
-        it = np.nditer(a)
+        it = np_nditer(a)
         max_value = next(it).take(0)
         if pre_return_func(max_value):
             return max_value
@@ -610,9 +606,7 @@ def array_argmin_impl_generic(arry):
 
 @overload_method(types.Array, "argmin")
 def array_argmin(a, axis=None):
-    if isinstance(a.dtype, (types.NPDatetime, types.NPTimedelta)):
-        flatten_impl = array_argmin_impl_datetime
-    elif isinstance(a.dtype, types.Float):
+    if isinstance(a.dtype, types.Float):
         flatten_impl = array_argmin_impl_float
     else:
         flatten_impl = array_argmin_impl_generic
@@ -657,12 +651,12 @@ def array_argmax_impl_float(arry):
         max_value = v
         max_idx = 0
         break
-    if np.isnan(max_value):
+    if math.isnan(max_value):
         return max_idx
 
     idx = 0
     for v in arry.flat:
-        if np.isnan(v):
+        if math.isnan(v):
             return idx
         if v > max_value:
             max_value = v
@@ -723,7 +717,7 @@ def build_argmax_or_argmin_with_axis_impl(a, axis, flatten_impl):
         raveled = transposed_arr.ravel()
         assert raveled.size == a.size
         assert transposed_arr.size % m == 0
-        out = np.empty(transposed_arr.size // m, retty)
+        out = np_empty(transposed_arr.size // m, retty)
         for i in range(out.size):
             out[i] = flatten_impl(raveled[i * m:(i + 1) * m])
 
@@ -735,9 +729,7 @@ def build_argmax_or_argmin_with_axis_impl(a, axis, flatten_impl):
 
 @overload_method(types.Array, "argmax")
 def array_argmax(a, axis=None):
-    if isinstance(a.dtype, (types.NPDatetime, types.NPTimedelta)):
-        flatten_impl = array_argmax_impl_datetime
-    elif isinstance(a.dtype, types.Float):
+    if isinstance(a.dtype, types.Float):
         flatten_impl = array_argmax_impl_float
     else:
         flatten_impl = array_argmax_impl_generic
@@ -755,7 +747,7 @@ def array_argmax(a, axis=None):
 @overload_method(types.Array, "all")
 def np_all(a):
     def flat_all(a):
-        for v in np.nditer(a):
+        for v in np_nditer(a):
             if not v.item():
                 return False
         return True
@@ -859,7 +851,7 @@ def np_allclose(a, b, rtol=1e-05, atol=1e-08, equal_nan=False):
 @overload_method(types.Array, "any")
 def np_any(a):
     def flat_any(a):
-        for v in np.nditer(a):
+        for v in np_nditer(a):
             if v.item():
                 return True
         return False

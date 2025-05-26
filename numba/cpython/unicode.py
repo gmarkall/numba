@@ -1,3 +1,4 @@
+import math
 import sys
 import operator
 
@@ -2570,7 +2571,10 @@ def unicode_repr(s):
 @overload_method(types.Integer, "__str__")
 def integer_str(n):
 
-    ten = n(10)
+    # XXX: compiler-core: push into implementation to avoid trying to construct
+    # NumPy scalar
+    # ten = n(10)
+    ntype = n
 
     def impl(n):
         flag = False
@@ -2579,7 +2583,7 @@ def integer_str(n):
             flag = True
         if n == 0:
             return '0'
-        length = flag + 1 + int(np.floor(np.log10(n)))
+        length = flag + 1 + int(math.floor(math.log10(n)))
         kind = PY_UNICODE_1BYTE_KIND
         char_width = _kind_to_byte_width(kind)
         s = _malloc_string(kind, char_width, length, True)
@@ -2587,7 +2591,7 @@ def integer_str(n):
             _set_code_point(s, 0, ord('-'))
         idx = length - 1
         while n > 0:
-            n, digit = divmod(n, ten)
+            n, digit = divmod(n, ntype(10))
             c = ord('0') + digit
             _set_code_point(s, idx, c)
             idx -= 1

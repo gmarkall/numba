@@ -11,6 +11,8 @@ from numba.np.numpy_support import (as_dtype, from_dtype, resolve_output_type,
 from numba.core.errors import (TypingError, NumbaPerformanceWarning,
                                NumbaTypeError, NumbaAssertionError)
 
+from numba.np_internal import np_nditer
+
 registry = Registry()
 infer = registry.register
 infer_global = registry.register_global
@@ -241,6 +243,25 @@ def _check_linalg_matrix(a, func_name):
 
 # -----------------------------------------------------------------------------
 # Miscellaneous functions
+
+
+@infer_global(np_nditer)
+class NdIter(AbstractTemplate):
+
+    def generic(self, args, kws):
+        assert not kws
+        if len(args) != 1:
+            return
+        arrays, = args
+
+        if isinstance(arrays, types.BaseTuple):
+            if not arrays:
+                return
+            arrays = list(arrays)
+        else:
+            arrays = [arrays]
+        nditerty = types.NumpyNdIterType(arrays)
+        return signature(nditerty, *args)
 
 
 @infer_global(operator.eq)

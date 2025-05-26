@@ -39,6 +39,10 @@ def typeof_impl(val, c):
     """
     Generic typeof() implementation.
     """
+    tp = _typeof_array_interface(val, c)
+    if tp is not None:
+        return tp
+
     tp = _typeof_buffer(val, c)
     if tp is not None:
         return tp
@@ -57,6 +61,102 @@ def typeof_impl(val, c):
             return types.ffi
 
     return None
+
+
+# XXX: compiler-core: Adapted from CUDA Array Interface code
+def prepare_shape_strides_dtype(shape, strides, dtype, order):
+    if isinstance(shape, int):
+        shape = (shape,)
+    if isinstance(strides, int):
+        strides = (strides,)
+    else:
+        strides = strides or _fill_stride_by_order(shape, dtype, order)
+    return shape, strides, dtype
+
+
+def _fill_stride_by_order(shape, dtype, order):
+    nd = len(shape)
+    if nd == 0:
+        return ()
+    strides = [0] * nd
+    if order == "C":
+        strides[-1] = dtype.itemsize
+        for d in reversed(range(nd - 1)):
+            strides[d] = strides[d + 1] * shape[d + 1]
+    elif order == "F":
+        strides[0] = dtype.itemsize
+        for d in range(1, nd):
+            strides[d] = strides[d - 1] * shape[d - 1]
+    else:
+        raise ValueError("must be either C/F order")
+    return tuple(strides)
+
+
+def _typeof_array_interface(val, c):
+    desc = getattr(val, "__array_interface__", None)
+    if desc is None:
+        return
+
+    from numba.core import types
+    TYPE_MAP = {
+        '?': types.bool,
+        'b': types.int8,
+        'B': types.uint8,
+        'i1': types.int8,
+        'i2': types.int16,
+        'i4': types.int32,
+        'i8': types.int64,
+        'u1': types.int8,
+        'u2': types.int16,
+        'u4': types.int32,
+        'u8': types.int64,
+        'f2': types.float16,
+        'f4': types.float32,
+        'f8': types.float64,
+        'c8': types.complex64,
+        'c16': types.complex128,
+        'O': types.pyobject,
+    }
+
+    dtype = desc["typestr"]
+    if dtype[0] in "<|=":
+        dtype = dtype[1:]
+    else:
+        print(f"Unexpected endianness {dtype[0]}!")
+        return None
+
+    dtype = TYPE_MAP.get(dtype, None)
+    if dtype is None:
+        return
+
+    shape = desc["shape"]
+    ndim = len(shape)
+    strides = desc.get("strides", None)
+
+    # Compute contiguity
+    itemsize = dtype.bitwidth // 8
+    laststride = itemsize
+    f_strides = []
+    for i, lastsize in enumerate(reversed(shape)):
+        f_strides.append(laststride)
+        laststride *= laststride
+    c_strides = [s for s in reversed(f_strides)]
+    if strides == c_strides or strides is None:
+        order = "C"
+    elif strides == f_strides:
+        order = "F"
+    else:
+        order = "A"
+
+    #shape, strides, dtype = prepare_shape_strides_dtype(shape, strides, dtype,
+    #                                                    order="C")
+
+    #start, end = mviewbuf.memoryview_get_extents_info(shape, strides, ndim, itemsize)
+    #size = end - start
+
+    #ptr = desc["data"][0]
+
+    return types.Array(dtype, ndim, order)
 
 
 def _typeof_buffer(val, c):

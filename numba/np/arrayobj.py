@@ -42,7 +42,7 @@ from numba.core.typing.npydecl import (parse_dtype as ty_parse_dtype,
                                        _choose_concatenation_layout)
 
 # XXX: compiler-core: additions for internal use
-from numba.np_internal import np_empty, np_full, np_ones, np_zeros
+from numba.np_internal import np_empty, np_full, np_nditer, np_ones, np_zeros
 
 # XXX: compiler-core: Obviously fragile!
 numpy_version = (2, 2)
@@ -3884,6 +3884,27 @@ def impl_np_full(shape, fill_value, dtype=None):
             arr_flat[idx] = fill_value
         return arr
     return full
+
+
+# XXX: compiler-core: Replacement function as it's handy for internal use
+@lower_builtin(np_nditer, types.Any)
+def make_array_nditer(context, builder, sig, args):
+    """
+    nditer(...)
+    """
+    nditerty = sig.return_type
+    arrtys = nditerty.arrays
+
+    if isinstance(sig.args[0], types.BaseTuple):
+        arrays = cgutils.unpack_tuple(builder, args[0])
+    else:
+        arrays = [args[0]]
+
+    nditer = make_nditer_cls(nditerty)(context, builder)
+    nditer.init_specific(context, builder, arrtys, arrays)
+
+    res = nditer._getvalue()
+    return impl_ret_borrowed(context, builder, nditerty, res)
 
 
 # XXX: compiler-core: Replacement function as it's handy for internal use

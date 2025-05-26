@@ -519,7 +519,9 @@ class Array(Buffer):
     def box_type(self):
         """Returns the Python type to box to.
         """
-        return np.ndarray
+        # XXX: compiler-core: critical: Need to be capsule
+        from numpy import ndarray
+        return ndarray
 
     def __repr__(self):
         return (
