@@ -63,8 +63,8 @@ from numba.cpython.unicode_support import (_Py_TOUPPER, _Py_TOLOWER, _Py_UCS4,
                                            _PyUnicode_IsDecimalDigit)
 from numba.cpython import slicing
 
-# XXX: compiler-core: potential circular import problems, beware!
-from numba.np.arrayobj import np_empty, np_zeros
+# XXX: compiler-core: replacement functions for internal use
+from numba.np_internal import np_empty, np_zeros
 
 if PYVERSION in ((3, 10), (3, 11)):
     from numba.core.pythonapi import PY_UNICODE_WCHAR_KIND

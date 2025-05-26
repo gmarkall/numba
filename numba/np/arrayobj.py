@@ -41,6 +41,9 @@ from numba.core.typing.npydecl import (parse_dtype as ty_parse_dtype,
                                        _sequence_of_arrays,
                                        _choose_concatenation_layout)
 
+# XXX: compiler-core: additions for internal use
+from numba.np_internal import np_empty, np_zeros
+
 # XXX: compiler-core: Obviously fragile!
 numpy_version = (2, 2)
 
@@ -3800,10 +3803,6 @@ def numpy_empty_nd(tyctx, ty_shape, ty_dtype, ty_retty_ref):
 
 
 # XXX: compiler-core: Replacement function for internal use
-def np_empty(shape, dtype=float):
-    pass
-
-
 @overload(np_empty)
 def ol_np_empty(shape, dtype=float):
     _check_const_str_dtype("empty", dtype)
@@ -3858,10 +3857,6 @@ def ol_array_zero_fill(self):
 
 
 # XXX: compiler-core: Replacement function as it's handy for internal use
-def np_zeros(shape, dtype=float):
-    pass
-
-
 @overload(np_zeros)
 def ol_np_zeros(shape, dtype=float):
     _check_const_str_dtype("zeros", dtype)
