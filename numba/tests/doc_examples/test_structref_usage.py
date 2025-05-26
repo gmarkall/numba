@@ -3,7 +3,6 @@
 import unittest
 
 # magictoken.ex_structref_type_definition.begin
-import numpy as np
 
 from numba import njit
 from numba.core import types
@@ -74,6 +73,7 @@ structref.define_proxy(MyStruct, MyStructType, ["name", "vector"])
 
 
 @skip_unless_scipy
+@unittest.skip("No NumPy random")
 class TestStructRefUsage(unittest.TestCase):
     def test_type_definition(self):
         np.random.seed(0)

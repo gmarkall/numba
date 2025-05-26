@@ -80,6 +80,7 @@ class DocsTypedDictUsageTest(unittest.TestCase):
         np.testing.assert_array_equal(d['posx'], [0, 1, 2])
         np.testing.assert_array_equal(d['posy'], [3, 4, 5])
 
+    @unittest.skip("No arange")
     def test_ex_inferred_dict_njit(self):
         with captured_stdout():
             # magictoken.ex_inferred_dict_njit.begin

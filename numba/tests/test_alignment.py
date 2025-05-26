@@ -8,8 +8,12 @@ from numba.tests.support import TestCase
 class TestAlignment(TestCase):
 
     def test_record_alignment(self):
-        rec_dtype = np.dtype([('a', 'int32'), ('b', 'float64')], align=True)
-        rec = from_dtype(rec_dtype)
+        # rec_dtype = np.dtype([('a', 'int32'), ('b', 'float64')], align=True)
+        # rec = from_dtype(rec_dtype)
+        rec = Record([
+            ('a', {'type': int32, 'offset': 0, 'alignment': None, 'title': None, }),
+            ('b', {'type': float64, 'offset': 8, 'alignment': None, 'title': None, })
+        ], 16, True)
 
         @njit((rec[:],))
         def foo(a):
@@ -26,8 +30,12 @@ class TestAlignment(TestCase):
         np.testing.assert_equal(a_recarray.a, a_recarray.b)
 
     def test_record_misaligned(self):
-        rec_dtype = np.dtype([('a', 'int32'), ('b', 'float64')])
-        rec = from_dtype(rec_dtype)
+        # rec_dtype = np.dtype([('a', 'int32'), ('b', 'float64')])
+        # rec = from_dtype(rec_dtype)
+        Record([
+            ('a', {'type': int32, 'offset': 0, 'alignment': None, 'title': None, }),
+            ('b', {'type': float64, 'offset': 4, 'alignment': None, 'title': None, })
+        ], 12, False)
 
         # Unlike the CUDA target, this will not generate an error
         @njit((rec[:],))

@@ -3,6 +3,7 @@
 
 import unittest
 from numba.tests.support import TestCase
+from numba.np_internal import np_zeros, np_ones
 
 
 class DocsJitclassUsageTest(TestCase):
@@ -22,7 +23,7 @@ class DocsJitclassUsageTest(TestCase):
         class Bag(object):
             def __init__(self, value):
                 self.value = value
-                self.array = np.zeros(value, dtype=np.float32)
+                self.array = np_zeros(value, dtype=np.float32)
 
             @property
             def size(self):
@@ -46,9 +47,9 @@ class DocsJitclassUsageTest(TestCase):
         np.testing.assert_allclose(mybag.array, np.zeros(n, dtype=np.float32))
         self.assertPreciseEqual(mybag.size, n)
         np.testing.assert_allclose(mybag.increment(3),
-                                   3 * np.ones(n, dtype=np.float32))
+                                   3 * np_ones(n, dtype=np.float32))
         np.testing.assert_allclose(mybag.increment(6),
-                                   9 * np.ones(n, dtype=np.float32))
+                                   9 * np_ones(n, dtype=np.float32))
         self.assertPreciseEqual(mybag.add(1, 1), 2)
         self.assertPreciseEqual(Bag.add(1, 2), 3)
 

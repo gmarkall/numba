@@ -42,7 +42,7 @@ from numba.core.typing.npydecl import (parse_dtype as ty_parse_dtype,
                                        _choose_concatenation_layout)
 
 # XXX: compiler-core: additions for internal use
-from numba.np_internal import np_empty, np_zeros
+from numba.np_internal import np_empty, np_full, np_ones, np_zeros
 
 # XXX: compiler-core: Obviously fragile!
 numpy_version = (2, 2)
@@ -3864,6 +3864,40 @@ def ol_np_zeros(shape, dtype=float):
     def impl(shape, dtype=float):
         arr = np_empty(shape, dtype=dtype)
         arr._zero_fill()
+        return arr
+    return impl
+
+
+# XXX: compiler-core: Replacement function as it's handy for internal use
+@overload(np_full)
+def impl_np_full(shape, fill_value, dtype=None):
+    _check_const_str_dtype("full", dtype)
+    if not is_nonelike(dtype):
+        nb_dtype = ty_parse_dtype(dtype)
+    else:
+        nb_dtype = fill_value
+
+    def full(shape, fill_value, dtype=None):
+        arr = np_empty(shape, nb_dtype)
+        arr_flat = arr.flat
+        for idx in range(len(arr_flat)):
+            arr_flat[idx] = fill_value
+        return arr
+    return full
+
+
+# XXX: compiler-core: Replacement function as it's handy for internal use
+@overload(np_ones)
+def ol_np_ones(shape, dtype=None):
+    # for some reason the NumPy default for dtype is None in the source but
+    # ends up as np.float64 by definition.
+    _check_const_str_dtype("ones", dtype)
+
+    def impl(shape, dtype=None):
+        arr = np_empty(shape, dtype=dtype)
+        arr_flat = arr.flat
+        for idx in range(len(arr_flat)):
+            arr_flat[idx] = 1
         return arr
     return impl
 

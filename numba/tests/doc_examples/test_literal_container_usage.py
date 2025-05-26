@@ -4,6 +4,7 @@
 import unittest
 from numba.tests.support import captured_stdout
 from numba import typed
+from numba.np_internal import np_ones
 
 
 class DocsLiteralContainerUsageTest(unittest.TestCase):
@@ -11,7 +12,6 @@ class DocsLiteralContainerUsageTest(unittest.TestCase):
     def test_ex_literal_dict_compile_time_consts(self):
         with captured_stdout():
             # magictoken.test_ex_literal_dict_compile_time_consts.begin
-            import numpy as np
             from numba import njit, types
             from numba.extending import overload
 
@@ -46,7 +46,7 @@ class DocsLiteralContainerUsageTest(unittest.TestCase):
                                        'b': 2,
                                        'c': 'cat',
                                        'd': 'dog',
-                                       'e': np.ones(5,)}
+                                       'e': np_ones(5,)}
                 return specialize(pets_ints_and_array)
 
             result = foo()

@@ -659,14 +659,8 @@ class TypingError(NumbaError):
 
 class UntypedAttributeError(TypingError):
     def __init__(self, value, attr, loc=None):
-        module = getattr(value, 'pymod', None)
-        if module is not None and module == np:
-            # unsupported numpy feature.
-            msg = ("Use of unsupported NumPy function 'numpy.%s' "
-                   "or unsupported use of the function.") % attr
-        else:
-            msg = "Unknown attribute '{attr}' of type {type}"
-            msg = msg.format(type=value, attr=attr)
+        msg = "Unknown attribute '{attr}' of type {type}"
+        msg = msg.format(type=value, attr=attr)
         super(UntypedAttributeError, self).__init__(msg, loc=loc)
 
 
