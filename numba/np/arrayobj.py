@@ -2780,7 +2780,8 @@ def constant_bytes(context, builder, ty, pyval):
     """
     Create a constant array from bytes (mechanism is target-dependent).
     """
-    buf = np.array(bytearray(pyval), dtype=np.uint8)
+    # XXX:compiler-core: was buf = np.array(bytearray(pyval), dtype=np.uint8)
+    buf = pyval
     return context.make_constant_array(builder, ty, buf)
 
 # ------------------------------------------------------------------------------
@@ -3798,6 +3799,33 @@ def numpy_empty_nd(tyctx, ty_shape, ty_dtype, ty_retty_ref):
     return sig, codegen
 
 
+# XXX: compiler-core: Replacement function for internal use
+def np_empty(shape, dtype=float):
+    pass
+
+
+@overload(np_empty)
+def ol_np_empty(shape, dtype=float):
+    _check_const_str_dtype("empty", dtype)
+    if (dtype is float or
+        (isinstance(dtype, types.Function) and dtype.typing_key is float) or
+            is_nonelike(dtype)): #default
+        nb_dtype = types.double
+    else:
+        nb_dtype = ty_parse_dtype(dtype)
+
+    ndim = ty_parse_shape(shape)
+    if nb_dtype is not None and ndim is not None:
+        retty = types.Array(dtype=nb_dtype, ndim=ndim, layout='C')
+
+        def impl(shape, dtype=float):
+            return numpy_empty_nd(shape, dtype, retty)
+        return impl
+    else:
+        msg = f"Cannot parse input types to function np.empty({shape}, {dtype})"
+        raise errors.TypingError(msg)
+
+
 @intrinsic
 def numpy_empty_like_nd(tyctx, ty_prototype, ty_dtype, ty_retty_ref):
     ty_retty = ty_retty_ref.instance_type
@@ -3826,6 +3854,22 @@ def ol_array_zero_fill(self):
     """Adds a `._zero_fill` method to zero fill an array using memset."""
     def impl(self):
         _zero_fill_array_method(self)
+    return impl
+
+
+# XXX: compiler-core: Replacement function as it's handy for internal use
+def np_zeros(shape, dtype=float):
+    pass
+
+
+@overload(np_zeros)
+def ol_np_zeros(shape, dtype=float):
+    _check_const_str_dtype("zeros", dtype)
+
+    def impl(shape, dtype=float):
+        arr = np_empty(shape, dtype=dtype)
+        arr._zero_fill()
+        return arr
     return impl
 
 

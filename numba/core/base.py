@@ -1037,19 +1037,25 @@ class BaseContext(object):
         # don't freeze ary of non-contig or bigger than 1MB
         size_limit = 10**6
 
+        # XXX: compiler-core: Modified for bytes rather than array
+        # len(ary) was ary.nbytes, used memoryview_get_buffer, etc.
         if (self.allow_dynamic_globals and
-                (typ.layout not in 'FC' or ary.nbytes > size_limit)):
+                (typ.layout not in 'FC' or len(ary) > size_limit)):
             # get pointer from the ary
-            dataptr = ary.ctypes.data
+            dataptr = mviewbuf.memoryview_get_buffer(ary, False, True)
             data = self.add_dynamic_addr(builder, dataptr, info=str(type(dataptr)))
             rt_addr = self.add_dynamic_addr(builder, id(ary), info=str(type(ary)))
         else:
             # Handle data: reify the flattened array in "C" or "F" order as a
             # global array of bytes.
-            flat = ary.flatten(order=typ.layout)
+            # XXX: compiler-core: all bytes arrays are flat.
+            #flat = ary.flatten(order=typ.layout)
+            flat = ary
             # Note: we use `bytearray(flat.data)` instead of `bytearray(flat)` to
             #       workaround issue #1850 which is due to numpy issue #3147
-            consts = cgutils.create_constant_array(llvmir.IntType(8), bytearray(flat.data))
+            # XXX: compiler-core: bytearray(flat.data) -> bytearray(flat)
+            consts = cgutils.create_constant_array(llvmir.IntType(8),
+                                                   bytearray(flat))
             data = cgutils.global_constant(builder, ".const.array.data", consts)
             # Ensure correct data alignment (issue #1933)
             data.align = self.get_abi_alignment(datatype)
@@ -1058,17 +1064,20 @@ class BaseContext(object):
 
         # Handle shape
         llintp = self.get_value_type(types.intp)
-        shapevals = [self.get_constant(types.intp, s) for s in ary.shape]
+        shapevals = [self.get_constant(types.intp, len(ary))]
+        # shapevals = [self.get_constant(types.intp, s) for s in ary.shape]
         cshape = cgutils.create_constant_array(llintp, shapevals)
 
         # Handle strides
-        stridevals = [self.get_constant(types.intp, s) for s in ary.strides]
+        stridevals = [self.get_constant(types.intp, 1)]
+        # stridevals = [self.get_constant(types.intp, s) for s in ary.strides]
         cstrides = cgutils.create_constant_array(llintp, stridevals)
 
         # Create array structure
         cary = self.make_array(typ)(self, builder)
 
-        intp_itemsize = self.get_constant(types.intp, ary.dtype.itemsize)
+        intp_itemsize = self.get_constant(types.intp, 1)
+        # intp_itemsize = self.get_constant(types.intp, ary.dtype.itemsize)
         self.populate_array(cary,
                             data=builder.bitcast(data, cary.data.type),
                             shape=cshape,

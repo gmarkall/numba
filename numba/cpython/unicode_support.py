@@ -393,7 +393,7 @@ class _PY_CTF(IntEnum):
 # From the definition in CPython's Python/pyctype.c
 # https://github.com/python/cpython/blob/1d4b6ba19466aba0eb91c4ba01ba509acf18c723/Python/pyctype.c#L5    # noqa: E501
 # XXX: compiler-core: would be better as an array
-_Py_ctype_table = [  # XXX: compiler-core: was np.array([
+_Py_ctype_table = bytes([  # XXX: compiler-core: was np.array([
     0,  # 0x0 '\x00'
     0,  # 0x1 '\x01'
     0,  # 0x2 '\x02'
@@ -530,13 +530,13 @@ _Py_ctype_table = [  # XXX: compiler-core: was np.array([
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-] # , dtype=np.intc)
+]) # , dtype=np.intc)
 
 
 # From the definition in CPython's Python/pyctype.c
 # https://github.com/python/cpython/blob/1d4b6ba19466aba0eb91c4ba01ba509acf18c723/Python/pyctype.c#L145    # noqa: E501
 # XXX: compiler-core: would be better as an array
-_Py_ctype_tolower = [ # XXX: compiler-core: was np.array([
+_Py_ctype_tolower = bytes([ # XXX: compiler-core: was np.array([
     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
     0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
     0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
@@ -569,13 +569,13 @@ _Py_ctype_tolower = [ # XXX: compiler-core: was np.array([
     0xe8, 0xe9, 0xea, 0xeb, 0xec, 0xed, 0xee, 0xef,
     0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7,
     0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff,
-] # , dtype=np.uint8)
+]) # , dtype=np.uint8)
 
 
 # From the definition in CPython's Python/pyctype.c
 # https://github.com/python/cpython/blob/1d4b6ba19466aba0eb91c4ba01ba509acf18c723/Python/pyctype.c#L180
 # XXX: compiler-core: would be better as an array
-_Py_ctype_toupper = [ # XXX: compiler-core: was np.array([
+_Py_ctype_toupper = bytes([ # XXX: compiler-core: was np.array([
     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
     0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
     0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
@@ -608,7 +608,7 @@ _Py_ctype_toupper = [ # XXX: compiler-core: was np.array([
     0xe8, 0xe9, 0xea, 0xeb, 0xec, 0xed, 0xee, 0xef,
     0xf0, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7,
     0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff,
-] # , dtype=np.uint8)
+]) # , dtype=np.uint8)
 
 
 class _PY_CTF_LB(IntEnum):
@@ -618,7 +618,7 @@ class _PY_CTF_LB(IntEnum):
 
 
 # XXX: compiler-core: would be better as an array
-_Py_ctype_islinebreak = [ # XXX: compiler-core: was np.array([
+_Py_ctype_islinebreak = bytes([ # XXX: compiler-core: was np.array([
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     _PY_CTF_LB.LINE_BREAK | _PY_CTF_LB.LINE_FEED,  # 0xa '\n'
     _PY_CTF_LB.LINE_BREAK,  # 0xb '\v'
@@ -643,7 +643,7 @@ _Py_ctype_islinebreak = [ # XXX: compiler-core: was np.array([
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     0, 0, 0,
-] # , dtype=np.intc)
+]) # , dtype=np.intc)
 
 
 # Translation of:
