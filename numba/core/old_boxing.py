@@ -1077,7 +1077,8 @@ def unbox_generator(typ, obj, c):
 
 @box(types.DType)
 def box_dtype(typ, val, c):
-    np_dtype = numpy_support.as_dtype(typ.dtype)
+    # XXX: compiler-core: boxing a NumPy type
+    np_dtype = _private_as_dtype(typ.dtype)
     return c.pyapi.unserialize(c.pyapi.serialize_object(np_dtype))
 
 @unbox(types.DType)

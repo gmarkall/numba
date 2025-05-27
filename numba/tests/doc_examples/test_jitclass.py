@@ -23,7 +23,7 @@ class DocsJitclassUsageTest(TestCase):
         class Bag(object):
             def __init__(self, value):
                 self.value = value
-                self.array = np_zeros(value, dtype=np.float32)
+                self.array = np_zeros(value, dtype=float32)
 
             @property
             def size(self):

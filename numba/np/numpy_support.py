@@ -146,7 +146,6 @@ def as_dtype(nbtype):
 
     nbtype = types.unliteral(nbtype)
     if isinstance(nbtype, (types.Complex, types.Integer, types.Float)):
-        breakpoint()
         return np.dtype(str(nbtype))
     if isinstance(nbtype, (types.Boolean)):
         return np.dtype('?')
