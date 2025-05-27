@@ -94,6 +94,10 @@ def _fill_stride_by_order(shape, dtype, order):
 
 def _typeof_array_interface(val, c):
     desc = getattr(val, "__array_interface__", None)
+
+    if desc is None:
+        desc = getattr(val, "__cuda_array_interface__", None)
+
     if desc is None:
         return
 
