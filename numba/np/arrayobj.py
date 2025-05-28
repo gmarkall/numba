@@ -5179,35 +5179,73 @@ def array_asfortranarray(a):
         return impl
 
 
-@lower_builtin("array.astype", types.Array, types.DTypeSpec)
-@lower_builtin("array.astype", types.Array, types.StringLiteral)
-def array_astype(context, builder, sig, args):
-    arytype = sig.args[0]
-    ary = make_array(arytype)(context, builder, value=args[0])
-    shapes = cgutils.unpack_tuple(builder, ary.shape)
+@overload_method(types.Array, "astype")
+def impl_array_astype(arr, dtype, copy=False):
+    dt_types = (types.DTypeSpec, types.StringLiteral, types.UnicodeType)
 
-    rettype = sig.return_type
-    ret = _empty_nd_impl(context, builder, rettype, shapes)
+    if isinstance(arr, types.Array) and isinstance(dtype, dt_types):
+        if not copy:
+            parsed_dtype = ty_parse_dtype(dtype)
+            if parsed_dtype != arr.dtype:
+                msg = f"Cannot no-copy from {arr.dtype} to {parsed_dtype}"
+                raise errors.NumbaTypeError(msg)
 
-    src_data = ary.data
-    dest_data = ret.data
+            def impl(arr, dtype, copy=False):
+                return arr
+        else:
+            def impl(arr, dtype, copy=False):
+                return _array_astype_intrinsic(arr, dtype)
 
-    src_strides = cgutils.unpack_tuple(builder, ary.strides)
-    dest_strides = cgutils.unpack_tuple(builder, ret.strides)
-    intp_t = context.get_value_type(types.intp)
+        return impl
 
-    with cgutils.loop_nest(builder, shapes, intp_t) as indices:
-        src_ptr = cgutils.get_item_pointer2(context, builder, src_data,
-                                            shapes, src_strides,
-                                            arytype.layout, indices)
-        dest_ptr = cgutils.get_item_pointer2(context, builder, dest_data,
-                                             shapes, dest_strides,
-                                             rettype.layout, indices)
-        item = load_item(context, builder, arytype, src_ptr)
-        item = context.cast(builder, item, arytype.dtype, rettype.dtype)
-        store_item(context, builder, rettype, item, dest_ptr)
 
-    return impl_ret_new_ref(context, builder, sig.return_type, ret._getvalue())
+@intrinsic
+def _array_astype_intrinsic(typingctx, arr, dtype):
+    if isinstance(dtype, types.UnicodeType):
+        raise errors.RequireLiteralValue(dtype)
+
+    parsed_dtype = ty_parse_dtype(dtype)
+    if not typingctx.can_convert(arr.dtype, parsed_dtype):
+        raise errors.TypingError("astype(%s) not supported on %s: "
+                                 "cannot convert from %s to %s"
+                                 % (dtype, arr, arr.dtype, dtype))
+
+    layout = arr.layout if arr.layout in 'CF' else 'C'
+    # reset the write bit irrespective of whether the cast type is the same
+    # as the current dtype, this replicates numpy
+    retty = arr.copy(dtype=parsed_dtype, layout=layout, readonly=False)
+    sig = signature(retty, arr, dtype)
+
+    def codegen(context, builder, sig, args):
+        arytype = sig.args[0]
+        ary = make_array(arytype)(context, builder, value=args[0])
+        shapes = cgutils.unpack_tuple(builder, ary.shape)
+
+        rettype = sig.return_type
+        ret = _empty_nd_impl(context, builder, rettype, shapes)
+
+        src_data = ary.data
+        dest_data = ret.data
+
+        src_strides = cgutils.unpack_tuple(builder, ary.strides)
+        dest_strides = cgutils.unpack_tuple(builder, ret.strides)
+        intp_t = context.get_value_type(types.intp)
+
+        with cgutils.loop_nest(builder, shapes, intp_t) as indices:
+            src_ptr = cgutils.get_item_pointer2(context, builder, src_data,
+                                                shapes, src_strides,
+                                                arytype.layout, indices)
+            dest_ptr = cgutils.get_item_pointer2(context, builder, dest_data,
+                                                 shapes, dest_strides,
+                                                 rettype.layout, indices)
+            item = load_item(context, builder, arytype, src_ptr)
+            item = context.cast(builder, item, arytype.dtype, rettype.dtype)
+            store_item(context, builder, rettype, item, dest_ptr)
+
+        return impl_ret_new_ref(context, builder, sig.return_type,
+                                ret._getvalue())
+
+    return sig, codegen
 
 
 @intrinsic

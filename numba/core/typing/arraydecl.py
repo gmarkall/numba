@@ -504,27 +504,6 @@ class ArrayAttribute(AttributeTemplate):
         retty = ary.copy(dtype=dtype)
         return signature(retty, *args)
 
-    @bound_function("array.astype")
-    def resolve_astype(self, ary, args, kws):
-        from .npydecl import parse_dtype
-        assert not kws
-        dtype, = args
-        if isinstance(dtype, types.UnicodeType):
-            raise RequireLiteralValue(("array.astype if dtype is a string it "
-                                       "must be constant"))
-        dtype = parse_dtype(dtype)
-        if dtype is None:
-            return
-        if not self.context.can_convert(ary.dtype, dtype):
-            raise TypingError("astype(%s) not supported on %s: "
-                              "cannot convert from %s to %s"
-                              % (dtype, ary, ary.dtype, dtype))
-        layout = ary.layout if ary.layout in 'CF' else 'C'
-        # reset the write bit irrespective of whether the cast type is the same
-        # as the current dtype, this replicates numpy
-        retty = ary.copy(dtype=dtype, layout=layout, readonly=False)
-        return signature(retty, *args)
-
     @bound_function("array.ravel")
     def resolve_ravel(self, ary, args, kws):
         # Only support no argument version (default order='C')
