@@ -42,7 +42,8 @@ from numba.core.typing.npydecl import (parse_dtype as ty_parse_dtype,
                                        _choose_concatenation_layout)
 
 # XXX: compiler-core: additions for internal use
-from numba.np_internal import np_empty, np_full, np_nditer, np_ones, np_zeros
+from numba.np_internal import (np_empty, np_full, np_nditer, np_ones, np_zeros,
+                               np_take, np_array)
 
 # XXX: compiler-core: Obviously fragile!
 numpy_version = (2, 2)
@@ -3973,9 +3974,9 @@ def generate_getitem_setitem_with_axis(ndim, kind):
     return register_jitable(fn)
 
 
+@overload(np_take)
 @overload_method(types.Array, 'take')
 def numpy_take(a, indices, axis=None):
-
     if cgutils.is_nonelike(axis):
         if isinstance(a, types.Array) and isinstance(indices, types.Integer):
             def take_impl(a, indices, axis=None):
@@ -3988,12 +3989,12 @@ def numpy_take(a, indices, axis=None):
             F_order = indices.layout == 'F'
 
             def take_impl(a, indices, axis=None):
-                ret = np.empty(indices.size, dtype=a.dtype)
+                ret = np_empty(indices.size, dtype=a.dtype)
                 if F_order:
                     walker = indices.copy()  # get C order
                 else:
                     walker = indices
-                it = np.nditer(walker)
+                it = np_nditer(walker)
                 i = 0
                 flat = a.ravel()
                 for x in it:
@@ -4007,8 +4008,8 @@ def numpy_take(a, indices, axis=None):
         if isinstance(a, types.Array) and \
                 isinstance(indices, (types.List, types.BaseTuple)):
             def take_impl(a, indices, axis=None):
-                convert = np.array(indices)
-                return np.take(a, convert)
+                convert = np_array(indices)
+                return np_take(a, convert)
             return take_impl
     else:
         if isinstance(a, types.Array) and isinstance(indices, types.Integer):
@@ -4030,7 +4031,7 @@ def numpy_take(a, indices, axis=None):
                 return r.reshape(tup)
 
             def take_impl(a, indices, axis=None):
-                r = np.take(a, (indices,), axis=axis)
+                r = np_take(a, (indices,), axis=axis)
                 if a.ndim == 1:
                     return r[0]
                 if axis < 0:
@@ -4056,7 +4057,7 @@ def numpy_take(a, indices, axis=None):
                     raise ValueError(msg)
 
                 shape = tuple_setitem(a.shape, axis, len(indices))
-                out = np.empty(shape, dtype=a.dtype)
+                out = np_empty(shape, dtype=a.dtype)
                 for i in range(len(indices)):
                     y = _getitem(a, indices[i], axis)
                     _setitem(out, i, axis, y)
@@ -4615,7 +4616,7 @@ def np_array_typer(typingctx, object, dtype):
 
 
 @intrinsic
-def np_array(typingctx, obj, dtype):
+def _np_array_intrinsic(typingctx, obj, dtype):
     _check_const_str_dtype("array", dtype)
     ret = np_array_typer(typingctx, obj, dtype)
     sig = ret(obj, dtype)
@@ -4638,6 +4639,21 @@ def np_array(typingctx, obj, dtype):
                                 arr._getvalue())
 
     return sig, codegen
+
+
+@overload(np_array)
+def impl_np_array(object, dtype=None):
+    _check_const_str_dtype("array", dtype)
+    if not type_can_asarray(object):
+        raise errors.TypingError('The argument "object" must '
+                                 'be array-like')
+    if not is_nonelike(dtype) and ty_parse_dtype(dtype) is None:
+        msg = 'The argument "dtype" must be a data-type if it is provided'
+        raise errors.TypingError(msg)
+
+    def impl(object, dtype=None):
+        return _np_array_intrinsic(object, dtype)
+    return impl
 
 
 def _normalize_axis(context, builder, func_name, ndim, axis):

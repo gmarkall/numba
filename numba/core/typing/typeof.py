@@ -28,6 +28,7 @@ def typeof(val, purpose=Purpose.argument):
     c = _TypeofContext(purpose)
     ty = typeof_impl(val, c)
     if ty is None:
+        #breakpoint()
         msg = _termcolor.errmsg(
             f"Cannot determine Numba type of {type(val)}")
         raise ValueError(msg)
