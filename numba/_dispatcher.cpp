@@ -4,6 +4,7 @@
 #include <ctime>
 #include <cassert>
 #include <vector>
+#include <iostream>
 
 #include "_typeof.h"
 #include "frameobject.h"
@@ -500,6 +501,21 @@ static int
 Dispatcher_traverse(Dispatcher *self, visitproc visit, void *arg)
 {
     Py_VISIT(self->defargs);
+    return 0;
+}
+
+static int
+Dispatcher_tp_clear(Dispatcher *self)
+{
+    std::cout << "Dispatcher_tp_clear" << std::endl;
+    Py_CLEAR(self->argnames);
+    Py_CLEAR(self->defargs);
+    for (PyObject*& function: self->functions) {
+      Py_CLEAR(function);
+    }
+
+    self->functions.clear();
+
     return 0;
 }
 
@@ -1578,7 +1594,7 @@ static PyTypeObject DispatcherType = {
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC, /* tp_flags*/
     "Dispatcher object",                         /* tp_doc */
     (traverseproc) Dispatcher_traverse,          /* tp_traverse */
-    0,                                           /* tp_clear */
+    (inquiry) Dispatcher_tp_clear,               /* tp_clear */
     0,                                           /* tp_richcompare */
     0,                                           /* tp_weaklistoffset */
     0,                                           /* tp_iter */

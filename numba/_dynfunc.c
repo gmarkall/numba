@@ -198,6 +198,14 @@ closure_traverse(ClosureObject *clo, visitproc visit, void *arg)
     return 0;
 }
 
+static int
+closure_clear(ClosureObject *clo, visitproc visit, void *arg)
+{
+    Py_CLEAR(clo->env);
+    Py_CLEAR(clo->keepalive);
+    return 0;
+}
+
 static void
 closure_dealloc(ClosureObject *clo)
 {
@@ -234,7 +242,7 @@ static PyTypeObject ClosureType = {
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC, /* tp_flags */
     0,                                       /* tp_doc */
     (traverseproc) closure_traverse,         /* tp_traverse */
-    0,                                       /* tp_clear */
+    (inquiry) closure_clear,                                       /* tp_clear */
     0,                                       /* tp_richcompare */
     offsetof(ClosureObject, weakreflist),    /* tp_weaklistoffset */
     0,                                       /* tp_iter */
