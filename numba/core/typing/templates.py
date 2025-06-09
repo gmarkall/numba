@@ -632,7 +632,11 @@ class _OverloadFunctionTemplate(AbstractTemplate):
             from numba.core import typed_passes, compiler
             from numba.core.inline_closurecall import InlineWorker
             fcomp = disp._compiler
-            flags = compiler.Flags()
+            cstk = targetconfig.ConfigStack()
+            if cstk:
+                flags = cstk.top()
+            else:
+                flags = compiler.Flags()
 
             # Updating these causes problems?!
             #fcomp.targetdescr.options.parse_as_flags(flags,
