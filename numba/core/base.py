@@ -824,13 +824,11 @@ class BaseContext(object):
             codegen = self.codegen()
             library = codegen.create_library(impl.__name__)
             if flags is None:
-
                 cstk = targetconfig.ConfigStack()
-                flags = compiler.Flags()
                 if cstk:
-                    tls_flags = cstk.top()
-                    if tls_flags.is_set("nrt") and tls_flags.nrt:
-                        flags.nrt = True
+                    flags = cstk.top().copy()
+                else:
+                    flags = compiler.Flags()
 
             flags.no_compile = True
             flags.no_cpython_wrapper = True
