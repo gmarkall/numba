@@ -251,7 +251,12 @@ class Number(Hashable):
     """
 
     def unify(self, typingctx, other):
-        from numba.core.types.promote_types import PROMOTE_TYPES
+        USE_CUTILE = True
+        if USE_CUTILE:
+            from numba.core.types.cutile_types import PROMOTE_TYPES
+        else:
+            from numba.core.types.promote_types import PROMOTE_TYPES
+
         return PROMOTE_TYPES.get((self, other), None)
 
 
